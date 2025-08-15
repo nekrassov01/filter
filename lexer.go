@@ -376,7 +376,8 @@ func lexStmt(l *lexer) stateFn {
 	case unicode.IsLetter(r) || r == '_':
 		return lexKeywordOrIdent
 	default:
-		return l.errorf("unexpected character %#U at %d:%d", r, l.line, l.col)
+		w := max(runewidth.RuneWidth(r), 1)
+		return l.errorf("unexpected character %#U at %d:%d", r, l.line, l.col-w)
 	}
 }
 

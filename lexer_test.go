@@ -937,12 +937,12 @@ func Test_lex(t *testing.T) {
 			},
 		},
 		{
-			name:  "invalid character",
+			name:  "invalid character 1",
 			input: "\\",
 			expected: []token{
 				{
 					typ:  tokenError,
-					val:  "unexpected character U+005C '\\' at 1:2",
+					val:  "unexpected character U+005C '\\' at 1:1",
 					pos:  0,
 					line: 1,
 					col:  1,
