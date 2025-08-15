@@ -23,6 +23,16 @@
 - Regex: `=~` / `!~` (right-hand side must be a string literal)
 - Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
 
+## Caching
+
+`filter` intentionally does a small amount of work once, so that evaluating an expression many times stays flat:
+
+- Regex literals: compiled exactly once per distinct pattern (process‑wide sync cache). Writing the same `/foo.*/` style pattern many times does not multiply compile cost.
+- Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
+- Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times (common in generated filters) does not add proportional `GetField` overhead.
+
+Net effect: expressions with high token repetition scale sub‑linearly in both time and allocations compared to naïve re‑parsing / re‑compiling approaches.
+
 ## Installation
 
 ```sh
