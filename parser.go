@@ -49,13 +49,17 @@ func (t nodeType) String() string {
 
 // node represents a node in the expression tree.
 type node struct {
-	typ   nodeType       // type of the node
-	op    tokenType      // operator for binary and comparison nodes
-	left  int            // left child index
-	right int            // right child index
-	ident string         // identifier for variable nodes
-	val   string         // value for literal nodes
-	re    *regexp.Regexp // regular expression for pattern matching
+	typ    nodeType       // type of the node
+	op     tokenType      // operator for binary and comparison nodes
+	left   int            // left child index
+	right  int            // right child index
+	ident  string         // identifier for variable nodes
+	val    string         // value for literal nodes
+	re     *regexp.Regexp // regular expression for pattern matching
+	num    float64        // cached numeric value
+	dur    time.Duration  // cached duration value
+	hasNum bool           // indicates if num is cached
+	hasDur bool           // indicates if dur is cached
 }
 
 // parser represents a parser for the expression.
@@ -65,6 +69,7 @@ type parser struct {
 	current token
 	peeked  bool
 	depth   int
+	idents  map[string]struct{} // unique identifiers encountered (for field cache sizing)
 }
 
 // expr represents an expression in the parser.
@@ -73,9 +78,13 @@ type expr struct {
 	root   int
 }
 
-// Eval evaluates the expression against a target.
+// Eval evaluates the expression against a target (per-call map cache for fields).
 func (e *expr) Eval(t Target) (bool, error) {
-	return e.parser.eval(e.root, t)
+	var cache map[string]any
+	if len(e.parser.idents) > 0 {
+		cache = make(map[string]any, len(e.parser.idents))
+	}
+	return e.parser.eval(e.root, t, cache)
 }
 
 // next returns the next token from the lexer.
@@ -209,6 +218,9 @@ func (p *parser) parseComparison() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if p.idents != nil {
+		p.idents[key.val] = struct{}{}
+	}
 	op, err := p.next()
 	if err != nil {
 		return 0, err
@@ -244,6 +256,18 @@ func (p *parser) parseComparison() (int, error) {
 			}
 			regexMap.Store(val, re)
 			p.nodes[i].re = re
+		}
+	}
+	if v.typ == tokenNumber {
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			p.nodes[i].num = f
+			p.nodes[i].hasNum = true
+		}
+	}
+	if v.typ == tokenDuration {
+		if d, err := time.ParseDuration(val); err == nil {
+			p.nodes[i].dur = d
+			p.nodes[i].hasDur = true
 		}
 	}
 	return i, nil
@@ -285,42 +309,57 @@ func (p *parser) newNodeComparison(ident string, op tokenType, val string) int {
 }
 
 // eval evaluates the expression against a target.
-func (p *parser) eval(i int, t Target) (bool, error) {
+func (p *parser) eval(i int, t Target, cache map[string]any) (bool, error) {
 	n := p.nodes[i]
 	switch n.typ {
 	case nodeBinary:
 		switch n.op {
 		case tokenAND:
-			left, err := p.eval(n.left, t)
+			left, err := p.eval(n.left, t, cache)
 			if err != nil {
 				return false, err
 			}
 			if !left {
 				return false, nil
 			}
-			return p.eval(n.right, t)
+			return p.eval(n.right, t, cache)
 		case tokenOR:
-			left, err := p.eval(n.left, t)
+			left, err := p.eval(n.left, t, cache)
 			if err != nil {
 				return false, err
 			}
 			if left {
 				return true, nil
 			}
-			return p.eval(n.right, t)
+			return p.eval(n.right, t, cache)
 		default:
 			return false, evalError("unsupported logical operator: %q", operators[n.op])
 		}
 	case nodeNot:
-		v, err := p.eval(n.left, t)
+		v, err := p.eval(n.left, t, cache)
 		if err != nil {
 			return false, err
 		}
 		return !v, nil
 	case nodeComparison:
-		field, err := t.GetField(n.ident)
-		if err != nil {
-			return false, evalError("%w", err)
+		var field any
+		if cache != nil {
+			if v, ok := cache[n.ident]; ok {
+				field = v
+			} else {
+				var err error
+				field, err = t.GetField(n.ident)
+				if err != nil {
+					return false, evalError("%w", err)
+				}
+				cache[n.ident] = field
+			}
+		} else {
+			var err error
+			field, err = t.GetField(n.ident)
+			if err != nil {
+				return false, evalError("%w", err)
+			}
 		}
 		switch v := field.(type) {
 		case string:
@@ -380,23 +419,27 @@ func (p *parser) evalString(n node, v string) (bool, error) {
 
 // evalNumber evaluates a number expression against a target.
 func (p *parser) evalNumber(n node, v float64) (bool, error) {
-	num, err := strconv.ParseFloat(n.val, 64)
-	if err != nil {
-		return false, evalError("invalid number: %q", n.val)
+	f := n.num
+	if !n.hasNum {
+		parsed, err := strconv.ParseFloat(n.val, 64)
+		if err != nil {
+			return false, evalError("invalid number: %q", n.val)
+		}
+		f = parsed
 	}
 	switch n.op {
 	case tokenGT:
-		return v > num, nil
+		return v > f, nil
 	case tokenGTE:
-		return v >= num, nil
+		return v >= f, nil
 	case tokenLT:
-		return v < num, nil
+		return v < f, nil
 	case tokenLTE:
-		return v <= num, nil
+		return v <= f, nil
 	case tokenEQ:
-		return math.Abs(v-num) <= Epsilon, nil
+		return math.Abs(v-f) <= Epsilon, nil
 	case tokenNEQ:
-		return math.Abs(v-num) > Epsilon, nil
+		return math.Abs(v-f) > Epsilon, nil
 	default:
 		return false, evalError("unsupported operator for number: %q", operators[n.op])
 	}
@@ -404,9 +447,13 @@ func (p *parser) evalNumber(n node, v float64) (bool, error) {
 
 // evalDuration evaluates a duration expression against a target.
 func (p *parser) evalDuration(n node, v time.Duration) (bool, error) {
-	d, err := time.ParseDuration(n.val)
-	if err != nil {
-		return false, evalError("invalid duration: %q", n.val)
+	d := n.dur
+	if !n.hasDur {
+		parsed, err := time.ParseDuration(n.val)
+		if err != nil {
+			return false, evalError("invalid duration: %q", n.val)
+		}
+		d = parsed
 	}
 	switch n.op {
 	case tokenGT:

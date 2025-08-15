@@ -17,8 +17,9 @@ func Parse(input string) (Expr, error) {
 		return nil, parseError("empty input")
 	}
 	parser := &parser{
-		lexer: newLexer(input),
-		nodes: make([]node, 0, 32),
+		lexer:  newLexer(input),
+		nodes:  make([]node, 0, 32),
+		idents: make(map[string]struct{}, 8),
 	}
 	root, err := parser.parseExpr()
 	if err != nil {
