@@ -11,6 +11,7 @@ linters:
     - depguard
     - dupl
     - funlen
+    - gochecknoinits
     - gocognit
     - goconst
     - gocyclo

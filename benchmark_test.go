@@ -2,6 +2,7 @@ package filter
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -70,6 +71,21 @@ Name != ""
 		SPD < 20
 	)
 )`
+
+const benchRepeat = 0
+
+func init() {
+	if benchRepeat <= 0 {
+		return
+	}
+	var sb strings.Builder
+	sb.WriteString(benchInput)
+	for i := 0; i < benchRepeat; i++ {
+		sb.WriteString("&&")
+		sb.WriteString(benchInput)
+	}
+	benchInput = sb.String()
+}
 
 func BenchmarkParse(b *testing.B) {
 	for b.Loop() {
