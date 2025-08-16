@@ -72,7 +72,7 @@ Name != ""
 	)
 )`
 
-const benchRepeat = 0
+const benchRepeat = 50
 
 func init() {
 	if benchRepeat <= 0 {
@@ -80,7 +80,7 @@ func init() {
 	}
 	var sb strings.Builder
 	sb.WriteString(benchInput)
-	for i := 0; i < benchRepeat; i++ {
+	for range benchRepeat {
 		sb.WriteString("&&")
 		sb.WriteString(benchInput)
 	}
