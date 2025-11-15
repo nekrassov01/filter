@@ -1,7 +1,7 @@
 module github.com/nekrassov01/filter
 
-go 1.24.6
+go 1.25.4
 
-require github.com/mattn/go-runewidth v0.0.16
+require github.com/mattn/go-runewidth v0.0.19
 
-require github.com/rivo/uniseg v0.2.0 // indirect
+require github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
