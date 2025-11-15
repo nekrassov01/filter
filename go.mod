@@ -1,6 +1,6 @@
 module github.com/nekrassov01/filter
 
-go 1.25.4
+go 1.25.3
 
 require github.com/mattn/go-runewidth v0.0.19
 
