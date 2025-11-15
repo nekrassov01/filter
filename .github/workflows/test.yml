@@ -60,9 +60,3 @@ jobs:
         run: |
           git diff --cached --exit-code
           go test ./... -v -cover -coverprofile=cover.Render
-
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v5
-        with:
-          name: code-coverage-report
-          path: cover.html
