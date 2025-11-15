@@ -24,7 +24,8 @@
   "[markdown]": {
     "editor.defaultFormatter": "yzhang.markdown-all-in-one",
     "editor.wordWrap": "off",
-    "files.trimTrailingWhitespace": false
+    "files.trimTrailingWhitespace": false,
+    "editor.tabSize": 8
   },
   "commentTranslate.source": "Copilot"
 }

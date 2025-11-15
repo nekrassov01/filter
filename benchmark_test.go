@@ -1,122 +1,122 @@
 package filter
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
 
-type benchTarget struct {
-	Class      string
-	Name       string
-	HitPoint   float64
-	SkillPoint float64
-	SpellPoint float64
-	LifePoint  int64
-	Strength   int64
-	Stamina    int64
-	Dexterity  int64
-	Magic      int64
-	Speed      int64
-}
+var simpleInput = `String == "HelloWorld"`
 
-func (o *benchTarget) GetField(key string) (any, error) {
-	switch key {
-	case "Class":
-		return o.Class, nil
-	case "Name":
-		return o.Name, nil
-	case "HP":
-		return o.HitPoint, nil
-	case "SP":
-		return o.SkillPoint, nil
-	case "MP":
-		return o.SpellPoint, nil
-	case "LP":
-		return o.LifePoint, nil
-	case "STR":
-		return o.Strength, nil
-	case "STA":
-		return o.Stamina, nil
-	case "DEX":
-		return o.Dexterity, nil
-	case "MAG":
-		return o.Magic, nil
-	case "SPD":
-		return o.Speed, nil
-	default:
-		return nil, fmt.Errorf("field not found: %q", key)
-	}
-}
-
-var benchInput = `Class == "軍師"
+var largeInput = `String == "HelloWorld"
 &&
-Name =~ '孔明'
+StringNumber =~ '^[0-9]+$'
 &&
-Name != ""
+Int > 40
 &&
 (
-	HP > "50"
+	Int8 < 10
 	&&
-	MP > 100
+	Int16 <= 5
 	&&
-	LP != 0
+	Int32 != 0
 )
 &&
 (
-	MAG >= 20
+	Float32 >= 2.5
 	||
 	!
 	(
-		SPD < 20
+		Float64 < 3.0
 	)
-)`
+)
+&&
+(
+	(
+		Time <= 2023-01-01T00:00:00Z
+	)
+	||
+	(
+		Duration < 2s30ms100μs1000ns
+	)
+	||
+	(
+		Bool == TRUE
+	)
+)
+`
 
-const benchRepeat = 50
-
-func init() {
-	if benchRepeat <= 0 {
-		return
-	}
-	var sb strings.Builder
-	sb.WriteString(benchInput)
-	for range benchRepeat {
-		sb.WriteString("&&")
-		sb.WriteString(benchInput)
-	}
-	benchInput = sb.String()
-}
-
-func BenchmarkParse(b *testing.B) {
+func BenchmarkParseSimple(b *testing.B) {
 	for b.Loop() {
-		_, err := Parse(benchInput)
-		if err != nil {
+		if _, err := Parse(simpleInput); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkEval(b *testing.B) {
-	target := benchTarget{
-		Class:      "軍師",
-		Name:       "諸葛亮 孔明",
-		HitPoint:   80,
-		SkillPoint: 0,
-		SpellPoint: 250,
-		LifePoint:  5,
-		Strength:   10,
-		Stamina:    10,
-		Dexterity:  10,
-		Magic:      25,
-		Speed:      25,
-	}
-	e, err := Parse(benchInput)
+func BenchmarkEvalSimple(b *testing.B) {
+	expr, err := Parse(simpleInput)
 	if err != nil {
 		b.Fatal(err)
 	}
 	for b.Loop() {
-		if ok, err := e.Eval(&target); !ok || err != nil {
+		if ok, err := expr.Eval(&testObject); !ok || err != nil {
 			b.Fatal(err)
 		}
 	}
+}
+
+func BenchmarkParseHeavy(b *testing.B) {
+	for b.Loop() {
+		if _, err := Parse(largeInput); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkEvalHeavy(b *testing.B) {
+	expr, err := Parse(largeInput)
+	if err != nil {
+		b.Fatal(err)
+	}
+	for b.Loop() {
+		if ok, err := expr.Eval(&testObject); !ok || err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParseRepeated(b *testing.B) {
+	input := repeatInput(largeInput, 30)
+	for b.Loop() {
+		if _, err := Parse(input); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkEvalRepeated(b *testing.B) {
+	input := repeatInput(largeInput, 30)
+	expr, err := Parse(input)
+	if err != nil {
+		b.Fatal(err)
+	}
+	for b.Loop() {
+		if ok, err := expr.Eval(&testObject); !ok || err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func repeatInput(input string, n int) string {
+	if n <= 0 {
+		return input
+	}
+	var sb strings.Builder
+	sb.Grow(len(input) + n*(len(input)+2))
+	sb.WriteString(input)
+	for range n {
+		sb.WriteString("&&")
+		sb.WriteString(input)
+	}
+	return sb.String()
 }

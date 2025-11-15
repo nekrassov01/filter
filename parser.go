@@ -1,20 +1,32 @@
 package filter
 
-// Experimental arena-based parser to reduce allocations.
-// Keeps existing Parse() unchanged; use Parse() to try it.
-
 import (
-	"fmt"
-	"math"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
 
-// Epsilon is a small value used for floating-point comparison of numeric equality.
-// Kept identical to previous evaluator implementation.
+// Parse parses a string expression into an Expr.
+func Parse(input string) (*Expr, error) {
+	p, err := newParser(input)
+	if err != nil {
+		return nil, err
+	}
+	n, err := p.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	if p.peek().typ != tokenEOF {
+		return nil, parseError("unexpected token after parsing: %s", p.peek().v)
+	}
+	return &Expr{
+		parser: p,
+		root:   n,
+	}, nil
+}
+
+// Epsilon is a small value used to compare numerical equality.
 const Epsilon = 1e-9
 
 // MaxParen is the maximum number of opening '(' tokens allowed in one expression.
@@ -25,66 +37,26 @@ const MaxParen = 256
 // key: pattern string, value: *regexp.Regexp
 var regexMap sync.Map
 
-// nodeType represents the type of a node in the expression tree.
-type nodeType int
-
-const (
-	nodeComparison nodeType = iota // comparison node type
-	nodeNot                        // logical NOT node type
-	nodeBinary                     // binary operator node type
-)
-
-// String returns a string representation of the node type.
-func (t nodeType) String() string {
-	switch t {
-	case nodeComparison:
-		return "comparison node"
-	case nodeNot:
-		return "not node"
-	case nodeBinary:
-		return "binary node"
-	}
-	return ""
-}
-
-// node represents a node in the expression tree.
-type node struct {
-	typ    nodeType       // type of the node
-	op     tokenType      // operator for binary and comparison nodes
-	left   int            // left child index
-	right  int            // right child index
-	ident  string         // identifier for variable nodes
-	val    string         // value for literal nodes
-	re     *regexp.Regexp // regular expression for pattern matching
-	num    float64        // cached numeric value
-	dur    time.Duration  // cached duration value
-	hasNum bool           // indicates if num is cached
-	hasDur bool           // indicates if dur is cached
-}
-
 // parser represents a parser for the expression.
 type parser struct {
-	lexer   *lexer
-	nodes   []node
-	current token
-	peeked  bool
-	depth   int
-	idents  map[string]struct{} // unique identifiers encountered (for field cache sizing)
+	lexer      *lexer              // lexer for tokenizing input
+	nodes      []node              // expression tree nodes
+	current    token               // current token
+	peeked     bool                // indicates if the next token has been peeked
+	parenCount int                 // Number of opening parentheses
+	idents     map[string]struct{} // Unique identifier encountered in field cache size settings
 }
 
-// expr represents an expression in the parser.
-type expr struct {
-	parser *parser
-	root   int
-}
-
-// Eval evaluates the expression against a target (per-call map cache for fields).
-func (e *expr) Eval(t Target) (bool, error) {
-	var cache map[string]any
-	if len(e.parser.idents) > 0 {
-		cache = make(map[string]any, len(e.parser.idents))
+// newParser creates a new parser for the given input.
+func newParser(input string) (*parser, error) {
+	if input == "" {
+		return nil, parseError("empty input")
 	}
-	return e.parser.eval(e.root, t, cache)
+	return &parser{
+		lexer:  newLexer(input),
+		nodes:  make([]node, 0, 16),
+		idents: make(map[string]struct{}, 8),
+	}, nil
 }
 
 // next returns the next token from the lexer.
@@ -92,13 +64,13 @@ func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
 		if p.current.typ == tokenError {
-			return p.current, lexError(p.current.val)
+			return p.current, lexError(p.current.v)
 		}
 		return p.current, nil
 	}
 	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
-		return p.current, lexError(p.current.val)
+		return p.current, lexError(p.current.v)
 	}
 	return p.current, nil
 }
@@ -119,68 +91,99 @@ func (p *parser) expect(typ tokenType) (token, error) {
 		return t, err
 	}
 	if t.typ != typ {
-		return t, parseError("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.val)
+		return t, parseError("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v)
 	}
 	return t, nil
 }
 
+// unquote removes the surrounding quotes from a string token.
+func unquote(t token) string {
+	n := len(t.v)
+	if t.typ.isStringType() && n >= 2 {
+		return t.v[1 : n-1]
+	}
+	return t.v
+}
+
+// handleRegex processes a regex token and associates it with a node.
+// Caches compiled regex patterns to reduce allocations on repeated parses.
+func (p *parser) handleRegex(t token, i int) error {
+	if t.v == "" {
+		return parseError("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col)
+	}
+	if cached, ok := regexMap.Load(t.v); ok {
+		p.nodes[i].re = cached.(*regexp.Regexp)
+	} else {
+		re, err := regexp.Compile(t.v)
+		if err != nil {
+			return parseError("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err)
+		}
+		regexMap.Store(t.v, re)
+		p.nodes[i].re = re
+	}
+	return nil
+}
+
 // parseExpr parses an expression.
 func (p *parser) parseExpr() (int, error) {
-	left, err := p.parseAND()
+	lhs, err := p.parseAND()
 	if err != nil {
 		return 0, err
 	}
 	for {
 		if p.peek().typ == tokenOR {
-			if _, err := p.next(); err != nil {
-				return 0, err
-			}
-			right, err := p.parseAND()
+			t, err := p.next()
 			if err != nil {
 				return 0, err
 			}
-			left = p.newNodeBinary(left, right, tokenOR)
+			rhs, err := p.parseAND()
+			if err != nil {
+				return 0, err
+			}
+			lhs = newNodeBinary(p, lhs, t, rhs)
 			continue
 		}
 		break
 	}
-	return left, nil
+	return lhs, nil
 }
 
 // parseAND parses an AND expression.
 func (p *parser) parseAND() (int, error) {
-	left, err := p.parseNOT()
+	lhs, err := p.parseNOT()
 	if err != nil {
 		return 0, err
 	}
 	for {
 		if p.peek().typ == tokenAND {
-			if _, err := p.next(); err != nil {
-				return 0, err
-			}
-			right, err := p.parseNOT()
+			t, err := p.next()
 			if err != nil {
 				return 0, err
 			}
-			left = p.newNodeBinary(left, right, tokenAND)
+			rhs, err := p.parseNOT()
+			if err != nil {
+				return 0, err
+			}
+			lhs = newNodeBinary(p, lhs, t, rhs)
 			continue
 		}
 		break
 	}
-	return left, nil
+	return lhs, nil
 }
 
 // parseNOT parses a NOT expression.
 func (p *parser) parseNOT() (int, error) {
 	if p.peek().typ == tokenNOT {
-		if _, err := p.next(); err != nil {
+		t, err := p.next()
+		if err != nil {
 			return 0, err
 		}
 		child, err := p.parsePrimary()
 		if err != nil {
 			return 0, err
 		}
-		return p.newNodeNot(child), nil
+		return newNodeNOT(p, child, t), nil
 	}
 	return p.parsePrimary()
 }
@@ -193,8 +196,8 @@ func (p *parser) parsePrimary() (int, error) {
 		if _, err := p.next(); err != nil {
 			return 0, err
 		}
-		p.depth++
-		if p.depth > MaxParen {
+		p.parenCount++
+		if p.parenCount > MaxParen {
 			return 0, parseError("too many parentheses: exceeded limit %d at %d:%d", MaxParen, t.line, t.col)
 		}
 		expr, err := p.parseExpr()
@@ -208,283 +211,62 @@ func (p *parser) parsePrimary() (int, error) {
 	case tokenIdent:
 		return p.parseComparison()
 	default:
-		return 0, parseError("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.val)
+		return 0, parseError("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.v)
 	}
 }
 
 // parseComparison parses a comparison expression.
 func (p *parser) parseComparison() (int, error) {
-	key, err := p.expect(tokenIdent)
+	ident, err := p.expect(tokenIdent)
 	if err != nil {
 		return 0, err
 	}
 	if p.idents != nil {
-		p.idents[key.val] = struct{}{}
+		p.idents[ident.v] = struct{}{}
 	}
 	op, err := p.next()
 	if err != nil {
 		return 0, err
 	}
 	if !op.typ.isComparisonOperatorType() {
-		return 0, parseError("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.val)
+		return 0, parseError("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.v)
 	}
-	v, err := p.next()
+	val, err := p.next()
 	if err != nil {
 		return 0, err
 	}
-	if !v.typ.isValueType() {
-		return 0, parseError("expected value, got %s at %d:%d: %q", v.typ, v.line, v.col, v.val)
+	if !val.typ.isValueType() {
+		return 0, parseError("expected value, got %s at %d:%d: %q", val.typ, val.line, val.col, val.v)
 	}
-	if op.typ.isCaseInsensitiveOperatorType() && !v.typ.isStringType() {
-		return 0, parseError("expected numeric comparison operator, got string-only operator at %d:%d: %q", op.line, op.col, op.val)
+	if val.typ == tokenString || val.typ == tokenRawString {
+		val.v = unquote(val)
 	}
-	val := v.val
-	if v.typ == tokenString || v.typ == tokenRawString {
-		val = unquote(v)
+	if op.typ.isCaseInsensitiveRegexOperatorType() {
+		val.v = "(?i)" + val.v
 	}
-	i := p.newNodeComparison(key.val, op.typ, val)
+	i := newNodeComparison(p, ident, op, val)
 	if op.typ.isRegexOperatorType() {
-		if val == "" {
-			return 0, parseError("invalid regex %q at %d:%d: empty pattern", val, v.line, v.col)
-		}
-		if cached, ok := regexMap.Load(val); ok {
-			p.nodes[i].re = cached.(*regexp.Regexp)
-		} else {
-			re, err := regexp.Compile(val)
-			if err != nil {
-				return 0, parseError("invalid regex %q at %d:%d: %w", val, v.line, v.col, err)
-			}
-			regexMap.Store(val, re)
-			p.nodes[i].re = re
+		if err := p.handleRegex(val, i); err != nil {
+			return 0, err
 		}
 	}
-	if v.typ == tokenNumber {
-		if f, err := strconv.ParseFloat(val, 64); err == nil {
-			p.nodes[i].num = f
-			p.nodes[i].hasNum = true
+	if val.typ == tokenTime {
+		if t, err := time.Parse(time.RFC3339, val.v); err == nil {
+			p.nodes[i].time = t
+			p.nodes[i].hasTime = true
 		}
 	}
-	if v.typ == tokenDuration {
-		if d, err := time.ParseDuration(val); err == nil {
+	if val.typ == tokenDuration {
+		if d, err := time.ParseDuration(val.v); err == nil {
 			p.nodes[i].dur = d
 			p.nodes[i].hasDur = true
 		}
 	}
+	if val.typ == tokenNumber {
+		if f, err := strconv.ParseFloat(val.v, 64); err == nil {
+			p.nodes[i].num = f
+			p.nodes[i].hasNum = true
+		}
+	}
 	return i, nil
-}
-
-// newNodeBinary creates a new binary expression node.
-func (p *parser) newNodeBinary(left, right int, op tokenType) int {
-	node := node{
-		typ:   nodeBinary,
-		op:    op,
-		left:  left,
-		right: right,
-	}
-	p.nodes = append(p.nodes, node)
-	return len(p.nodes) - 1
-}
-
-// newNodeNot creates a new NOT expression node.
-func (p *parser) newNodeNot(child int) int {
-	node := node{
-		typ:  nodeNot,
-		op:   tokenNOT,
-		left: child,
-	}
-	p.nodes = append(p.nodes, node)
-	return len(p.nodes) - 1
-}
-
-// newNodeComparison creates a new comparison expression node.
-func (p *parser) newNodeComparison(ident string, op tokenType, val string) int {
-	node := node{
-		typ:   nodeComparison,
-		op:    op,
-		ident: ident,
-		val:   val,
-	}
-	p.nodes = append(p.nodes, node)
-	return len(p.nodes) - 1
-}
-
-// eval evaluates the expression against a target.
-func (p *parser) eval(i int, t Target, cache map[string]any) (bool, error) {
-	n := p.nodes[i]
-	switch n.typ {
-	case nodeBinary:
-		switch n.op {
-		case tokenAND:
-			left, err := p.eval(n.left, t, cache)
-			if err != nil {
-				return false, err
-			}
-			if !left {
-				return false, nil
-			}
-			return p.eval(n.right, t, cache)
-		case tokenOR:
-			left, err := p.eval(n.left, t, cache)
-			if err != nil {
-				return false, err
-			}
-			if left {
-				return true, nil
-			}
-			return p.eval(n.right, t, cache)
-		default:
-			return false, evalError("unsupported logical operator: %q", operators[n.op])
-		}
-	case nodeNot:
-		v, err := p.eval(n.left, t, cache)
-		if err != nil {
-			return false, err
-		}
-		return !v, nil
-	case nodeComparison:
-		var field any
-		if cache != nil {
-			if v, ok := cache[n.ident]; ok {
-				field = v
-			} else {
-				var err error
-				field, err = t.GetField(n.ident)
-				if err != nil {
-					return false, evalError("%w", err)
-				}
-				cache[n.ident] = field
-			}
-		} else {
-			var err error
-			field, err = t.GetField(n.ident)
-			if err != nil {
-				return false, evalError("%w", err)
-			}
-		}
-		switch v := field.(type) {
-		case string:
-			return p.evalString(n, v)
-		case int:
-			return p.evalNumber(n, float64(v))
-		case int8:
-			return p.evalNumber(n, float64(v))
-		case int16:
-			return p.evalNumber(n, float64(v))
-		case int32:
-			return p.evalNumber(n, float64(v))
-		case int64:
-			return p.evalNumber(n, float64(v))
-		case uint:
-			return p.evalNumber(n, float64(v))
-		case uint8:
-			return p.evalNumber(n, float64(v))
-		case uint16:
-			return p.evalNumber(n, float64(v))
-		case uint32:
-			return p.evalNumber(n, float64(v))
-		case uint64:
-			return p.evalNumber(n, float64(v))
-		case float32:
-			return p.evalNumber(n, float64(v))
-		case float64:
-			return p.evalNumber(n, v)
-		case time.Duration:
-			return p.evalDuration(n, v)
-		default:
-			return p.evalString(n, fmt.Sprint(v))
-		}
-	}
-	return false, evalError("unsupported node type: %q", n.typ)
-}
-
-// evalString evaluates a string expression against a target.
-func (p *parser) evalString(n node, v string) (bool, error) {
-	switch n.op {
-	case tokenEQ:
-		return v == n.val, nil
-	case tokenEQI:
-		return strings.EqualFold(v, n.val), nil
-	case tokenNEQ:
-		return v != n.val, nil
-	case tokenNEQI:
-		return !strings.EqualFold(v, n.val), nil
-	case tokenREQ:
-		return n.re.MatchString(v), nil
-	case tokenNREQ:
-		return !n.re.MatchString(v), nil
-	default:
-		return false, evalError("unsupported operator for string: %q", operators[n.op])
-	}
-}
-
-// evalNumber evaluates a number expression against a target.
-func (p *parser) evalNumber(n node, v float64) (bool, error) {
-	f := n.num
-	if !n.hasNum {
-		parsed, err := strconv.ParseFloat(n.val, 64)
-		if err != nil {
-			return false, evalError("invalid number: %q", n.val)
-		}
-		f = parsed
-	}
-	switch n.op {
-	case tokenGT:
-		return v > f, nil
-	case tokenGTE:
-		return v >= f, nil
-	case tokenLT:
-		return v < f, nil
-	case tokenLTE:
-		return v <= f, nil
-	case tokenEQ:
-		return math.Abs(v-f) <= Epsilon, nil
-	case tokenNEQ:
-		return math.Abs(v-f) > Epsilon, nil
-	default:
-		return false, evalError("unsupported operator for number: %q", operators[n.op])
-	}
-}
-
-// evalDuration evaluates a duration expression against a target.
-func (p *parser) evalDuration(n node, v time.Duration) (bool, error) {
-	d := n.dur
-	if !n.hasDur {
-		parsed, err := time.ParseDuration(n.val)
-		if err != nil {
-			return false, evalError("invalid duration: %q", n.val)
-		}
-		d = parsed
-	}
-	switch n.op {
-	case tokenGT:
-		return v > d, nil
-	case tokenGTE:
-		return v >= d, nil
-	case tokenLT:
-		return v < d, nil
-	case tokenLTE:
-		return v <= d, nil
-	case tokenEQ:
-		return v == d, nil
-	case tokenNEQ:
-		return v != d, nil
-	default:
-		return false, evalError("unsupported operator for duration: %q", operators[n.op])
-	}
-}
-
-// unquote removes the surrounding quotes from a string token.
-func unquote(t token) string {
-	var v string
-	switch t.typ {
-	case tokenString:
-		if len(t.val) >= 2 {
-			v = t.val[1 : len(t.val)-1]
-		}
-	case tokenRawString:
-		if len(t.val) >= 2 {
-			v = t.val[1 : len(t.val)-1]
-		}
-	}
-	return v
 }

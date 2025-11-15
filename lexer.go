@@ -12,8 +12,8 @@ import (
 // token represents a token produced by the lexer.
 type token struct {
 	typ  tokenType
+	v    string
 	pos  int
-	val  string
 	line int
 	col  int
 }
@@ -34,7 +34,9 @@ const (
 	tokenNEQ                        // not equal to
 	tokenNEQI                       // not equal to (case insensitive)
 	tokenREQ                        // matches regular expression
+	tokenREQI                       // matches regular expression (case insensitive)
 	tokenNREQ                       // does not match regular expression
+	tokenNREQI                      // does not match regular expression (case insensitive)
 	tokenAND                        // logical AND
 	tokenOR                         // logical OR
 	tokenNOT                        // logical NOT
@@ -44,6 +46,7 @@ const (
 	tokenRawString                  // raw string literal
 	tokenNumber                     // number literal
 	tokenDuration                   // duration literal
+	tokenTime                       // time literal
 	tokenBool                       // boolean literal
 )
 
@@ -74,8 +77,12 @@ func (t tokenType) String() string {
 		return "\"case-insensitive not equal to\" operator"
 	case tokenREQ:
 		return "regex matching operator"
+	case tokenREQI:
+		return "case-insensitive regex matching operator"
 	case tokenNREQ:
 		return "negative regex matching operator"
+	case tokenNREQI:
+		return "case-insensitive negative regex matching operator"
 	case tokenAND:
 		return "logical AND operator"
 	case tokenOR:
@@ -94,6 +101,8 @@ func (t tokenType) String() string {
 		return "number"
 	case tokenDuration:
 		return "duration"
+	case tokenTime:
+		return "time"
 	case tokenBool:
 		return "boolean"
 	default:
@@ -101,27 +110,53 @@ func (t tokenType) String() string {
 	}
 }
 
-// operators maps operator tokens to their literal representations.
-var operators = map[tokenType]string{
-	tokenGT:   ">",
-	tokenGTE:  ">=",
-	tokenLT:   "<",
-	tokenLTE:  "<=",
-	tokenEQ:   "==",
-	tokenEQI:  "==*",
-	tokenNEQ:  "!=",
-	tokenNEQI: "!=*",
-	tokenREQ:  "=~",
-	tokenNREQ: "!~",
-	tokenAND:  "&&",
-	tokenOR:   "||",
-	tokenNOT:  "!",
+// literal returns the literal of a operator token.
+// If the literal is not unique, an empty string is returned.
+func (t tokenType) literal() string {
+	switch t {
+	case tokenGT:
+		return ">"
+	case tokenGTE:
+		return ">="
+	case tokenLT:
+		return "<"
+	case tokenLTE:
+		return "<="
+	case tokenEQ:
+		return "=="
+	case tokenEQI:
+		return "==*"
+	case tokenNEQ:
+		return "!="
+	case tokenNEQI:
+		return "!=*"
+	case tokenREQ:
+		return "=~"
+	case tokenREQI:
+		return "=~*"
+	case tokenNREQ:
+		return "!~"
+	case tokenNREQI:
+		return "!~*"
+	case tokenAND:
+		return "&&"
+	case tokenOR:
+		return "||"
+	case tokenNOT:
+		return "!"
+	case tokenLparen:
+		return "("
+	case tokenRparen:
+		return ")"
+	default:
+		return ""
+	}
 }
 
 // isComparisonOperatorType reports whether the token is a comparison operator.
 func (t tokenType) isComparisonOperatorType() bool {
 	switch t {
-	case tokenEQ, tokenEQI, tokenNEQ, tokenNEQI, tokenGT, tokenGTE, tokenLT, tokenLTE, tokenREQ, tokenNREQ:
+	case tokenEQ, tokenEQI, tokenNEQ, tokenNEQI, tokenGT, tokenGTE, tokenLT, tokenLTE, tokenREQ, tokenREQI, tokenNREQ, tokenNREQI:
 		return true
 	default:
 		return false
@@ -131,17 +166,17 @@ func (t tokenType) isComparisonOperatorType() bool {
 // isRegexOperatorType reports whether the token is a regex operator.
 func (t tokenType) isRegexOperatorType() bool {
 	switch t {
-	case tokenREQ, tokenNREQ:
+	case tokenREQ, tokenREQI, tokenNREQ, tokenNREQI:
 		return true
 	default:
 		return false
 	}
 }
 
-// isCaseInsensitiveOperatorType reports whether the token is a case insensitive operator.
-func (t tokenType) isCaseInsensitiveOperatorType() bool {
+// isCaseInsensitiveRegexOperatorType reports whether the token is a case insensitive regex operator.
+func (t tokenType) isCaseInsensitiveRegexOperatorType() bool {
 	switch t {
-	case tokenEQI, tokenNEQI:
+	case tokenREQI, tokenNREQI:
 		return true
 	default:
 		return false
@@ -151,7 +186,7 @@ func (t tokenType) isCaseInsensitiveOperatorType() bool {
 // isValueType reports whether the token is a value type.
 func (t tokenType) isValueType() bool {
 	switch t {
-	case tokenString, tokenRawString, tokenNumber, tokenDuration, tokenBool:
+	case tokenString, tokenRawString, tokenNumber, tokenTime, tokenDuration, tokenBool:
 		return true
 	default:
 		return false
@@ -291,7 +326,7 @@ func (l *lexer) backupNumber() {
 func (l *lexer) emit(typ tokenType) {
 	l.token = token{
 		typ:  typ,
-		val:  l.input[l.startPos:l.pos],
+		v:    l.input[l.startPos:l.pos],
 		pos:  l.startPos,
 		line: l.startLine,
 		col:  l.startCol,
@@ -328,12 +363,21 @@ func (l *lexer) acceptRun(valid string) int {
 	return n
 }
 
+func (l *lexer) acceptDigits(n int) bool {
+	for range n {
+		if !unicode.IsDigit(l.next()) {
+			return false
+		}
+	}
+	return true
+}
+
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextToken.
 func (l *lexer) errorf(format string, args ...any) stateFn {
 	l.token = token{
 		typ:  tokenError,
-		val:  fmt.Sprintf(format, args...),
+		v:    fmt.Sprintf(format, args...),
 		pos:  l.startPos,
 		line: l.startLine,
 		col:  l.startCol,
@@ -372,7 +416,7 @@ func lexStmt(l *lexer) stateFn {
 	case r == '|':
 		return lexOR
 	case unicode.IsDigit(r) || r == '.' || r == '+' || r == '-':
-		return lexNumberOrDuration
+		return lexNumber
 	case unicode.IsLetter(r) || r == '_':
 		return lexKeywordOrIdent
 	default:
@@ -484,7 +528,12 @@ func lexEQ(l *lexer) stateFn {
 		}
 	case '~':
 		l.next()
-		l.emit(tokenREQ)
+		if r := l.peek(); r == '*' {
+			l.next()
+			l.emit(tokenREQI)
+		} else {
+			l.emit(tokenREQ)
+		}
 	default:
 		return l.errorf("unexpected character %q after '=' at %d:%d", l.peek(), l.line, l.col)
 	}
@@ -506,7 +555,12 @@ func lexNOT(l *lexer) stateFn {
 		}
 	case '~':
 		l.next()
-		l.emit(tokenNREQ)
+		if r := l.peek(); r == '*' {
+			l.next()
+			l.emit(tokenNREQI)
+		} else {
+			l.emit(tokenNREQ)
+		}
 	default:
 		l.emit(tokenNOT)
 	}
@@ -563,23 +617,35 @@ func lexOR(l *lexer) stateFn {
 	return lexStmt
 }
 
-// lexNumberOrDuration scans for numbers or duration literals.
+// lexNumber scans for numbers, duration, and time literals.
 // The leading digit or sign has already been seen.
-func lexNumberOrDuration(l *lexer) stateFn {
+func lexNumber(l *lexer) stateFn {
+	// Try time
 	pos := l.pos
 	line := l.line
 	col := l.col
+	l.backup()
+	if l.scanTime() {
+		l.emit(tokenTime)
+		return lexStmt
+	}
+	// Try duration
+	l.pos = pos
+	l.line = line
+	l.col = col
 	l.backup()
 	if l.scanDuration() {
 		l.emit(tokenDuration)
 		return lexStmt
 	}
+	// Try number
 	l.pos = pos
 	l.line = line
 	l.col = col
 	l.backup()
 	if l.scanNumber() {
 		l.emit(tokenNumber)
+		return lexStmt
 	}
 	return lexStmt
 }
@@ -640,6 +706,42 @@ func (l *lexer) scanHexEscape(digits int) bool {
 			return false
 		}
 	}
+	return true
+}
+
+// scanTime scans a time literal.
+func (l *lexer) scanTime() bool {
+	// Date: YYYY-MM-DD
+	if !l.acceptDigits(4) || !l.accept("-") || !l.acceptDigits(2) || !l.accept("-") || !l.acceptDigits(2) {
+		return false
+	}
+	// 'T' separator
+	if !l.accept("T") {
+		return false
+	}
+	// Time: HH:MM:SS
+	if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
+		return false
+	}
+	// Optional fractional seconds: '.' 1+DIGIT
+	if l.accept(".") {
+		r := l.next()
+		if !unicode.IsDigit(r) {
+			return false
+		}
+		l.acceptRun("0123456789")
+	}
+	// Optional timezone: 'Z'/'z' or (+|-)HH:MM
+	if l.accept("Zz") {
+		return true
+	}
+	if l.accept("+-") {
+		if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
+			return false
+		}
+		return true
+	}
+	// No timezone provided (allowed by our extension)
 	return true
 }
 

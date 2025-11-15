@@ -5,119 +5,7 @@ import (
 	"testing"
 )
 
-func Test_nodeType_String(t *testing.T) {
-	tests := []struct {
-		name     string
-		typ      nodeType
-		expected string
-	}{
-		{
-			name:     "comparison",
-			typ:      nodeComparison,
-			expected: "comparison node",
-		},
-		{
-			name:     "not",
-			typ:      nodeNot,
-			expected: "not node",
-		},
-		{
-			name:     "binary",
-			typ:      nodeBinary,
-			expected: "binary node",
-		},
-		{
-			name:     "unsupported",
-			typ:      256,
-			expected: "",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if actual := test.typ.String(); actual != test.expected {
-				t.Errorf("expected %v, actual %v", test.expected, actual)
-			}
-		})
-	}
-}
-
-// repr converts ast to a string.
-func repr(e Expr) string {
-	expr, ok := e.(*expr)
-	if !ok {
-		return "<unknown>"
-	}
-	op := func(op tokenType) string {
-		switch op {
-		case tokenAND:
-			return "&&"
-		case tokenOR:
-			return "||"
-		default:
-			return operators[op]
-		}
-	}
-	val := func(v string) string {
-		if isNumericLike(v) || isDurationLike(v) || isBoolLiteral(v) {
-			return v
-		}
-		return "\"" + v + "\""
-	}
-	var walk func(int) string
-	walk = func(i int) string {
-		n := expr.parser.nodes[i]
-		switch n.typ {
-		case nodeBinary:
-			return "(" + walk(n.left) + " " + op(n.op) + " " + walk(n.right) + ")"
-		case nodeNot:
-			return "(! " + walk(n.left) + ")"
-		case nodeComparison:
-			return "(" + n.ident + " " + operators[n.op] + " " + val(n.val) + ")"
-		default:
-			return "<unknown>"
-		}
-	}
-	return walk(expr.root)
-}
-
-func isNumericLike(s string) bool {
-	if len(s) == 0 {
-		return false
-	}
-	digit := false
-	for _, r := range s {
-		if r >= '0' && r <= '9' {
-			digit = true
-			break
-		}
-	}
-	if !digit {
-		return false
-	}
-	for _, r := range s {
-		switch r {
-		case '+', '-', '.', '_', 'x', 'X', 'o', 'O', 'b', 'B', 'p', 'P', 'e', 'E':
-			continue
-		}
-		if (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
-func isDurationLike(s string) bool {
-	units := []string{"ns", "us", "μs", "ms", "s", "m", "h"}
-	for _, unit := range units {
-		if strings.Contains(s, unit) {
-			return true
-		}
-	}
-	return false
-}
-
-func Test_parse(t *testing.T) {
+func TestParse(t *testing.T) {
 	type expected struct {
 		ok   bool
 		repr string
@@ -162,7 +50,7 @@ func Test_parse(t *testing.T) {
 			},
 		},
 		{
-			name:  "nregex",
+			name:  "regex not",
 			input: `Name!~'A.*'`,
 			expected: expected{
 				ok:   true,
@@ -175,6 +63,22 @@ func Test_parse(t *testing.T) {
 			expected: expected{
 				ok:   true,
 				repr: `(Name =~ "^H.*d$")`,
+			},
+		},
+		{
+			name:  "regex case insensitive",
+			input: "Name=~*`A`",
+			expected: expected{
+				ok:   true,
+				repr: `(Name =~* "(?i)A")`,
+			},
+		},
+		{
+			name:  "regex case insensitive not",
+			input: "Name!~*`A`",
+			expected: expected{
+				ok:   true,
+				repr: `(Name !~* "(?i)A")`,
 			},
 		},
 		// Numbers
@@ -324,14 +228,6 @@ func Test_parse(t *testing.T) {
 			expected: expected{
 				ok:  false,
 				err: `unexpected token after parsing`,
-			},
-		},
-		{
-			name:  "eqi requires string",
-			input: `Name==*1`,
-			expected: expected{
-				ok:  false,
-				err: `expected numeric comparison operator, got string-only operator`,
 			},
 		},
 		{
@@ -498,12 +394,14 @@ func Test_parse(t *testing.T) {
 		{
 			name: "paren limit ok (256)",
 			input: func() string {
+				n := 256
 				var b strings.Builder
-				for range 256 {
+				b.Grow(n*2 + len(`HP>1`))
+				for range n {
 					b.WriteByte('(')
 				}
 				b.WriteString(`HP>1`)
-				for range 256 {
+				for range n {
 					b.WriteByte(')')
 				}
 				return b.String()
@@ -516,12 +414,14 @@ func Test_parse(t *testing.T) {
 		{
 			name: "paren limit ng (257)",
 			input: func() string {
+				n := 257
 				var b strings.Builder
-				for range 257 {
+				b.Grow(n*2 + len(`HP>1`))
+				for range n {
 					b.WriteByte('(')
 				}
 				b.WriteString(`HP>1`)
-				for range 257 {
+				for range n {
 					b.WriteByte(')')
 				}
 				return b.String()
@@ -534,13 +434,13 @@ func Test_parse(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			e, err := Parse(test.input)
+			expr, err := Parse(test.input)
 			if test.expected.ok {
 				if err != nil {
 					t.Errorf(testTemplate, test.input, "", err)
 					return
 				}
-				repr := repr(e)
+				repr := repr(*expr)
 				if repr != test.expected.repr {
 					t.Errorf(testTemplate, test.input, test.expected.repr, repr)
 				}
@@ -555,4 +455,66 @@ func Test_parse(t *testing.T) {
 			}
 		})
 	}
+}
+
+// repr converts ast to a string.
+func repr(e Expr) string {
+	val := func(v string) string {
+		if isNumericLike(v) || isDurationLike(v) || isBoolLiteral(v) {
+			return v
+		}
+		return "\"" + v + "\""
+	}
+	var walk func(int) string
+	walk = func(i int) string {
+		n := e.parser.nodes[i]
+		switch n.typ {
+		case nodeBinary:
+			return "(" + walk(n.lhs) + " " + n.op.typ.literal() + " " + walk(n.rhs) + ")"
+		case nodeNOT:
+			return "(! " + walk(n.lhs) + ")"
+		case nodeComparison:
+			return "(" + n.ident.v + " " + n.op.typ.literal() + " " + val(n.val.v) + ")"
+		default:
+			return "<unknown>"
+		}
+	}
+	return walk(e.root)
+}
+
+func isNumericLike(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	digit := false
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			digit = true
+			break
+		}
+	}
+	if !digit {
+		return false
+	}
+	for _, r := range s {
+		switch r {
+		case '+', '-', '.', '_', 'x', 'X', 'o', 'O', 'b', 'B', 'p', 'P', 'e', 'E':
+			continue
+		}
+		if (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func isDurationLike(s string) bool {
+	units := []string{"ns", "us", "μs", "ms", "s", "m", "h"}
+	for _, unit := range units {
+		if strings.Contains(s, unit) {
+			return true
+		}
+	}
+	return false
 }
