@@ -56,7 +56,7 @@ lint: deps-lint
 	golangci-lint run ./... -v
 
 vuln: deps-vuln
-	$(GOBIN)/govulncheck -test ./...
+	govulncheck -test -show verbose ./...
 
 # ----------
 #  release
