@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// The target implements the entity to be evaluated.
+// Target implements the entity to be evaluated.
 type Target interface {
 	GetField(key string) (any, error)
 }
