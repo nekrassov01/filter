@@ -6,18 +6,18 @@ on:
       - master
     paths-ignore:
       - "README.md"
-      - "_examples/**"
-      - "_assets/**"
+      - .vscode/**"
+    tags-ignore:
+      - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     branches:
       - main
       - master
     paths-ignore:
       - "README.md"
-
+      - .vscode/**"
 permissions:
   contents: read
-
 jobs:
   test:
     strategy:
@@ -32,31 +32,33 @@ jobs:
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
-
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Setup go ${{ matrix.go }}
+        with:
+          fetch-depth: 0
+      - name: Setup go
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
           cache: false
-
-      - name: Run golangci-lint
+      - name: Run lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           args: --timeout=10m
           skip-cache: true
-
-      - name: Run govulncheck
+      - name: Run vulnerability check
         uses: golang/govulncheck-action@v1
         with:
           go-version-input: ${{ matrix.go }}
           go-package: ./...
           cache: false
-
       - name: Run tests
         run: |
           git diff --cached --exit-code
-          go test ./... -v -cover -coverprofile=cover.Render
+          go test -race -cover -v -coverprofile="cover.out" -covermode=atomic ./...
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
