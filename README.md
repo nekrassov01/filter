@@ -17,27 +17,34 @@
 
 ## Features
 
-* Comparisons, regex, logical AND / OR / NOT
-* Supported types: string, all integer types, float32/64, time.Duration, bool
-* Case-insensitive equality: `==*` / `!=*`
-* Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
-* Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
+- Comparisons, regex, logical AND / OR / NOT
+- Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
+- Case-insensitive equality: `==*` / `!=*`
+- Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
+- Time literals: [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339) only
+- Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
 
 ## Performance
 
 `filter` intentionally does a small amount of work once, so that evaluating an expression many times stays flat:
 
-* Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
-* Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
-* Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times (common in generated filters) does not add proportional `GetField` overhead.
-
-Net effect: expressions with high token repetition scale sub-linearly in both time and allocations compared to naïve re-parsing / re-compiling approaches.
+- Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
+- Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
+- Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times does not add proportional `GetField` overhead.
 
 ## Benchmarks
 
 `filter` is designed to be memory efficient. See [benchmark_test.go](./benchmark_test.go)
 
-Simple input: `String == "HelloWorld"`
+### Case 1
+
+Input:
+
+```text
+String == "HelloWorld"
+```
+
+Result:
 
 ```bash
 $ go test -bench=Simple$ -benchmem -count 5 -benchtime=10000x
@@ -59,7 +66,23 @@ PASS
 ok      github.com/nekrassov01/filter   0.277s
 ```
 
-Even when given complex input, performance does not drop drastically.
+### Case 2
+
+Input:
+
+```text
+(
+	String == "HelloWorld" && StringNumber =~ '^[0-9]+$' && Int > 40
+) && (
+	Int8 < 10 && Int16 <= 5 && Int32 != 0
+) && (
+	Float32 >= 2.5 || !(Float64 < 3.0)
+) && (
+	(Time <= 2023-01-01T00:00:00Z) || (Duration < 2s30ms100μs1000ns) || (Bool == TRUE)
+)
+```
+
+Result:
 
 ```bash
 $ go test -bench=Heavy$ -benchmem -count 5 -benchtime=10000x
@@ -81,7 +104,13 @@ PASS
 ok      github.com/nekrassov01/filter   0.634s
 ```
 
-Stable even when heavy input is concatenated 30 times with `&&`.
+### Case 3
+
+Input:
+
+Concatenate Case 2 with `&&` 30 times
+
+Result:
 
 ```bash
 $ go test -bench=Repeated$ -benchmem -count 5 -benchtime=10000x
@@ -136,7 +165,7 @@ func (t *MyTarget) GetField(key string) (any, error) {
 		return t.Name, nil
 	case "Latency":
 		return t.Latency, nil
-	case "Retries":
+	case "Retries", "RetryCount":
 		return t.Retries, nil
 	case "Enabled":
 		return t.Enabled, nil
@@ -176,18 +205,18 @@ func main() {
 | -------- | -------------------------------------- | ---------------------------------- |
 | String   | `"Hello"`, `'世界'`, `` `raw\ntext` `` | Double / single / raw (backtick)   |
 | Number   | `42`, `3.14`, `0x1.fp3`                | Subset of Go numeric literals      |
-| Duration | `1500ms`, `2s`, `1h30m`, `4000μs`      | Go `time.ParseDuration` compatible |
 | Time     | `2023-01-01T00:00:00Z`                 | Go `time.RFC3339` compatible       |
+| Duration | `1500ms`, `2s`, `1h30m`, `4000μs`      | Go `time.ParseDuration` compatible |
 | Boolean  | `true`, `false`, `True`, `FALSE`       | Case-insensitive variants accepted |
 
 ### Operators
 
-| Category                  | Operators         | Description                                                          |
-| ------------------------- | ----------------- | -------------------------------------------------------------------- |
-| Comparison                | `> >= < <= == !=` | Numbers / durations (`==` / `!=` also for strings)                   |
-| Case-insensitive (string) | `==* !=*`         | Unicode case folding                                                 |
-| Regex                     | `=~ !~ =~* !~*`   | RE2 (Go regex), cached per pattern string; `*` adds case-insensitive |
-| Logical                   | `&&` `\|\|` `!`   | Short-circuit                                                        |
+| Category                  | Operators                   | Description                                          |
+| ------------------------- | --------------------------- | ---------------------------------------------------- |
+| Comparison                | `>` `>=` `<` `<=` `==` `!=` | Strings, integers, times, and durations              |
+| Case-insensitive (string) | `==*` `!=*`                 | Unicode case folding                                 |
+| Regex                     | `=~` `!~` `=~*` `!~*`       | Cached per pattern string; `*` adds case-insensitive |
+| Logical                   | `&&` `\|\|` `!`             | Short-circuit                                        |
 
 ## Author
 
