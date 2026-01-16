@@ -31,8 +31,8 @@ func (t nodeType) String() string {
 type node struct {
 	// Node metadata
 	typ   nodeType       // type of the node
-	lhs   int            // left child index
-	rhs   int            // right child index
+	left  int            // left child index
+	right int            // right child index
 	ident token          // identifier token for variable nodes
 	op    token          // operator token for binary and comparison nodes
 	val   token          // value token for literal nodes
@@ -52,10 +52,10 @@ type node struct {
 // newNodeBinary creates a new binary expression node.
 func newNodeBinary(p *parser, left int, op token, right int) int {
 	node := node{
-		typ: nodeBinary,
-		lhs: left,
-		rhs: right,
-		op:  op,
+		typ:   nodeBinary,
+		left:  left,
+		right: right,
+		op:    op,
 	}
 	p.nodes = append(p.nodes, node)
 	return len(p.nodes) - 1
@@ -64,9 +64,9 @@ func newNodeBinary(p *parser, left int, op token, right int) int {
 // newNodeNOT creates a new NOT expression node.
 func newNodeNOT(p *parser, child int, op token) int {
 	node := node{
-		typ: nodeNOT,
-		lhs: child,
-		op:  op,
+		typ:  nodeNOT,
+		left: child,
+		op:   op,
 	}
 	p.nodes = append(p.nodes, node)
 	return len(p.nodes) - 1

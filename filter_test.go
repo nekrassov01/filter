@@ -778,7 +778,7 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:   "invalid number rhs",
+			name:   "invalid number right",
 			input:  `Int>1+0`,
 			target: testObject,
 			expected: expected{
@@ -787,7 +787,7 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:   "invalid duration rhs",
+			name:   "invalid duration right",
 			input:  `Duration>1xs`,
 			target: testObject,
 			expected: expected{

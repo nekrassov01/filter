@@ -35,23 +35,23 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 	case nodeBinary:
 		switch n.op.typ {
 		case tokenAND:
-			left, err := eval(nodes, n.lhs, t, cache)
+			left, err := eval(nodes, n.left, t, cache)
 			if err != nil {
 				return false, err
 			}
 			if !left {
 				return false, nil
 			}
-			return eval(nodes, n.rhs, t, cache)
+			return eval(nodes, n.right, t, cache)
 		case tokenOR:
-			left, err := eval(nodes, n.lhs, t, cache)
+			left, err := eval(nodes, n.left, t, cache)
 			if err != nil {
 				return false, err
 			}
 			if left {
 				return true, nil
 			}
-			return eval(nodes, n.rhs, t, cache)
+			return eval(nodes, n.right, t, cache)
 		default:
 			return false, &FilterError{
 				Kind: KindEval,
@@ -59,7 +59,7 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 			}
 		}
 	case nodeNOT:
-		v, err := eval(nodes, n.lhs, t, cache)
+		v, err := eval(nodes, n.left, t, cache)
 		if err != nil {
 			return false, err
 		}

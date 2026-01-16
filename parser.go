@@ -149,7 +149,7 @@ func (p *parser) handleRegex(t token, i int) error {
 
 // parseExpr parses an expression.
 func (p *parser) parseExpr() (int, error) {
-	lhs, err := p.parseAND()
+	left, err := p.parseAND()
 	if err != nil {
 		return 0, err
 	}
@@ -159,21 +159,21 @@ func (p *parser) parseExpr() (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			rhs, err := p.parseAND()
+			right, err := p.parseAND()
 			if err != nil {
 				return 0, err
 			}
-			lhs = newNodeBinary(p, lhs, t, rhs)
+			left = newNodeBinary(p, left, t, right)
 			continue
 		}
 		break
 	}
-	return lhs, nil
+	return left, nil
 }
 
 // parseAND parses an AND expression.
 func (p *parser) parseAND() (int, error) {
-	lhs, err := p.parseNOT()
+	left, err := p.parseNOT()
 	if err != nil {
 		return 0, err
 	}
@@ -183,16 +183,16 @@ func (p *parser) parseAND() (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			rhs, err := p.parseNOT()
+			right, err := p.parseNOT()
 			if err != nil {
 				return 0, err
 			}
-			lhs = newNodeBinary(p, lhs, t, rhs)
+			left = newNodeBinary(p, left, t, right)
 			continue
 		}
 		break
 	}
-	return lhs, nil
+	return left, nil
 }
 
 // parseNOT parses a NOT expression.

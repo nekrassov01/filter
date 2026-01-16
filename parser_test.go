@@ -232,7 +232,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name:  "missing rhs",
+			name:  "missing right",
 			input: `HP>`,
 			expected: expected{
 				ok:  false,
@@ -288,7 +288,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name:  "non ident lhs",
+			name:  "non ident left",
 			input: `123==456`,
 			expected: expected{
 				ok:  false,
@@ -487,9 +487,9 @@ func repr(e Expr) string {
 		n := e.parser.nodes[i]
 		switch n.typ {
 		case nodeBinary:
-			return "(" + walk(n.lhs) + " " + n.op.typ.literal() + " " + walk(n.rhs) + ")"
+			return "(" + walk(n.left) + " " + n.op.typ.literal() + " " + walk(n.right) + ")"
 		case nodeNOT:
-			return "(! " + walk(n.lhs) + ")"
+			return "(! " + walk(n.left) + ")"
 		case nodeComparison:
 			return "(" + n.ident.v + " " + n.op.typ.literal() + " " + val(n.val.v) + ")"
 		default:
