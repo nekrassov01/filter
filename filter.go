@@ -73,61 +73,62 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 				field = v
 			} else {
 				field, err = t.GetField(key)
-				if err != nil {
-					return false, &FilterError{
-						Kind: KindEval,
-						Err:  err,
-					}
+				if err == nil {
+					cache[key] = field
 				}
-				cache[key] = field
 			}
 		} else {
 			field, err = t.GetField(key)
-			if err != nil {
-				return false, &FilterError{
-					Kind: KindEval,
-					Err:  err,
-				}
+		}
+		if err != nil {
+			return false, &FilterError{
+				Kind: KindEval,
+				Err:  err,
 			}
 		}
-		switch v := field.(type) {
-		case string:
-			return evalString(n, v)
-		case int:
-			return evalNumber(n, float64(v))
-		case int8:
-			return evalNumber(n, float64(v))
-		case int16:
-			return evalNumber(n, float64(v))
-		case int32:
-			return evalNumber(n, float64(v))
-		case int64:
-			return evalNumber(n, float64(v))
-		case uint:
-			return evalNumber(n, float64(v))
-		case uint8:
-			return evalNumber(n, float64(v))
-		case uint16:
-			return evalNumber(n, float64(v))
-		case uint32:
-			return evalNumber(n, float64(v))
-		case uint64:
-			return evalNumber(n, float64(v))
-		case float32:
-			return evalNumber(n, float64(v))
-		case float64:
-			return evalNumber(n, v)
-		case time.Time:
-			return evalTime(n, v)
-		case time.Duration:
-			return evalDuration(n, v)
-		default:
-			return evalString(n, fmt.Sprint(v))
-		}
+		return evalComparison(n, field)
 	}
 	return false, &FilterError{
 		Kind: KindEval,
 		Err:  fmt.Errorf("invalid node type at %d:%d: %q", n.op.line, n.op.col, n.op.typ),
+	}
+}
+
+// evalComparison evaluates a comparison expression against a target field.
+func evalComparison(n node, field any) (bool, error) {
+	switch v := field.(type) {
+	case string:
+		return evalString(n, v)
+	case int:
+		return evalNumber(n, float64(v))
+	case int8:
+		return evalNumber(n, float64(v))
+	case int16:
+		return evalNumber(n, float64(v))
+	case int32:
+		return evalNumber(n, float64(v))
+	case int64:
+		return evalNumber(n, float64(v))
+	case uint:
+		return evalNumber(n, float64(v))
+	case uint8:
+		return evalNumber(n, float64(v))
+	case uint16:
+		return evalNumber(n, float64(v))
+	case uint32:
+		return evalNumber(n, float64(v))
+	case uint64:
+		return evalNumber(n, float64(v))
+	case float32:
+		return evalNumber(n, float64(v))
+	case float64:
+		return evalNumber(n, v)
+	case time.Time:
+		return evalTime(n, v)
+	case time.Duration:
+		return evalDuration(n, v)
+	default:
+		return evalString(n, fmt.Sprint(v))
 	}
 }
 
@@ -188,6 +189,40 @@ func evalNumber(n node, v float64) (bool, error) {
 	}
 }
 
+// evalTime evaluates a time expression against a target.
+func evalTime(n node, v time.Time) (bool, error) {
+	t := n.time
+	if !n.hasTime {
+		parsed, err := time.Parse(time.RFC3339, n.val.v)
+		if err != nil {
+			return false, &FilterError{
+				Kind: KindEval,
+				Err:  fmt.Errorf("invalid time at %d:%d: %q", n.val.line, n.val.col, n.val.v),
+			}
+		}
+		t = parsed
+	}
+	switch n.op.typ {
+	case tokenGT:
+		return v.After(t), nil
+	case tokenGTE:
+		return v.Equal(t) || v.After(t), nil
+	case tokenLT:
+		return v.Before(t), nil
+	case tokenLTE:
+		return v.Equal(t) || v.Before(t), nil
+	case tokenEQ:
+		return v.Equal(t), nil
+	case tokenNEQ:
+		return !v.Equal(t), nil
+	default:
+		return false, &FilterError{
+			Kind: KindEval,
+			Err:  fmt.Errorf("invalid operator for time field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+		}
+	}
+}
+
 // evalDuration evaluates a duration expression against a target.
 func evalDuration(n node, v time.Duration) (bool, error) {
 	d := n.dur
@@ -218,39 +253,6 @@ func evalDuration(n node, v time.Duration) (bool, error) {
 		return false, &FilterError{
 			Kind: KindEval,
 			Err:  fmt.Errorf("invalid operator for duration field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
-		}
-	}
-}
-
-func evalTime(n node, v time.Time) (bool, error) {
-	t := n.time
-	if !n.hasTime {
-		parsed, err := time.Parse(time.RFC3339, n.val.v)
-		if err != nil {
-			return false, &FilterError{
-				Kind: KindEval,
-				Err:  fmt.Errorf("invalid time at %d:%d: %q", n.val.line, n.val.col, n.val.v),
-			}
-		}
-		t = parsed
-	}
-	switch n.op.typ {
-	case tokenGT:
-		return v.After(t), nil
-	case tokenGTE:
-		return v.Equal(t) || v.After(t), nil
-	case tokenLT:
-		return v.Before(t), nil
-	case tokenLTE:
-		return v.Equal(t) || v.Before(t), nil
-	case tokenEQ:
-		return v.Equal(t), nil
-	case tokenNEQ:
-		return !v.Equal(t), nil
-	default:
-		return false, &FilterError{
-			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for time field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
 	}
 }
