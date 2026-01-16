@@ -1,8 +1,8 @@
 <p align="center">
   <h2 align="center">FILTER</h2>
-  <p align="center">The minimum filter expression for Go</p>
+  <p align="center">The minimal filter expressions for Go</p>
   <p align="center">
-    <a href="https://github.com/nekrassov01/filter/actions/workflows/test.yml"><img src="https://github.com/nekrassov01/filter/actions/workflows/test.yml/badge.svg?branch=main" alt="CI" /></a>
+    <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yaml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yaml/badge.svg?branch=main" alt="CI" /></a>
     <a href="https://codecov.io/gh/nekrassov01/filter"><img src="https://codecov.io/gh/nekrassov01/filter/graph/badge.svg?token=Z75YW69MQK" alt="Codecov" /></a>
     <a href="https://pkg.go.dev/github.com/nekrassov01/filter"><img src="https://pkg.go.dev/badge/github.com/nekrassov01/filter.svg" alt="Go Reference" /></a>
     <a href="https://goreportcard.com/report/github.com/nekrassov01/filter"><img src="https://goreportcard.com/badge/github.com/nekrassov01/filter" alt="Go Report Card" /></a>
@@ -17,27 +17,34 @@
 
 ## Features
 
-* Comparisons, regex, logical AND / OR / NOT
-* Supported types: string, all integer types, float32/64, time.Duration, bool
-* Case-insensitive equality: `==*` / `!=*`
-* Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
-* Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
+- Comparisons, regex, logical AND / OR / NOT
+- Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
+- Case-insensitive equality: `==*` / `!=*`
+- Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
+- Time literals: [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339) only
+- Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
 
 ## Performance
 
 `filter` intentionally does a small amount of work once, so that evaluating an expression many times stays flat:
 
-* Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
-* Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
-* Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times (common in generated filters) does not add proportional `GetField` overhead.
-
-Net effect: expressions with high token repetition scale sub-linearly in both time and allocations compared to naïve re-parsing / re-compiling approaches.
+- Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
+- Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
+- Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times does not add proportional `GetField` overhead.
 
 ## Benchmarks
 
 `filter` is designed to be memory efficient. See [benchmark_test.go](./benchmark_test.go)
 
-Simple input: `String == "HelloWorld"`
+### Case 1
+
+Input:
+
+```text
+String == "HelloWorld"
+```
+
+Result:
 
 ```bash
 $ go test -bench=Simple$ -benchmem -count 5 -benchtime=10000x
@@ -45,21 +52,37 @@ goos: darwin
 goarch: arm64
 pkg: github.com/nekrassov01/filter
 cpu: Apple M2
-BenchmarkParseSimple-8             10000              1147 ns/op            4625 B/op          6 allocs/op
-BenchmarkParseSimple-8             10000              1016 ns/op            4624 B/op          6 allocs/op
-BenchmarkParseSimple-8             10000               918.7 ns/op          4624 B/op          6 allocs/op
-BenchmarkParseSimple-8             10000               814.8 ns/op          4624 B/op          6 allocs/op
-BenchmarkParseSimple-8             10000               761.7 ns/op          4624 B/op          6 allocs/op
-BenchmarkEvalSimple-8              10000                45.50 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                44.95 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                45.02 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                45.15 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                45.10 ns/op            0 B/op          0 allocs/op
+BenchmarkParseSimple-8             10000               992.5 ns/op          4593 B/op          4 allocs/op
+BenchmarkParseSimple-8             10000               920.1 ns/op          4592 B/op          4 allocs/op
+BenchmarkParseSimple-8             10000               863.9 ns/op          4592 B/op          4 allocs/op
+BenchmarkParseSimple-8             10000               802.8 ns/op          4592 B/op          4 allocs/op
+BenchmarkParseSimple-8             10000               781.4 ns/op          4592 B/op          4 allocs/op
+BenchmarkEvalSimple-8              10000                46.83 ns/op            0 B/op          0 allocs/op
+BenchmarkEvalSimple-8              10000                46.67 ns/op            0 B/op          0 allocs/op
+BenchmarkEvalSimple-8              10000                47.03 ns/op            0 B/op          0 allocs/op
+BenchmarkEvalSimple-8              10000                47.13 ns/op            0 B/op          0 allocs/op
+BenchmarkEvalSimple-8              10000                46.83 ns/op            0 B/op          0 allocs/op
 PASS
-ok      github.com/nekrassov01/filter   0.277s
+ok      github.com/nekrassov01/filter   0.263s
 ```
 
-Even when given complex input, performance does not drop drastically.
+### Case 2
+
+Input:
+
+```text
+(
+	String == "HelloWorld" && StringNumber =~ '^[0-9]+$' && Int > 40
+) && (
+	Int8 < 10 && Int16 <= 5 && Int32 != 0
+) && (
+	Float32 >= 2.5 || !(Float64 < 3.0)
+) && (
+	(Time <= 2023-01-01T00:00:00Z) || (Duration < 2s30ms100μs1000ns) || (Bool == TRUE)
+)
+```
+
+Result:
 
 ```bash
 $ go test -bench=Heavy$ -benchmem -count 5 -benchtime=10000x
@@ -67,21 +90,27 @@ goos: darwin
 goarch: arm64
 pkg: github.com/nekrassov01/filter
 cpu: Apple M2
-BenchmarkParseHeavy-8              10000              8116 ns/op           13272 B/op         10 allocs/op
-BenchmarkParseHeavy-8              10000              7374 ns/op           13272 B/op         10 allocs/op
-BenchmarkParseHeavy-8              10000              7905 ns/op           13272 B/op         10 allocs/op
-BenchmarkParseHeavy-8              10000              7130 ns/op           13272 B/op         10 allocs/op
-BenchmarkParseHeavy-8              10000              7134 ns/op           13272 B/op         10 allocs/op
-BenchmarkEvalHeavy-8               10000               528.6 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               535.5 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               567.8 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               533.7 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               519.4 ns/op           616 B/op          3 allocs/op
+BenchmarkParseHeavy-8              10000              8030 ns/op           13240 B/op          8 allocs/op
+BenchmarkParseHeavy-8              10000              6834 ns/op           13240 B/op          8 allocs/op
+BenchmarkParseHeavy-8              10000              7145 ns/op           13240 B/op          8 allocs/op
+BenchmarkParseHeavy-8              10000              6989 ns/op           13240 B/op          8 allocs/op
+BenchmarkParseHeavy-8              10000              6896 ns/op           13240 B/op          8 allocs/op
+BenchmarkEvalHeavy-8               10000               572.8 ns/op           616 B/op          3 allocs/op
+BenchmarkEvalHeavy-8               10000               621.7 ns/op           616 B/op          3 allocs/op
+BenchmarkEvalHeavy-8               10000               645.1 ns/op           616 B/op          3 allocs/op
+BenchmarkEvalHeavy-8               10000               574.2 ns/op           616 B/op          3 allocs/op
+BenchmarkEvalHeavy-8               10000               604.0 ns/op           616 B/op          3 allocs/op
 PASS
-ok      github.com/nekrassov01/filter   0.634s
+ok      github.com/nekrassov01/filter   0.629s
 ```
 
-Stable even when heavy input is concatenated 30 times with `&&`.
+### Case 3
+
+Input:
+
+Concatenate Case 2 with `&&` 30 times
+
+Result:
 
 ```bash
 $ go test -bench=Repeated$ -benchmem -count 5 -benchtime=10000x
@@ -89,18 +118,18 @@ goos: darwin
 goarch: arm64
 pkg: github.com/nekrassov01/filter
 cpu: Apple M2
-BenchmarkParseRepeated-8           10000            220931 ns/op          472029 B/op         15 allocs/op
-BenchmarkParseRepeated-8           10000            230419 ns/op          472028 B/op         15 allocs/op
-BenchmarkParseRepeated-8           10000            237931 ns/op          472028 B/op         15 allocs/op
-BenchmarkParseRepeated-8           10000            219241 ns/op          472028 B/op         15 allocs/op
-BenchmarkParseRepeated-8           10000            219584 ns/op          472028 B/op         15 allocs/op
-BenchmarkEvalRepeated-8            10000             12536 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             12356 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             12398 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             12357 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             12334 ns/op             616 B/op          3 allocs/op
+BenchmarkParseRepeated-8           10000            209364 ns/op          471998 B/op         13 allocs/op
+BenchmarkParseRepeated-8           10000            211333 ns/op          471997 B/op         13 allocs/op
+BenchmarkParseRepeated-8           10000            209689 ns/op          471996 B/op         13 allocs/op
+BenchmarkParseRepeated-8           10000            209426 ns/op          471996 B/op         13 allocs/op
+BenchmarkParseRepeated-8           10000            210669 ns/op          471996 B/op         13 allocs/op
+BenchmarkEvalRepeated-8            10000             13089 ns/op             616 B/op          3 allocs/op
+BenchmarkEvalRepeated-8            10000             13002 ns/op             616 B/op          3 allocs/op
+BenchmarkEvalRepeated-8            10000             12970 ns/op             616 B/op          3 allocs/op
+BenchmarkEvalRepeated-8            10000             13090 ns/op             616 B/op          3 allocs/op
+BenchmarkEvalRepeated-8            10000             13008 ns/op             616 B/op          3 allocs/op
 PASS
-ok      github.com/nekrassov01/filter   12.127s
+ok      github.com/nekrassov01/filter   11.370s
 ```
 
 ## Installation
@@ -136,7 +165,7 @@ func (t *MyTarget) GetField(key string) (any, error) {
 		return t.Name, nil
 	case "Latency":
 		return t.Latency, nil
-	case "Retries":
+	case "Retries", "RetryCount":
 		return t.Retries, nil
 	case "Enabled":
 		return t.Enabled, nil
@@ -176,18 +205,18 @@ func main() {
 | -------- | -------------------------------------- | ---------------------------------- |
 | String   | `"Hello"`, `'世界'`, `` `raw\ntext` `` | Double / single / raw (backtick)   |
 | Number   | `42`, `3.14`, `0x1.fp3`                | Subset of Go numeric literals      |
-| Duration | `1500ms`, `2s`, `1h30m`, `4000μs`      | Go `time.ParseDuration` compatible |
 | Time     | `2023-01-01T00:00:00Z`                 | Go `time.RFC3339` compatible       |
+| Duration | `1500ms`, `2s`, `1h30m`, `4000μs`      | Go `time.ParseDuration` compatible |
 | Boolean  | `true`, `false`, `True`, `FALSE`       | Case-insensitive variants accepted |
 
 ### Operators
 
-| Category                  | Operators         | Description                                                          |
-| ------------------------- | ----------------- | -------------------------------------------------------------------- |
-| Comparison                | `> >= < <= == !=` | Numbers / durations (`==` / `!=` also for strings)                   |
-| Case-insensitive (string) | `==* !=*`         | Unicode case folding                                                 |
-| Regex                     | `=~ !~ =~* !~*`   | RE2 (Go regex), cached per pattern string; `*` adds case-insensitive |
-| Logical                   | `&&` `\|\|` `!`   | Short-circuit                                                        |
+| Category                  | Operators                   | Description                                          |
+| ------------------------- | --------------------------- | ---------------------------------------------------- |
+| Comparison                | `>` `>=` `<` `<=` `==` `!=` | Strings, integers, times, and durations              |
+| Case-insensitive (string) | `==*` `!=*`                 | Unicode case folding                                 |
+| Regex                     | `=~` `!~` `=~*` `!~*`       | Cached per pattern string; `*` adds case-insensitive |
+| Logical                   | `&&` `\|\|` `!`             | Short-circuit                                        |
 
 ## Author
 
