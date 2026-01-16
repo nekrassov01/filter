@@ -475,6 +475,152 @@ func TestEval(t *testing.T) {
 				err: `expected value, got identifier`,
 			},
 		},
+		// Time
+		{
+			name:   "time gt",
+			input:  `Time>'2024-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "time gt false",
+			input:  `Time>'2026-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		{
+			name:   "time gte",
+			input:  `Time>='2025-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "time gte false",
+			input:  `Time>='2026-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		{
+			name:   "time lt",
+			input:  `Time<'2026-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "time lt false",
+			input:  `Time<'2024-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		{
+			name:   "time lte",
+			input:  `Time<='2025-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "time lte false",
+			input:  `Time<='2024-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		{
+			name:   "time eq",
+			input:  `Time=='2025-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "time eq false",
+			input:  `Time=='2024-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		{
+			name:   "time neq",
+			input:  `Time!='2024-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "time neq false",
+			input:  `Time!='2025-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		// Combined logicals
+		{
+			name:   "combined logicals",
+			input:  `String=="HelloWorld" && Int==42 || Float64<3.0`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "combined logicals false",
+			input:  `String=="HelloWorld" && Int==41 || Float64<3.0`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
+		{
+			name:   "combined logicals with parens",
+			input:  `(String=="HelloWorld" && Int==41) || (Float64<3.2 && Bool==true)`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:   "combined logicals with parens false",
+			input:  `(String=="HelloWorld" && Int==41) || (Float64<3.0 && Bool==true)`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: false,
+			},
+		},
 		// Bool
 		{
 			name:   "bool eq",
@@ -665,6 +811,33 @@ func TestEval(t *testing.T) {
 			expected: expected{
 				ok:  false,
 				err: `parse error`,
+			},
+		},
+		{
+			name:   "invalid time",
+			input:  `Time>'invalid-time'`,
+			target: testObject,
+			expected: expected{
+				ok:  false,
+				err: `eval error`,
+			},
+		},
+		{
+			name:   "time invalid operator",
+			input:  `Time=~'2025-01-01T00:00:00Z'`,
+			target: testObject,
+			expected: expected{
+				ok:  false,
+				err: `eval error`,
+			},
+		},
+		{
+			name:   "invalid duration",
+			input:  `Duration>'bad-duration'`,
+			target: testObject,
+			expected: expected{
+				ok:  false,
+				err: `eval error`,
 			},
 		},
 	}

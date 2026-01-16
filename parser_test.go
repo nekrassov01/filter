@@ -139,6 +139,23 @@ func TestParse(t *testing.T) {
 				repr: `(Mic == 4000μs)`,
 			},
 		},
+		// Times
+		{
+			name:  "time before",
+			input: `Time>=2023-01-02T15:04:05Z`,
+			expected: expected{
+				ok:   true,
+				repr: `(Time >= "2023-01-02T15:04:05Z")`,
+			},
+		},
+		{
+			name:  "time after",
+			input: `Time<2023-01-02T15:04:05Z`,
+			expected: expected{
+				ok:   true,
+				repr: `(Time < "2023-01-02T15:04:05Z")`,
+			},
+		},
 		// Booleans
 		{
 			name:  "bool eq",
