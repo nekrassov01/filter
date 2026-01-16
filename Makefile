@@ -37,6 +37,14 @@ ifndef HAS_BUMP
 	go install $(BIN_BUMP)
 endif
 
+# ----------
+#  cleanup
+# ----------
+
+clean:
+	go clean
+	rm -f $(NAME) cover.out cover.html cpu.prof mem.prof $(NAME).test
+
 # --------
 #  check
 # --------
@@ -44,19 +52,22 @@ endif
 check: test cover bench lint vuln
 
 test:
-	go test -race -cover -v ./... -coverprofile=cover.out -covermode=atomic
+	go test -race -cover -v -coverprofile=cover.out -covermode=atomic ./...
 
 cover:
 	go tool cover -html=cover.out -o cover.html
 
 bench:
-	go test -bench=. -benchmem -count 5 -benchtime=10000x -cpuprofile=cpu.prof -memprofile=mem.prof
+	go test -bench . -benchmem -count 5 -benchtime=10000x -cpuprofile=cpu.prof -memprofile=mem.prof
 
 lint: deps-lint
-	golangci-lint run ./... -v
+	golangci-lint run --verbose ./...
 
 vuln: deps-vuln
 	govulncheck -test -show verbose ./...
+
+example:
+	go test -run Example -v
 
 # ----------
 #  release
@@ -80,10 +91,3 @@ publish: deps-bump check-git
 	git push origin main
 	git push origin "refs/tags/v$(VERSION)"
 
-# ---------
-#  helper
-# ---------
-
-clean:
-	go clean
-	rm -f $(NAME) cover.out cover.html cpu.prof mem.prof $(NAME).test
