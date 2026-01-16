@@ -7,41 +7,14 @@ import (
 
 var simpleInput = `String == "HelloWorld"`
 
-var largeInput = `String == "HelloWorld"
-&&
-StringNumber =~ '^[0-9]+$'
-&&
-Int > 40
-&&
-(
-	Int8 < 10
-	&&
-	Int16 <= 5
-	&&
-	Int32 != 0
-)
-&&
-(
-	Float32 >= 2.5
-	||
-	!
-	(
-		Float64 < 3.0
-	)
-)
-&&
-(
-	(
-		Time <= 2023-01-01T00:00:00Z
-	)
-	||
-	(
-		Duration < 2s30ms100μs1000ns
-	)
-	||
-	(
-		Bool == TRUE
-	)
+var largeInput = `(
+        String == "HelloWorld" && StringNumber =~ '^[0-9]+$' && Int > 40
+) && (
+	Int8 < 10 && Int16 <= 5 && Int32 != 0
+) && (
+	Float32 >= 2.5 || !(Float64 < 3.0)
+) && (
+	(Time <= 2023-01-01T00:00:00Z) || (Duration < 2s30ms100μs1000ns) || (Bool == TRUE)
 )
 `
 
