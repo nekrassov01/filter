@@ -1,6 +1,8 @@
 package filter
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"sync"
@@ -18,7 +20,10 @@ func Parse(input string) (*Expr, error) {
 		return nil, err
 	}
 	if p.peek().typ != tokenEOF {
-		return nil, parseError("unexpected token after parsing: %s", p.peek().v)
+		return nil, &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
+		}
 	}
 	return &Expr{
 		parser: p,
@@ -50,7 +55,10 @@ type parser struct {
 // newParser creates a new parser for the given input.
 func newParser(input string) (*parser, error) {
 	if input == "" {
-		return nil, parseError("empty input")
+		return nil, &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("empty input"),
+		}
 	}
 	return &parser{
 		lexer:  newLexer(input),
@@ -64,13 +72,19 @@ func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
 		if p.current.typ == tokenError {
-			return p.current, lexError(p.current.v)
+			return p.current, &FilterError{
+				Kind: KindLex,
+				Err:  errors.New(p.current.v),
+			}
 		}
 		return p.current, nil
 	}
 	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
-		return p.current, lexError(p.current.v)
+		return p.current, &FilterError{
+			Kind: KindLex,
+			Err:  errors.New(p.current.v),
+		}
 	}
 	return p.current, nil
 }
@@ -91,7 +105,10 @@ func (p *parser) expect(typ tokenType) (token, error) {
 		return t, err
 	}
 	if t.typ != typ {
-		return t, parseError("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v)
+		return t, &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v),
+		}
 	}
 	return t, nil
 }
@@ -109,14 +126,20 @@ func unquote(t token) string {
 // Caches compiled regex patterns to reduce allocations on repeated parses.
 func (p *parser) handleRegex(t token, i int) error {
 	if t.v == "" {
-		return parseError("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col)
+		return &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col),
+		}
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
 		p.nodes[i].re = cached.(*regexp.Regexp)
 	} else {
 		re, err := regexp.Compile(t.v)
 		if err != nil {
-			return parseError("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err)
+			return &FilterError{
+				Kind: KindParse,
+				Err:  fmt.Errorf("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err),
+			}
 		}
 		regexMap.Store(t.v, re)
 		p.nodes[i].re = re
@@ -198,7 +221,10 @@ func (p *parser) parsePrimary() (int, error) {
 		}
 		p.parenCount++
 		if p.parenCount > MaxParen {
-			return 0, parseError("too many parentheses: exceeded limit %d at %d:%d", MaxParen, t.line, t.col)
+			return 0, &FilterError{
+				Kind: KindParse,
+				Err:  fmt.Errorf("too many parentheses: exceeded limit %d at %d:%d", MaxParen, t.line, t.col),
+			}
 		}
 		expr, err := p.parseExpr()
 		if err != nil {
@@ -211,7 +237,10 @@ func (p *parser) parsePrimary() (int, error) {
 	case tokenIdent:
 		return p.parseComparison()
 	default:
-		return 0, parseError("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.v)
+		return 0, &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.v),
+		}
 	}
 }
 
@@ -229,14 +258,20 @@ func (p *parser) parseComparison() (int, error) {
 		return 0, err
 	}
 	if !op.typ.isComparisonOperatorType() {
-		return 0, parseError("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.v)
+		return 0, &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.v),
+		}
 	}
 	val, err := p.next()
 	if err != nil {
 		return 0, err
 	}
 	if !val.typ.isValueType() {
-		return 0, parseError("expected value, got %s at %d:%d: %q", val.typ, val.line, val.col, val.v)
+		return 0, &FilterError{
+			Kind: KindParse,
+			Err:  fmt.Errorf("expected value, got %s at %d:%d: %q", val.typ, val.line, val.col, val.v),
+		}
 	}
 	if val.typ == tokenString || val.typ == tokenRawString {
 		val.v = unquote(val)

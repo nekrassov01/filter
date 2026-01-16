@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -37,7 +38,10 @@ type testTarget map[string]any
 func (t testTarget) GetField(key string) (any, error) {
 	v, ok := t[key]
 	if !ok {
-		return nil, evalError("field not found: %q", key)
+		return nil, &FilterError{
+			Kind: KindEval,
+			Err:  fmt.Errorf("field not found: %q", key),
+		}
 	}
 	return v, nil
 }
