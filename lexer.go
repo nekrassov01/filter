@@ -236,8 +236,8 @@ type lexer struct {
 }
 
 // newLexer creates a new lexer for the input string.
-func newLexer(input string) *lexer {
-	return &lexer{
+func newLexer(input string) lexer {
+	return lexer{
 		input:     input,
 		state:     lexStmt,
 		line:      1,

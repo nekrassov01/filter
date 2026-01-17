@@ -10,22 +10,22 @@ import (
 )
 
 // Parse parses a string expression into an Expr.
-func Parse(input string) (*Expr, error) {
+func Parse(input string) (Expr, error) {
 	p, err := newParser(input)
 	if err != nil {
-		return nil, err
+		return Expr{}, err
 	}
 	n, err := p.parseExpr()
 	if err != nil {
-		return nil, err
+		return Expr{}, err
 	}
 	if p.peek().typ != tokenEOF {
-		return nil, &FilterError{
+		return Expr{}, &FilterError{
 			Kind: KindParse,
 			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
 		}
 	}
-	return &Expr{
+	return Expr{
 		parser: p,
 		root:   n,
 	}, nil
@@ -44,7 +44,7 @@ var regexMap sync.Map
 
 // parser represents a parser for the expression.
 type parser struct {
-	lexer      *lexer              // lexer for tokenizing input
+	lexer      lexer               // lexer for tokenizing input
 	nodes      []node              // expression tree nodes
 	current    token               // current token
 	peeked     bool                // indicates if the next token has been peeked
@@ -53,17 +53,17 @@ type parser struct {
 }
 
 // newParser creates a new parser for the given input.
-func newParser(input string) (*parser, error) {
+func newParser(input string) (parser, error) {
 	if input == "" {
-		return nil, &FilterError{
+		return parser{}, &FilterError{
 			Kind: KindParse,
 			Err:  fmt.Errorf("empty input"),
 		}
 	}
-	return &parser{
+	return parser{
 		lexer:  newLexer(input),
 		nodes:  make([]node, 0, 16),
-		idents: make(map[string]struct{}, 8),
+		idents: make(map[string]struct{}),
 	}, nil
 }
 
