@@ -15,7 +15,7 @@ type Target interface {
 
 // Expr represents an expression in the parser.
 type Expr struct {
-	parser *parser
+	parser parser
 	root   int
 }
 

@@ -457,7 +457,7 @@ func TestParse(t *testing.T) {
 					t.Errorf(testTemplate, test.input, "", err)
 					return
 				}
-				repr := repr(*expr)
+				repr := repr(expr)
 				if repr != test.expected.repr {
 					t.Errorf(testTemplate, test.input, test.expected.repr, repr)
 				}
