@@ -10,22 +10,22 @@ import (
 )
 
 // Parse parses a string expression into an Expr.
-func Parse(input string) (Expr, error) {
+func Parse(input string) (*Expr, error) {
 	p, err := newParser(input)
 	if err != nil {
-		return Expr{}, err
+		return nil, err
 	}
 	n, err := p.parseExpr()
 	if err != nil {
-		return Expr{}, err
+		return nil, err
 	}
 	if p.peek().typ != tokenEOF {
-		return Expr{}, &FilterError{
+		return nil, &FilterError{
 			Kind: KindParse,
 			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
 		}
 	}
-	return Expr{
+	return &Expr{
 		parser: p,
 		root:   n,
 	}, nil

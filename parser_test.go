@@ -475,7 +475,7 @@ func TestParse(t *testing.T) {
 }
 
 // repr converts ast to a string.
-func repr(e Expr) string {
+func repr(e *Expr) string {
 	val := func(v string) string {
 		if isNumericLike(v) || isDurationLike(v) || isBoolLiteral(v) {
 			return v
