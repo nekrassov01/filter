@@ -2,8 +2,7 @@
   <h2 align="center">FILTER</h2>
   <p align="center">The minimal filter expressions for Go</p>
   <p align="center">
-    <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yaml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yaml/badge.svg?branch=main" alt="CI" /></a>
-    <a href="https://codecov.io/gh/nekrassov01/filter"><img src="https://codecov.io/gh/nekrassov01/filter/graph/badge.svg?token=Z75YW69MQK" alt="Codecov" /></a>
+    <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
     <a href="https://pkg.go.dev/github.com/nekrassov01/filter"><img src="https://pkg.go.dev/badge/github.com/nekrassov01/filter.svg" alt="Go Reference" /></a>
     <a href="https://goreportcard.com/report/github.com/nekrassov01/filter"><img src="https://goreportcard.com/badge/github.com/nekrassov01/filter" alt="Go Report Card" /></a>
     <img src="https://img.shields.io/github/license/nekrassov01/filter" alt="LICENSE" />
@@ -47,23 +46,23 @@ String == "HelloWorld"
 Result:
 
 ```bash
-$ go test -bench=Simple$ -benchmem -count 5 -benchtime=10000x
+$ go test -bench Simple$ -benchmem -count 5 -benchtime 10000x ./benchmarks/
 goos: darwin
 goarch: arm64
-pkg: github.com/nekrassov01/filter
+pkg: github.com/nekrassov01/filter/benchmarks
 cpu: Apple M2
-BenchmarkParseSimple-8             10000              1060 ns/op            4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               903.2 ns/op          4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               909.3 ns/op          4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               899.6 ns/op          4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               796.0 ns/op          4832 B/op          5 allocs/op
-BenchmarkEvalSimple-8              10000                49.59 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                47.75 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                48.27 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                47.82 ns/op            0 B/op          0 allocs/op
-BenchmarkEvalSimple-8              10000                46.13 ns/op            0 B/op          0 allocs/op
+BenchmarkParseSimple-8             10000              1086 ns/op            4832 B/op          5 allocs/op
+BenchmarkParseSimple-8             10000               801.3 ns/op          4832 B/op          5 allocs/op
+BenchmarkParseSimple-8             10000               874.7 ns/op          4832 B/op          5 allocs/op
+BenchmarkParseSimple-8             10000               747.2 ns/op          4832 B/op          5 allocs/op
+BenchmarkParseSimple-8             10000               769.5 ns/op          4832 B/op          5 allocs/op
+BenchmarkEvalSimple-8              10000                58.45 ns/op           16 B/op          1 allocs/op
+BenchmarkEvalSimple-8              10000                62.60 ns/op           16 B/op          1 allocs/op
+BenchmarkEvalSimple-8              10000                60.58 ns/op           16 B/op          1 allocs/op
+BenchmarkEvalSimple-8              10000                59.67 ns/op           16 B/op          1 allocs/op
+BenchmarkEvalSimple-8              10000                60.77 ns/op           16 B/op          1 allocs/op
 PASS
-ok      github.com/nekrassov01/filter   0.268s
+ok      github.com/nekrassov01/filter/benchmarks        0.386s
 ```
 
 ### Case 2
@@ -71,37 +70,35 @@ ok      github.com/nekrassov01/filter   0.268s
 Input:
 
 ```text
-(
-	String == "HelloWorld" && StringNumber =~ '^[0-9]+$' && Int > 40
+Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (
+    BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s'
 ) && (
-	Int8 < 10 && Int16 <= 5 && Int32 != 0
+    HitPoint > "50" && MagicPoint > 100 && LifePoint != 0
 ) && (
-	Float32 >= 2.5 || !(Float64 < 3.0)
-) && (
-	(Time <= 2023-01-01T00:00:00Z) || (Duration < 2s30ms100μs1000ns) || (Bool == TRUE)
+    Magic >= 20 || !(Speed < 20)
 )
 ```
 
 Result:
 
 ```bash
-$ go test -bench=Heavy$ -benchmem -count 5 -benchtime=10000x
+$ go test -bench Heavy$ -benchmem -count 5 -benchtime 10000x ./benchmarks/
 goos: darwin
 goarch: arm64
-pkg: github.com/nekrassov01/filter
+pkg: github.com/nekrassov01/filter/benchmarks
 cpu: Apple M2
-BenchmarkParseHeavy-8              10000              7964 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              7027 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              7101 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              7027 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              7163 ns/op           13480 B/op          9 allocs/op
-BenchmarkEvalHeavy-8               10000               595.2 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               628.4 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               596.3 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               593.6 ns/op           616 B/op          3 allocs/op
-BenchmarkEvalHeavy-8               10000               585.9 ns/op           616 B/op          3 allocs/op
+BenchmarkParseHeavy-8              10000              8176 ns/op           13481 B/op          9 allocs/op
+BenchmarkParseHeavy-8              10000              5449 ns/op           13480 B/op          9 allocs/op
+BenchmarkParseHeavy-8              10000              5424 ns/op           13480 B/op          9 allocs/op
+BenchmarkParseHeavy-8              10000              5394 ns/op           13480 B/op          9 allocs/op
+BenchmarkParseHeavy-8              10000              5403 ns/op           13480 B/op          9 allocs/op
+BenchmarkEvalHeavy-8               10000               632.0 ns/op           703 B/op          9 allocs/op
+BenchmarkEvalHeavy-8               10000               660.9 ns/op           699 B/op          9 allocs/op
+BenchmarkEvalHeavy-8               10000               648.1 ns/op           699 B/op          9 allocs/op
+BenchmarkEvalHeavy-8               10000               666.6 ns/op           699 B/op          9 allocs/op
+BenchmarkEvalHeavy-8               10000               640.2 ns/op           703 B/op          9 allocs/op
 PASS
-ok      github.com/nekrassov01/filter   0.617s
+ok      github.com/nekrassov01/filter/benchmarks        0.667s
 ```
 
 ### Case 3
@@ -113,23 +110,23 @@ Concatenate Case 2 with `&&` 30 times
 Result:
 
 ```bash
-$ go test -bench=Repeated$ -benchmem -count 5 -benchtime=10000x
+$ go test -bench Repeated$ -benchmem -count 5 -benchtime 10000x ./benchmarks/
 goos: darwin
 goarch: arm64
-pkg: github.com/nekrassov01/filter
+pkg: github.com/nekrassov01/filter/benchmarks
 cpu: Apple M2
-BenchmarkParseRepeated-8           10000            210781 ns/op          472238 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            210380 ns/op          472236 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            211613 ns/op          472237 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            211545 ns/op          472237 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            210101 ns/op          472237 B/op         14 allocs/op
-BenchmarkEvalRepeated-8            10000             13992 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             15079 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             13322 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             13423 ns/op             616 B/op          3 allocs/op
-BenchmarkEvalRepeated-8            10000             13156 ns/op             616 B/op          3 allocs/op
+BenchmarkParseRepeated-8           10000            161514 ns/op          472234 B/op         14 allocs/op
+BenchmarkParseRepeated-8           10000            159965 ns/op          472233 B/op         14 allocs/op
+BenchmarkParseRepeated-8           10000            163515 ns/op          472233 B/op         14 allocs/op
+BenchmarkParseRepeated-8           10000            161376 ns/op          472233 B/op         14 allocs/op
+BenchmarkParseRepeated-8           10000            160894 ns/op          472234 B/op         14 allocs/op
+BenchmarkEvalRepeated-8            10000             14868 ns/op             703 B/op          9 allocs/op
+BenchmarkEvalRepeated-8            10000             15078 ns/op             703 B/op          9 allocs/op
+BenchmarkEvalRepeated-8            10000             15318 ns/op             707 B/op          9 allocs/op
+BenchmarkEvalRepeated-8            10000             15306 ns/op             700 B/op          9 allocs/op
+BenchmarkEvalRepeated-8            10000             14730 ns/op             703 B/op          9 allocs/op
 PASS
-ok      github.com/nekrassov01/filter   11.437s
+ok      github.com/nekrassov01/filter/benchmarks        9.211s
 ```
 
 ## Installation
@@ -144,56 +141,56 @@ go get github.com/nekrassov01/filter@latest
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 
-	"github.com/nekrassov01/filter"
+    "github.com/nekrassov01/filter"
 )
 
-// Example target type.
+// MyTarget represents the example filter target.
 type MyTarget struct {
-	Name    string
-	Latency time.Duration
-	Retries int
-	Enabled bool
+    Name    string
+    Latency time.Duration
+    Retries int
+    Enabled bool
 }
 
 // GetField maps a field name to its value.
 func (t *MyTarget) GetField(key string) (any, error) {
-	switch key {
-	case "Name":
-		return t.Name, nil
-	case "Latency":
-		return t.Latency, nil
-	case "Retries", "RetryCount":
-		return t.Retries, nil
-	case "Enabled":
-		return t.Enabled, nil
-	default:
-		return nil, fmt.Errorf("field not found: %q", key)
-	}
+    switch key {
+    case "Name":
+        return t.Name, nil
+    case "Latency":
+        return t.Latency, nil
+    case "Retries", "RetryCount":
+        return t.Retries, nil
+    case "Enabled":
+        return t.Enabled, nil
+    default:
+        return nil, fmt.Errorf("field not found: %q", key)
+    }
 }
 
 func main() {
-	input := `Name =~ '^foo' && (Latency < 1500ms || Retries != 0) && Enabled == true`
+    input := `Name =~ '^foo' && (Latency < 1500ms || Retries != 0) && Enabled == true`
 
-	expr, err := filter.Parse(input)
-	if err != nil {
-		panic(err)
-	}
+    expr, err := filter.Parse(input)
+    if err != nil {
+        panic(err)
+    }
 
-	target := &MyTarget{
-		Name:    "foobar",
-		Latency: 100 * time.Millisecond,
-		Retries: 3,
-		Enabled: true,
-	}
+    target := &MyTarget{
+        Name:    "foobar",
+        Latency: 100 * time.Millisecond,
+        Retries: 3,
+        Enabled: true,
+    }
 
-	ok, err := expr.Eval(target)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("matched:", ok)
+    ok, err := expr.Eval(target)
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("matched:", ok)
 }
 ```
 
