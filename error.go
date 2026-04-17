@@ -8,19 +8,24 @@ import (
 type ErrorKind int
 
 const (
-	KindEval  ErrorKind = iota // evaluation error kind
-	KindParse                  // parsing error kind
-	KindLex                    // lexical error kind
+	// KindEval is the evaluation error kind.
+	KindEval ErrorKind = iota
+
+	// KindParse is the parsing error kind.
+	KindParse
+
+	// KindLex is the lexical error kind.
+	KindLex
 )
 
-// FilterError represents an error in the filter processing.
-type FilterError struct {
+// Error represents an error in the filter processing.
+type Error struct {
 	Kind ErrorKind
 	Err  error
 }
 
 // Error returns the error message.
-func (e *FilterError) Error() string {
+func (e *Error) Error() string {
 	switch e.Kind {
 	case KindEval:
 		return message("eval error", e.Err.Error())
@@ -34,7 +39,7 @@ func (e *FilterError) Error() string {
 }
 
 // Unwrap returns the underlying error.
-func (e *FilterError) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.Err
 }
 

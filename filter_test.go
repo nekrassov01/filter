@@ -38,7 +38,7 @@ type testTarget map[string]any
 func (t testTarget) GetField(key string) (any, error) {
 	v, ok := t[key]
 	if !ok {
-		return nil, &FilterError{
+		return nil, &Error{
 			Kind: KindEval,
 			Err:  fmt.Errorf("field not found: %q", key),
 		}

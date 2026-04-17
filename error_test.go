@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestFilterError_Error(t *testing.T) {
+func TestError_Error(t *testing.T) {
 	type fields struct {
 		Kind ErrorKind
 		Err  error
@@ -50,18 +50,18 @@ func TestFilterError_Error(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := &FilterError{
+			e := &Error{
 				Kind: tt.fields.Kind,
 				Err:  tt.fields.Err,
 			}
 			if got := e.Error(); got != tt.want {
-				t.Errorf("FilterError.Error() = %v, want %v", got, tt.want)
+				t.Errorf("Error.Error() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestFilterError_Unwrap(t *testing.T) {
+func TestError_Unwrap(t *testing.T) {
 	type fields struct {
 		Kind ErrorKind
 		Err  error
@@ -82,12 +82,12 @@ func TestFilterError_Unwrap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := &FilterError{
+			e := &Error{
 				Kind: tt.fields.Kind,
 				Err:  tt.fields.Err,
 			}
 			if err := e.Unwrap(); err.Error() != tt.err.Error() {
-				t.Errorf("FilterError.Unwrap() error = %v, want %v", err, tt.err)
+				t.Errorf("Error.Unwrap() error = %v, want %v", err, tt.err)
 			}
 		})
 	}
