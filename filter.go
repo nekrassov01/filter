@@ -53,7 +53,7 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 			}
 			return eval(nodes, n.right, t, cache)
 		default:
-			return false, &FilterError{
+			return false, &Error{
 				Kind: KindEval,
 				Err:  fmt.Errorf("invalid logical operator at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 			}
@@ -81,14 +81,14 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 			field, err = t.GetField(key)
 		}
 		if err != nil {
-			return false, &FilterError{
+			return false, &Error{
 				Kind: KindEval,
 				Err:  err,
 			}
 		}
 		return evalComparison(n, field)
 	}
-	return false, &FilterError{
+	return false, &Error{
 		Kind: KindEval,
 		Err:  fmt.Errorf("invalid node type at %d:%d: %q", n.op.line, n.op.col, n.op.typ),
 	}
@@ -148,7 +148,7 @@ func evalString(n node, v string) (bool, error) {
 	case tokenNREQ, tokenNREQI:
 		return !n.re.MatchString(v), nil
 	default:
-		return false, &FilterError{
+		return false, &Error{
 			Kind: KindEval,
 			Err:  fmt.Errorf("invalid operator for string field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
@@ -161,7 +161,7 @@ func evalNumber(n node, v float64) (bool, error) {
 	if !n.hasNum {
 		parsed, err := strconv.ParseFloat(n.val.v, 64)
 		if err != nil {
-			return false, &FilterError{
+			return false, &Error{
 				Kind: KindEval,
 				Err:  fmt.Errorf("invalid number at %d:%d: %q", n.val.line, n.val.col, n.val.v),
 			}
@@ -182,7 +182,7 @@ func evalNumber(n node, v float64) (bool, error) {
 	case tokenNEQ:
 		return math.Abs(v-f) > Epsilon, nil
 	default:
-		return false, &FilterError{
+		return false, &Error{
 			Kind: KindEval,
 			Err:  fmt.Errorf("invalid operator for number field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
@@ -195,7 +195,7 @@ func evalTime(n node, v time.Time) (bool, error) {
 	if !n.hasTime {
 		parsed, err := time.Parse(time.RFC3339, n.val.v)
 		if err != nil {
-			return false, &FilterError{
+			return false, &Error{
 				Kind: KindEval,
 				Err:  fmt.Errorf("invalid time at %d:%d: %q", n.val.line, n.val.col, n.val.v),
 			}
@@ -216,7 +216,7 @@ func evalTime(n node, v time.Time) (bool, error) {
 	case tokenNEQ:
 		return !v.Equal(t), nil
 	default:
-		return false, &FilterError{
+		return false, &Error{
 			Kind: KindEval,
 			Err:  fmt.Errorf("invalid operator for time field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
@@ -229,7 +229,7 @@ func evalDuration(n node, v time.Duration) (bool, error) {
 	if !n.hasDur {
 		parsed, err := time.ParseDuration(n.val.v)
 		if err != nil {
-			return false, &FilterError{
+			return false, &Error{
 				Kind: KindEval,
 				Err:  fmt.Errorf("invalid duration at %d:%d: %q", n.val.line, n.val.col, n.val.v),
 			}
@@ -250,7 +250,7 @@ func evalDuration(n node, v time.Duration) (bool, error) {
 	case tokenNEQ:
 		return v != d, nil
 	default:
-		return false, &FilterError{
+		return false, &Error{
 			Kind: KindEval,
 			Err:  fmt.Errorf("invalid operator for duration field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}

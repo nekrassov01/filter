@@ -20,7 +20,7 @@ func Parse(input string) (*Expr, error) {
 		return nil, err
 	}
 	if p.peek().typ != tokenEOF {
-		return nil, &FilterError{
+		return nil, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
 		}
@@ -55,7 +55,7 @@ type parser struct {
 // newParser creates a new parser for the given input.
 func newParser(input string) (parser, error) {
 	if input == "" {
-		return parser{}, &FilterError{
+		return parser{}, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("empty input"),
 		}
@@ -72,7 +72,7 @@ func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
 		if p.current.typ == tokenError {
-			return p.current, &FilterError{
+			return p.current, &Error{
 				Kind: KindLex,
 				Err:  errors.New(p.current.v),
 			}
@@ -81,7 +81,7 @@ func (p *parser) next() (token, error) {
 	}
 	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
-		return p.current, &FilterError{
+		return p.current, &Error{
 			Kind: KindLex,
 			Err:  errors.New(p.current.v),
 		}
@@ -105,7 +105,7 @@ func (p *parser) expect(typ tokenType) (token, error) {
 		return t, err
 	}
 	if t.typ != typ {
-		return t, &FilterError{
+		return t, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v),
 		}
@@ -126,7 +126,7 @@ func unquote(t token) string {
 // Caches compiled regex patterns to reduce allocations on repeated parses.
 func (p *parser) handleRegex(t token, i int) error {
 	if t.v == "" {
-		return &FilterError{
+		return &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col),
 		}
@@ -136,7 +136,7 @@ func (p *parser) handleRegex(t token, i int) error {
 	} else {
 		re, err := regexp.Compile(t.v)
 		if err != nil {
-			return &FilterError{
+			return &Error{
 				Kind: KindParse,
 				Err:  fmt.Errorf("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err),
 			}
@@ -221,7 +221,7 @@ func (p *parser) parsePrimary() (int, error) {
 		}
 		p.parenCount++
 		if p.parenCount > MaxParen {
-			return 0, &FilterError{
+			return 0, &Error{
 				Kind: KindParse,
 				Err:  fmt.Errorf("too many parentheses: exceeded limit %d at %d:%d", MaxParen, t.line, t.col),
 			}
@@ -237,7 +237,7 @@ func (p *parser) parsePrimary() (int, error) {
 	case tokenIdent:
 		return p.parseComparison()
 	default:
-		return 0, &FilterError{
+		return 0, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.v),
 		}
@@ -258,7 +258,7 @@ func (p *parser) parseComparison() (int, error) {
 		return 0, err
 	}
 	if !op.typ.isComparisonOperatorType() {
-		return 0, &FilterError{
+		return 0, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.v),
 		}
@@ -268,7 +268,7 @@ func (p *parser) parseComparison() (int, error) {
 		return 0, err
 	}
 	if !val.typ.isValueType() {
-		return 0, &FilterError{
+		return 0, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("expected value, got %s at %d:%d: %q", val.typ, val.line, val.col, val.v),
 		}

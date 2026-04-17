@@ -1,15 +1,17 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "editor.formatOnType": true,
+  "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
+    "source.organizeImports": "always"
   },
-  "markdownlint.run": "onSave",
+  "markdownlint.run": "onType",
   "markdownlint.config": {
-    "MD010": false,
+    "MD022": false,
     "MD024": false,
+    "MD032": false,
     "MD033": false,
+    "MD034": false,
     "MD041": false
   },
   "go.lintTool": "golangci-lint",
@@ -24,8 +26,6 @@
   "[markdown]": {
     "editor.defaultFormatter": "yzhang.markdown-all-in-one",
     "editor.wordWrap": "off",
-    "files.trimTrailingWhitespace": false,
-    "editor.tabSize": 8
-  },
-  "commentTranslate.source": "Copilot"
+    "files.trimTrailingWhitespace": false
+  }
 }

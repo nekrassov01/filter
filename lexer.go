@@ -315,8 +315,8 @@ func (l *lexer) backup() {
 
 // backupNumber steps back one character for number tokens.
 func (l *lexer) backupNumber() {
-	l.pos -= 1
-	l.col -= 1
+	l.pos--
+	l.col--
 	if l.col < 1 {
 		l.col = 1
 	}
