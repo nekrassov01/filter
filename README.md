@@ -40,7 +40,7 @@
 Input:
 
 ```text
-String == "HelloWorld"
+Class == "軍師"
 ```
 
 Result:
