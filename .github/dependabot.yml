@@ -16,6 +16,8 @@ updates:
     open-pull-requests-limit: 10
     assignees:
       - "nekrassov01"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "github-actions"
     directory: "/"
     groups:
@@ -32,3 +34,5 @@ updates:
     open-pull-requests-limit: 10
     assignees:
       - "nekrassov01"
+    cooldown:
+      default-days: 7
