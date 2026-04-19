@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.1.2](https://github.com/nekrassov01/filter/compare/v0.1.1...v0.1.2) - 2026-04-19
+
 ## [v0.1.1](https://github.com/nekrassov01/filter/compare/v0.1.0...v0.1.1) - 2026-04-17
 - Fix typo by @nekrassov01 in https://github.com/nekrassov01/filter/pull/4
 
