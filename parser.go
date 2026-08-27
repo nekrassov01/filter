@@ -16,15 +16,35 @@ const Epsilon = 1e-9
 // Guards against pathological inputs causing excessive work. Counts total openings, not current depth.
 const MaxParen = 256
 
+// nodeBufSize is the number of nodes the parser stores inline before moving
+// to a heap-allocated slice. Written by index rather than by append so that
+// the parser stays on the stack of Parse.
+const nodeBufSize = 16
+
+// identBufSize is the number of distinct identifiers the parser stores inline
+// before moving to a heap-allocated slice. Written by index for the same
+// reason as nodeBufSize.
+const identBufSize = 8
+
+// nodeCharsEstimate is the assumed number of input bytes per node when
+// sizing the overflow slice. It is an estimate, not a bound; append still
+// grows the slice when the guess is low.
+const nodeCharsEstimate = 8
+
 // regexMap stores compiled regex patterns to reduce allocations on repeated parses.
 // key: pattern string, value: *regexp.Regexp
 var regexMap sync.Map
 
 // Parse parses a string expression into an Expr.
 func Parse(input string) (*Expr, error) {
-	p, err := newParser(input)
-	if err != nil {
-		return nil, err
+	if input == "" {
+		return nil, &Error{
+			Kind: KindParse,
+			Err:  fmt.Errorf("empty input"),
+		}
+	}
+	p := parser{
+		lexer: newLexer(input),
 	}
 	n, err := p.parseExpr()
 	if err != nil {
@@ -36,35 +56,34 @@ func Parse(input string) (*Expr, error) {
 			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
 		}
 	}
+	nodes := p.nodes
+	if nodes == nil {
+		nodes = make([]node, p.nnode)
+		copy(nodes, p.nodeBuf[:p.nnode])
+	}
 	return &Expr{
-		parser: p,
+		nodes:  nodes,
 		root:   n,
+		nident: p.nident,
+		shared: p.shared,
 	}, nil
 }
 
 // parser represents a parser for the expression.
+// It lives on the caller's stack for the duration of Parse; the fixed-size
+// buffers let small expressions parse without heap growth.
 type parser struct {
-	lexer      lexer               // lexer for tokenizing input
-	nodes      []node              // expression tree nodes
-	current    token               // current token
-	peeked     bool                // indicates if the next token has been peeked
-	parenCount int                 // Number of opening parentheses
-	idents     map[string]struct{} // Unique identifier encountered in field cache size settings
-}
-
-// newParser creates a new parser for the given input.
-func newParser(input string) (parser, error) {
-	if input == "" {
-		return parser{}, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("empty input"),
-		}
-	}
-	return parser{
-		lexer:  newLexer(input),
-		nodes:  make([]node, 0, 16),
-		idents: make(map[string]struct{}),
-	}, nil
+	lexer      lexer                // lexer for tokenizing input
+	current    token                // current token
+	peeked     bool                 // indicates if the next token has been peeked
+	parenCount int                  // number of opening parentheses
+	nodeBuf    [nodeBufSize]node    // expression tree nodes until nodeBuf is full
+	nodes      []node               // all expression tree nodes once nodeBuf overflowed
+	nnode      int                  // number of nodes
+	identBuf   [identBufSize]string // distinct identifiers until identBuf is full
+	idents     []string             // all distinct identifiers once identBuf overflowed
+	nident     int                  // number of distinct identifiers
+	shared     bool                 // some identifier is referenced more than once
 }
 
 // parseExpr parses an expression.
@@ -170,9 +189,7 @@ func (p *parser) parseComparison() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if p.idents != nil {
-		p.idents[ident.v] = struct{}{}
-	}
+	ident.idx = p.identIndex(ident.v)
 	op, err := p.next()
 	if err != nil {
 		return 0, err
@@ -207,20 +224,20 @@ func (p *parser) parseComparison() (int, error) {
 	}
 	if val.typ == tokenTime {
 		if t, err := time.Parse(time.RFC3339, val.v); err == nil {
-			p.nodes[i].time = t
-			p.nodes[i].hasTime = true
+			p.node(i).time = t
+			p.node(i).hasTime = true
 		}
 	}
 	if val.typ == tokenDuration {
 		if d, err := time.ParseDuration(val.v); err == nil {
-			p.nodes[i].dur = d
-			p.nodes[i].hasDur = true
+			p.node(i).dur = d
+			p.node(i).hasDur = true
 		}
 	}
 	if val.typ == tokenNumber {
 		if f, err := strconv.ParseFloat(val.v, 64); err == nil {
-			p.nodes[i].num = f
-			p.nodes[i].hasNum = true
+			p.node(i).num = f
+			p.node(i).hasNum = true
 		}
 	}
 	return i, nil
@@ -236,7 +253,7 @@ func (p *parser) handleRegex(t token, i int) error {
 		}
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
-		p.nodes[i].re = cached.(*regexp.Regexp)
+		p.node(i).re = cached.(*regexp.Regexp)
 	} else {
 		re, err := regexp.Compile(t.v)
 		if err != nil {
@@ -246,9 +263,64 @@ func (p *parser) handleRegex(t token, i int) error {
 			}
 		}
 		regexMap.Store(t.v, re)
-		p.nodes[i].re = re
+		p.node(i).re = re
 	}
 	return nil
+}
+
+// identIndex returns the index of the identifier, registering it on first use.
+func (p *parser) identIndex(name string) int {
+	idents := p.idents
+	if idents == nil {
+		idents = p.identBuf[:p.nident]
+	}
+	for i, s := range idents {
+		if s == name {
+			p.shared = true
+			return i
+		}
+	}
+	i := p.nident
+	switch {
+	case p.idents != nil:
+		p.idents = append(p.idents, name)
+	case i < identBufSize:
+		p.identBuf[i] = name
+	default:
+		p.idents = make([]string, i, 2*identBufSize)
+		copy(p.idents, p.identBuf[:])
+		p.idents = append(p.idents, name)
+	}
+	p.nident++
+	return i
+}
+
+// addNode stores a node and returns its index.
+func (p *parser) addNode(n node) int {
+	i := p.nnode
+	switch {
+	case p.nodes != nil:
+		p.nodes = append(p.nodes, n)
+	case i < nodeBufSize:
+		p.nodeBuf[i] = n
+	default:
+		// Estimate the final node count from the unread input so that large
+		// expressions grow in one step instead of doubling repeatedly.
+		remaining := len(p.lexer.input) - p.lexer.pos
+		p.nodes = make([]node, i, max(2*nodeBufSize, i+remaining/nodeCharsEstimate))
+		copy(p.nodes, p.nodeBuf[:])
+		p.nodes = append(p.nodes, n)
+	}
+	p.nnode++
+	return i
+}
+
+// node returns the node at index i.
+func (p *parser) node(i int) *node {
+	if p.nodes != nil {
+		return &p.nodes[i]
+	}
+	return &p.nodeBuf[i]
 }
 
 // expect returns the next token and consumes it if it matches the expected type.

@@ -57,8 +57,7 @@ func newNodeBinary(p *parser, left int, op token, right int) int {
 		right: right,
 		op:    op,
 	}
-	p.nodes = append(p.nodes, node)
-	return len(p.nodes) - 1
+	return p.addNode(node)
 }
 
 // newNodeNOT creates a new NOT expression node.
@@ -68,8 +67,7 @@ func newNodeNOT(p *parser, child int, op token) int {
 		left: child,
 		op:   op,
 	}
-	p.nodes = append(p.nodes, node)
-	return len(p.nodes) - 1
+	return p.addNode(node)
 }
 
 // newNodeComparison creates a new comparison expression node.
@@ -80,6 +78,5 @@ func newNodeComparison(p *parser, ident token, op token, val token) int {
 		op:    op,
 		val:   val,
 	}
-	p.nodes = append(p.nodes, node)
-	return len(p.nodes) - 1
+	return p.addNode(node)
 }

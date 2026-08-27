@@ -19,6 +19,7 @@ type token struct {
 	pos  int
 	line int
 	col  int
+	idx  int // identifier index assigned by the parser (identifier tokens only)
 }
 
 // tokenType represents the type of token produced by the lexer.

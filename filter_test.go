@@ -695,6 +695,30 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			name: "more identifiers than the inline cache",
+			input: func() string {
+				var b strings.Builder
+				for i := range 10 {
+					if i > 0 {
+						b.WriteString(" && ")
+					}
+					fmt.Fprintf(&b, "F%d == %d", i, i)
+				}
+				return b.String() + " && F0 == 0"
+			}(),
+			target: func() testTarget {
+				t := testTarget{}
+				for i := range 10 {
+					t[fmt.Sprintf("F%d", i)] = i
+				}
+				return t
+			}(),
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
 			name:   "not true->false",
 			input:  `!(Int>40)`,
 			target: testObject,
