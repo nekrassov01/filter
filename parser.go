@@ -233,23 +233,39 @@ func (p *parser) parseComparison() (int, error) {
 			return 0, err
 		}
 	}
-	if val.typ == tokenTime {
-		if t, err := time.Parse(time.RFC3339, val.v); err == nil {
-			p.node(i).time = t
-			p.node(i).hasTime = true
+	// Typed literals are validated here, once; string literals compared
+	// against typed fields are converted at evaluation time instead.
+	switch val.typ {
+	case tokenTime:
+		t, err := time.Parse(time.RFC3339, val.v)
+		if err != nil {
+			return 0, &Error{
+				Kind: KindParse,
+				Err:  fmt.Errorf("invalid time at %d:%d: %q", val.line, val.col, val.v),
+			}
 		}
-	}
-	if val.typ == tokenDuration {
-		if d, err := time.ParseDuration(val.v); err == nil {
-			p.node(i).dur = d
-			p.node(i).hasDur = true
+		p.node(i).time = t
+		p.node(i).hasTime = true
+	case tokenDuration:
+		d, err := time.ParseDuration(val.v)
+		if err != nil {
+			return 0, &Error{
+				Kind: KindParse,
+				Err:  fmt.Errorf("invalid duration at %d:%d: %q", val.line, val.col, val.v),
+			}
 		}
-	}
-	if val.typ == tokenNumber {
-		if f, err := strconv.ParseFloat(val.v, 64); err == nil {
-			p.node(i).num = f
-			p.node(i).hasNum = true
+		p.node(i).dur = d
+		p.node(i).hasDur = true
+	case tokenNumber:
+		f, err := strconv.ParseFloat(val.v, 64)
+		if err != nil {
+			return 0, &Error{
+				Kind: KindParse,
+				Err:  fmt.Errorf("invalid number at %d:%d: %q", val.line, val.col, val.v),
+			}
 		}
+		p.node(i).num = f
+		p.node(i).hasNum = true
 	}
 	return i, nil
 }

@@ -337,6 +337,78 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:  "bare dot as number",
+			input: `HP > .`,
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 1:6: "."`,
+			},
+		},
+		{
+			name:  "bare sign as number",
+			input: `HP > -`,
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 1:6: "-"`,
+			},
+		},
+		{
+			name:  "bare dot after wide identifier",
+			input: `名前 == .`,
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 1:9: "."`,
+			},
+		},
+		{
+			name:  "bare sign on second line",
+			input: "a\n== -",
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 2:4: "-"`,
+			},
+		},
+		{
+			name:  "number with two dots",
+			input: `HP > 1.2.3`,
+			expected: expected{
+				ok:  false,
+				err: `unexpected token after parsing: .3`,
+			},
+		},
+		{
+			name:  "base prefix without digits",
+			input: `HP > 0x`,
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 1:6: "0x"`,
+			},
+		},
+		{
+			name:  "exponent without digits",
+			input: `HP > 1e`,
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 1:6: "1e"`,
+			},
+		},
+		{
+			name:  "time out of range",
+			input: `Time > 2023-13-01T00:00:00Z`,
+			expected: expected{
+				ok:  false,
+				err: `invalid time at 1:8: "2023-13-01T00:00:00Z"`,
+			},
+		},
+		{
+			name:  "duration with repeated fraction",
+			input: `Duration > 1.5.5s`,
+			expected: expected{
+				ok:  false,
+				err: `invalid duration at 1:12: "1.5.5s"`,
+			},
+		},
+		{
 			name:  "parseExpr initial next failure",
 			input: `#&&HP>1`,
 			expected: expected{

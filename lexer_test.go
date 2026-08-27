@@ -1135,6 +1135,181 @@ func Test_lex(t *testing.T) {
 			},
 		},
 		{
+			name:  "two digit number at end of input",
+			input: "40",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "40",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+			},
+		},
+		{
+			name:  "number with two dots splits at the second dot",
+			input: "1.2.3",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "1.2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    ".3",
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  5,
+					line: 1,
+					col:  6,
+				},
+			},
+		},
+		{
+			name:  "wide identifier then bare dot",
+			input: "名前 == .",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "名前",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEQ,
+					v:    "==",
+					pos:  7,
+					line: 1,
+					col:  6,
+				},
+				{
+					typ:  tokenNumber,
+					v:    ".",
+					pos:  10,
+					line: 1,
+					col:  9,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  11,
+					line: 1,
+					col:  10,
+				},
+			},
+		},
+		{
+			name:  "bare sign on second line",
+			input: "a\n== -",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "a",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEQ,
+					v:    "==",
+					pos:  2,
+					line: 2,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-",
+					pos:  5,
+					line: 2,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  6,
+					line: 2,
+					col:  5,
+				},
+			},
+		},
+		{
+			name:  "bare dot",
+			input: ".",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    ".",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  1,
+					line: 1,
+					col:  2,
+				},
+			},
+		},
+		{
+			name:  "bare plus",
+			input: "+",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "+",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  1,
+					line: 1,
+					col:  2,
+				},
+			},
+		},
+		{
+			name:  "bare minus after value",
+			input: "1 -",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+			},
+		},
+		{
 			name:  "invalid character 1",
 			input: "\\",
 			expected: []token{
@@ -2080,6 +2255,110 @@ func Test_lexer_nextToken(t *testing.T) {
 	}
 }
 
+func Test_lexer_backup(t *testing.T) {
+	type expected struct {
+		pos  int
+		line int
+		col  int
+	}
+	tests := []struct {
+		name     string
+		input    string
+		steps    func(l *lexer)
+		expected expected
+	}{
+		{
+			name:  "backup is idempotent until the next read",
+			input: "ab",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+		{
+			name:  "backup at end of input does not move",
+			input: "a",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+		{
+			name:  "backup across newline restores line and column",
+			input: "ab\n",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  2,
+				line: 1,
+				col:  3,
+			},
+		},
+		{
+			name:  "backup over wide rune restores column by width",
+			input: "名前",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  3,
+				line: 1,
+				col:  3,
+			},
+		},
+		{
+			name:  "backup after reset does not move",
+			input: "abc",
+			steps: func(l *lexer) {
+				l.next()
+				m := l.mark()
+				l.next()
+				l.next()
+				l.reset(m)
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := newLexer(test.input)
+			test.steps(&l)
+			actual := expected{
+				pos:  l.pos,
+				line: l.line,
+				col:  l.col,
+			}
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.input, test.expected, actual)
+			}
+		})
+	}
+}
+
 func Test_lexer_scanEscape(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -2299,6 +2578,49 @@ func Test_lexer_scanDuration(t *testing.T) {
 			}
 			if test.input[l.startPos:l.pos] != test.expected.matched {
 				t.Errorf(testTemplate, test.input, test.expected.matched, test.input[l.startPos:l.pos])
+			}
+		})
+	}
+}
+
+func Test_lexer_scanNumber(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "integer", input: "1", expected: "1"},
+		{name: "zero", input: "0", expected: "0"},
+		{name: "float", input: "1.5", expected: "1.5"},
+		{name: "leading dot", input: ".5", expected: ".5"},
+		{name: "trailing dot", input: "1.", expected: "1."},
+		{name: "sign plus", input: "+1", expected: "+1"},
+		{name: "sign minus", input: "-1", expected: "-1"},
+		{name: "underscore", input: "1_000", expected: "1_000"},
+		{name: "hex", input: "0x1f", expected: "0x1f"},
+		{name: "hex float", input: "0x.8p1", expected: "0x.8p1"},
+		{name: "octal", input: "0o17", expected: "0o17"},
+		{name: "binary", input: "0b101", expected: "0b101"},
+		{name: "exponent", input: "1e3", expected: "1e3"},
+		{name: "signed exponent", input: "1e-3", expected: "1e-3"},
+		{name: "dot only", input: ".", expected: "."},
+		{name: "sign only", input: "-", expected: "-"},
+		{name: "base prefix only", input: "0x", expected: "0x"},
+		{name: "stops at second dot", input: "1.2.3", expected: "1.2"},
+		{name: "stops at operator", input: "1-2", expected: "1"},
+		{name: "stops at unit", input: "1h", expected: "1"},
+		{name: "empty", input: "", expected: ""},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := &lexer{
+				input: test.input,
+				pos:   0,
+			}
+			l.scanNumber()
+			actual := test.input[l.startPos:l.pos]
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.input, test.expected, actual)
 			}
 		})
 	}
