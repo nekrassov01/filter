@@ -353,6 +353,30 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:  "bare dot after wide identifier",
+			input: `名前 == .`,
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 1:9: "."`,
+			},
+		},
+		{
+			name:  "bare sign on second line",
+			input: "a\n== -",
+			expected: expected{
+				ok:  false,
+				err: `invalid number at 2:4: "-"`,
+			},
+		},
+		{
+			name:  "number with two dots",
+			input: `HP > 1.2.3`,
+			expected: expected{
+				ok:  false,
+				err: `unexpected token after parsing: .3`,
+			},
+		},
+		{
 			name:  "base prefix without digits",
 			input: `HP > 0x`,
 			expected: expected{

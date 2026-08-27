@@ -1154,6 +1154,98 @@ func Test_lex(t *testing.T) {
 			},
 		},
 		{
+			name:  "number with two dots splits at the second dot",
+			input: "1.2.3",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "1.2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    ".3",
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  5,
+					line: 1,
+					col:  6,
+				},
+			},
+		},
+		{
+			name:  "wide identifier then bare dot",
+			input: "名前 == .",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "名前",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEQ,
+					v:    "==",
+					pos:  7,
+					line: 1,
+					col:  6,
+				},
+				{
+					typ:  tokenNumber,
+					v:    ".",
+					pos:  10,
+					line: 1,
+					col:  9,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  11,
+					line: 1,
+					col:  10,
+				},
+			},
+		},
+		{
+			name:  "bare sign on second line",
+			input: "a\n== -",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "a",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEQ,
+					v:    "==",
+					pos:  2,
+					line: 2,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-",
+					pos:  5,
+					line: 2,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  6,
+					line: 2,
+					col:  5,
+				},
+			},
+		},
+		{
 			name:  "bare dot",
 			input: ".",
 			expected: []token{
