@@ -8,29 +8,44 @@ import (
 	"time"
 )
 
+// fieldCacheSize is the number of field values cached on the stack per evaluation.
+// Expressions with more distinct identifiers fall back to a heap-allocated cache.
+const fieldCacheSize = 8
+
 // Target implements the entity to be evaluated.
 type Target interface {
 	Value(key string) (any, error)
 }
 
-// Expr represents an expression in the parser.
+// Expr represents a parsed expression.
 type Expr struct {
-	parser parser
-	root   int
+	nodes  []node // expression tree nodes
+	root   int32  // index of the root node
+	nident int    // number of distinct identifiers
+	shared bool   // some identifier is referenced more than once
 }
 
 // Eval evaluates the expression against a target.
 func (e *Expr) Eval(t Target) (bool, error) {
-	var cache map[string]any
-	n := len(e.parser.idents)
-	if n > 0 {
-		cache = make(map[string]any, n)
+	if !e.shared {
+		return eval(e.nodes, e.root, t, nil)
 	}
-	return eval(e.parser.nodes, e.root, t, cache)
+	var buf [fieldCacheSize]field
+	cache := buf[:]
+	if e.nident > fieldCacheSize {
+		cache = make([]field, e.nident)
+	}
+	return eval(e.nodes, e.root, t, cache)
 }
 
-func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
-	n := nodes[i]
+// field holds a fetched field value for reuse within one evaluation.
+type field struct {
+	v  any
+	ok bool
+}
+
+func eval(nodes []node, i int32, t Target, cache []field) (bool, error) {
+	n := &nodes[i]
 	switch n.typ {
 	case nodeBinary:
 		switch n.op.typ {
@@ -65,11 +80,10 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 		}
 		return !v, nil
 	case nodeComparison:
-		key := n.ident.v
-		if v, ok := cache[key]; ok {
-			return evalComparison(n, v)
+		if cache != nil && cache[n.ident.idx].ok {
+			return evalComparison(n, cache[n.ident.idx].v)
 		}
-		field, err := t.Value(key)
+		v, err := t.Value(n.ident.v)
 		if err != nil {
 			return false, &Error{
 				Kind: KindEval,
@@ -77,9 +91,9 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 			}
 		}
 		if cache != nil {
-			cache[key] = field
+			cache[n.ident.idx] = field{v: v, ok: true}
 		}
-		return evalComparison(n, field)
+		return evalComparison(n, v)
 	}
 	return false, &Error{
 		Kind: KindEval,
@@ -88,8 +102,8 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 }
 
 // evalComparison evaluates a comparison expression against a target field.
-func evalComparison(n node, field any) (bool, error) {
-	switch v := field.(type) {
+func evalComparison(n *node, v any) (bool, error) {
+	switch v := v.(type) {
 	case string:
 		return evalString(n, v)
 	case int:
@@ -126,7 +140,7 @@ func evalComparison(n node, field any) (bool, error) {
 }
 
 // evalString evaluates a string expression against a target.
-func evalString(n node, v string) (bool, error) {
+func evalString(n *node, v string) (bool, error) {
 	switch n.op.typ {
 	case tokenEQ:
 		return v == n.val.v, nil
@@ -149,7 +163,7 @@ func evalString(n node, v string) (bool, error) {
 }
 
 // evalNumber evaluates a number expression against a target.
-func evalNumber(n node, v float64) (bool, error) {
+func evalNumber(n *node, v float64) (bool, error) {
 	f := n.num
 	if !n.hasNum {
 		parsed, err := strconv.ParseFloat(n.val.v, 64)
@@ -183,7 +197,7 @@ func evalNumber(n node, v float64) (bool, error) {
 }
 
 // evalTime evaluates a time expression against a target.
-func evalTime(n node, v time.Time) (bool, error) {
+func evalTime(n *node, v time.Time) (bool, error) {
 	t := n.time
 	if !n.hasTime {
 		parsed, err := time.Parse(time.RFC3339, n.val.v)
@@ -217,7 +231,7 @@ func evalTime(n node, v time.Time) (bool, error) {
 }
 
 // evalDuration evaluates a duration expression against a target.
-func evalDuration(n node, v time.Duration) (bool, error) {
+func evalDuration(n *node, v time.Duration) (bool, error) {
 	d := n.dur
 	if !n.hasDur {
 		parsed, err := time.ParseDuration(n.val.v)

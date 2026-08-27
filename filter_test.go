@@ -677,6 +677,48 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			name:   "or left error",
+			input:  `InvalidField==1 || Bool==true`,
+			target: testObject,
+			expected: expected{
+				ok:  false,
+				err: `field not found`,
+			},
+		},
+		{
+			name:   "same field referenced twice",
+			input:  `Int>40 && Int<50`,
+			target: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name: "more identifiers than the inline cache",
+			input: func() string {
+				var b strings.Builder
+				for i := range 10 {
+					if i > 0 {
+						b.WriteString(" && ")
+					}
+					fmt.Fprintf(&b, "F%d == %d", i, i)
+				}
+				return b.String() + " && F0 == 0"
+			}(),
+			target: func() testTarget {
+				t := testTarget{}
+				for i := range 10 {
+					t[fmt.Sprintf("F%d", i)] = i
+				}
+				return t
+			}(),
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
 			name:   "not true->false",
 			input:  `!(Int>40)`,
 			target: testObject,
@@ -868,6 +910,44 @@ func TestEval(t *testing.T) {
 			}
 			if !strings.Contains(parseError.Error(), test.expected.err) {
 				t.Errorf(testTemplate, test.input, test.expected.err, parseError)
+			}
+		})
+	}
+}
+
+func Test_eval(t *testing.T) {
+	tests := []struct {
+		name     string
+		nodes    []node
+		expected string
+	}{
+		{
+			name: "invalid logical operator",
+			nodes: []node{
+				{
+					typ: nodeBinary,
+					op: token{
+						typ: tokenEQ,
+					},
+				},
+			},
+			expected: "invalid logical operator",
+		},
+		{
+			name: "invalid node type",
+			nodes: []node{
+				{
+					typ: nodeType(255),
+				},
+			},
+			expected: "invalid node type",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := eval(test.nodes, 0, testObject, nil)
+			if err == nil || !strings.Contains(err.Error(), test.expected) {
+				t.Errorf(testTemplate, test.nodes, test.expected, err)
 			}
 		})
 	}

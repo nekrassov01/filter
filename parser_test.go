@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -384,6 +385,45 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:  "or missing right operand",
+			input: `HP>1 ||`,
+			expected: expected{
+				ok:  false,
+				err: `expected left parenthesis or identifier`,
+			},
+		},
+		{
+			name: "more identifiers and nodes than the inline buffers",
+			input: func() string {
+				var b strings.Builder
+				for i := range 20 {
+					if i > 0 {
+						b.WriteString(" && ")
+					}
+					fmt.Fprintf(&b, "F%d > %d", i, i)
+				}
+				return b.String()
+			}(),
+			expected: expected{
+				ok: true,
+				repr: func() string {
+					s := "(F0 > 0)"
+					for i := 1; i < 20; i++ {
+						s = fmt.Sprintf("(%s && (F%d > %d))", s, i, i)
+					}
+					return s
+				}(),
+			},
+		},
+		{
+			name:  "input too long",
+			input: "HP > " + strings.Repeat("1", MaxInput),
+			expected: expected{
+				ok:  false,
+				err: `input too long`,
+			},
+		},
+		{
 			name:  "parseComparison expect ident failure",
 			input: `==1`,
 			expected: expected{
@@ -474,6 +514,63 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func Test_unquote(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    token
+		expected string
+	}{
+		{
+			name: "string",
+			token: token{
+				typ: tokenString,
+				v:   `"abc"`,
+			},
+			expected: "abc",
+		},
+		{
+			name: "raw string",
+			token: token{
+				typ: tokenRawString,
+				v:   "`abc`",
+			},
+			expected: "abc",
+		},
+		{
+			name: "empty string",
+			token: token{
+				typ: tokenString,
+				v:   `""`,
+			},
+			expected: "",
+		},
+		{
+			name: "too short",
+			token: token{
+				typ: tokenString,
+				v:   `"`,
+			},
+			expected: `"`,
+		},
+		{
+			name: "number",
+			token: token{
+				typ: tokenNumber,
+				v:   "42",
+			},
+			expected: "42",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := unquote(test.token)
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.token.v, test.expected, actual)
+			}
+		})
+	}
+}
+
 // repr converts ast to a string.
 func repr(e *Expr) string {
 	val := func(v string) string {
@@ -482,9 +579,9 @@ func repr(e *Expr) string {
 		}
 		return "\"" + v + "\""
 	}
-	var walk func(int) string
-	walk = func(i int) string {
-		n := e.parser.nodes[i]
+	var walk func(int32) string
+	walk = func(i int32) string {
+		n := e.nodes[i]
 		switch n.typ {
 		case nodeBinary:
 			return "(" + walk(n.left) + " " + n.op.typ.literal() + " " + walk(n.right) + ")"

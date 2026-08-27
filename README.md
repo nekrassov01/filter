@@ -29,11 +29,11 @@
 
 - Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
 - Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
-- Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times does not add proportional `Value` overhead.
+- Field value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 8 distinct identifiers); referencing the same field dozens of times does not add proportional `Value` overhead. Expressions where every identifier appears once skip the cache entirely.
 
 ## Benchmarks
 
-`filter` is designed to be memory efficient. See [benchmark_test.go](./benchmark_test.go)
+`filter` is designed to be memory efficient. See [benchmark_test.go](./benchmarks/benchmark_test.go)
 
 ### Case 1
 
@@ -51,18 +51,18 @@ goos: darwin
 goarch: arm64
 pkg: github.com/nekrassov01/filter/benchmarks
 cpu: Apple M2
-BenchmarkParseSimple-8             10000              1086 ns/op            4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               801.3 ns/op          4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               874.7 ns/op          4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               747.2 ns/op          4832 B/op          5 allocs/op
-BenchmarkParseSimple-8             10000               769.5 ns/op          4832 B/op          5 allocs/op
-BenchmarkEvalSimple-8              10000                58.45 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalSimple-8              10000                62.60 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalSimple-8              10000                60.58 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalSimple-8              10000                59.67 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalSimple-8              10000                60.77 ns/op           16 B/op          1 allocs/op
+BenchmarkParseSimple-8         10000             810.6 ns/op           241 B/op          2 allocs/op
+BenchmarkParseSimple-8         10000             396.4 ns/op           240 B/op          2 allocs/op
+BenchmarkParseSimple-8         10000             578.8 ns/op           240 B/op          2 allocs/op
+BenchmarkParseSimple-8         10000             559.3 ns/op           240 B/op          2 allocs/op
+BenchmarkParseSimple-8         10000             580.2 ns/op           240 B/op          2 allocs/op
+BenchmarkEvalSimple-8          10000             34.95 ns/op            16 B/op          1 allocs/op
+BenchmarkEvalSimple-8          10000             34.61 ns/op            16 B/op          1 allocs/op
+BenchmarkEvalSimple-8          10000             32.70 ns/op            16 B/op          1 allocs/op
+BenchmarkEvalSimple-8          10000             23.39 ns/op            16 B/op          1 allocs/op
+BenchmarkEvalSimple-8          10000             30.74 ns/op            16 B/op          1 allocs/op
 PASS
-ok      github.com/nekrassov01/filter/benchmarks        0.386s
+ok      github.com/nekrassov01/filter/benchmarks    0.262s
 ```
 
 ### Case 2
@@ -87,18 +87,18 @@ goos: darwin
 goarch: arm64
 pkg: github.com/nekrassov01/filter/benchmarks
 cpu: Apple M2
-BenchmarkParseHeavy-8              10000              8176 ns/op           13481 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              5449 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              5424 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              5394 ns/op           13480 B/op          9 allocs/op
-BenchmarkParseHeavy-8              10000              5403 ns/op           13480 B/op          9 allocs/op
-BenchmarkEvalHeavy-8               10000               632.0 ns/op           703 B/op          9 allocs/op
-BenchmarkEvalHeavy-8               10000               660.9 ns/op           699 B/op          9 allocs/op
-BenchmarkEvalHeavy-8               10000               648.1 ns/op           699 B/op          9 allocs/op
-BenchmarkEvalHeavy-8               10000               666.6 ns/op           699 B/op          9 allocs/op
-BenchmarkEvalHeavy-8               10000               640.2 ns/op           703 B/op          9 allocs/op
+BenchmarkParseHeavy-8          10000              5637 ns/op          6834 B/op          3 allocs/op
+BenchmarkParseHeavy-8          10000              4097 ns/op          6832 B/op          3 allocs/op
+BenchmarkParseHeavy-8          10000              3941 ns/op          6832 B/op          3 allocs/op
+BenchmarkParseHeavy-8          10000              4024 ns/op          6832 B/op          3 allocs/op
+BenchmarkParseHeavy-8          10000              4134 ns/op          6832 B/op          3 allocs/op
+BenchmarkEvalHeavy-8           10000             298.5 ns/op           307 B/op          7 allocs/op
+BenchmarkEvalHeavy-8           10000             305.0 ns/op           307 B/op          7 allocs/op
+BenchmarkEvalHeavy-8           10000             331.8 ns/op           304 B/op          7 allocs/op
+BenchmarkEvalHeavy-8           10000             309.2 ns/op           304 B/op          7 allocs/op
+BenchmarkEvalHeavy-8           10000             286.3 ns/op           304 B/op          7 allocs/op
 PASS
-ok      github.com/nekrassov01/filter/benchmarks        0.667s
+ok      github.com/nekrassov01/filter/benchmarks    0.429s
 ```
 
 ### Case 3
@@ -115,18 +115,18 @@ goos: darwin
 goarch: arm64
 pkg: github.com/nekrassov01/filter/benchmarks
 cpu: Apple M2
-BenchmarkParseRepeated-8           10000            161514 ns/op          472234 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            159965 ns/op          472233 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            163515 ns/op          472233 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            161376 ns/op          472233 B/op         14 allocs/op
-BenchmarkParseRepeated-8           10000            160894 ns/op          472234 B/op         14 allocs/op
-BenchmarkEvalRepeated-8            10000             14868 ns/op             703 B/op          9 allocs/op
-BenchmarkEvalRepeated-8            10000             15078 ns/op             703 B/op          9 allocs/op
-BenchmarkEvalRepeated-8            10000             15318 ns/op             707 B/op          9 allocs/op
-BenchmarkEvalRepeated-8            10000             15306 ns/op             700 B/op          9 allocs/op
-BenchmarkEvalRepeated-8            10000             14730 ns/op             703 B/op          9 allocs/op
+BenchmarkParseRepeated-8       10000            122610 ns/op        196915 B/op          3 allocs/op
+BenchmarkParseRepeated-8       10000            120409 ns/op        196912 B/op          3 allocs/op
+BenchmarkParseRepeated-8       10000            121233 ns/op        196912 B/op          3 allocs/op
+BenchmarkParseRepeated-8       10000            122045 ns/op        196912 B/op          3 allocs/op
+BenchmarkParseRepeated-8       10000            126313 ns/op        196912 B/op          3 allocs/op
+BenchmarkEvalRepeated-8        10000              7382 ns/op           304 B/op          7 allocs/op
+BenchmarkEvalRepeated-8        10000              7215 ns/op           307 B/op          7 allocs/op
+BenchmarkEvalRepeated-8        10000              7350 ns/op           307 B/op          7 allocs/op
+BenchmarkEvalRepeated-8        10000              7331 ns/op           307 B/op          7 allocs/op
+BenchmarkEvalRepeated-8        10000              7303 ns/op           307 B/op          7 allocs/op
 PASS
-ok      github.com/nekrassov01/filter/benchmarks        9.211s
+ok      github.com/nekrassov01/filter/benchmarks    6.684s
 ```
 
 ## Installation
