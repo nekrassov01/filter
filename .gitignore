@@ -32,11 +32,10 @@ go.work.sum
 # .vscode/
 
 # Additional
-/filter
 *.[Bb]ackup
 *[Tt]emp
 *[Tt]mp
 dist/
 *.pem
 *.prof
-
+/docs/*/
