@@ -2163,6 +2163,110 @@ func Test_lexer_nextToken(t *testing.T) {
 	}
 }
 
+func Test_lexer_backup(t *testing.T) {
+	type expected struct {
+		pos  int
+		line int
+		col  int
+	}
+	tests := []struct {
+		name     string
+		input    string
+		steps    func(l *lexer)
+		expected expected
+	}{
+		{
+			name:  "backup is idempotent until the next read",
+			input: "ab",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+		{
+			name:  "backup at end of input does not move",
+			input: "a",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+		{
+			name:  "backup across newline restores line and column",
+			input: "ab\n",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  2,
+				line: 1,
+				col:  3,
+			},
+		},
+		{
+			name:  "backup over wide rune restores column by width",
+			input: "名前",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  3,
+				line: 1,
+				col:  3,
+			},
+		},
+		{
+			name:  "backup after reset does not move",
+			input: "abc",
+			steps: func(l *lexer) {
+				l.next()
+				m := l.mark()
+				l.next()
+				l.next()
+				l.reset(m)
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := newLexer(test.input)
+			test.steps(&l)
+			actual := expected{
+				pos:  l.pos,
+				line: l.line,
+				col:  l.col,
+			}
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.input, test.expected, actual)
+			}
+		})
+	}
+}
+
 func Test_lexer_scanEscape(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -230,7 +230,7 @@ type lexer struct {
 	state      state  // current state
 	token      token  // last emitted token waiting to be consumed
 	hasNext    bool   // flag there is a pending token
-	atEOF      bool   // we have hit the end of input and returned eof
+	prev       mark   // position before the last next; backup returns here
 	parenDepth int    // nesting depth of ( ) exprs
 	pos        int    // current position in the input
 	startPos   int    // start position of this token
@@ -273,11 +273,10 @@ func (l *lexer) nextToken() token {
 
 // next returns the next rune in the input.
 func (l *lexer) next() rune {
+	l.prev = l.mark()
 	if l.pos >= len(l.input) {
-		l.atEOF = true
 		return eof
 	}
-	l.atEOF = false
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += w
 	if r == '\n' {
@@ -296,36 +295,11 @@ func (l *lexer) peek() rune {
 	return r
 }
 
-// backup steps back one rune.
-// Valid only once per l.next.
+// backup steps back to the position before the last next.
+// At end of input next does not advance, so backup does not move;
+// calling it twice is the same as calling it once.
 func (l *lexer) backup() {
-	if !l.atEOF && l.pos > 0 {
-		r, w := utf8.DecodeLastRuneInString(l.input[:l.pos])
-		l.pos -= w
-		if r == '\n' {
-			l.line--
-			col := 1
-			for i := l.pos - 1; i >= 0; i-- {
-				if l.input[i] == '\n' {
-					break
-				}
-				col++
-			}
-			l.col = col
-		} else {
-			l.col -= width(r)
-			l.col = max(l.col, 1)
-		}
-	}
-}
-
-// backupNumber steps back one character for number tokens.
-func (l *lexer) backupNumber() {
-	l.pos--
-	l.col--
-	if l.col < 1 {
-		l.col = 1
-	}
+	l.reset(l.prev)
 }
 
 // mark returns the current position.
@@ -338,12 +312,11 @@ func (l *lexer) mark() mark {
 }
 
 // reset moves the lexer back to a marked position.
-// The end-of-input flag is cleared because the input is no longer exhausted.
 func (l *lexer) reset(m mark) {
 	l.pos = m.pos
 	l.line = m.line
 	l.col = m.col
-	l.atEOF = false
+	l.prev = m
 }
 
 // emit passes an token back to the parser.
@@ -492,7 +465,7 @@ func (l *lexer) scanTime() bool {
 func (l *lexer) scanDuration() bool {
 	valid := false
 	for {
-		start := l.pos
+		start := l.mark()
 		if !l.scanDurationNumber() {
 			break
 		}
@@ -518,9 +491,7 @@ func (l *lexer) scanDuration() bool {
 		case 'h':
 			found = true
 		default:
-			for l.pos > start {
-				l.backupNumber()
-			}
+			l.reset(start)
 		}
 		if !found {
 			break
@@ -539,13 +510,12 @@ func (l *lexer) scanDuration() bool {
 
 // scanDurationNumber scans a number in a duration literal.
 func (l *lexer) scanDurationNumber() bool {
-	signed := l.accept("+-")
+	start := l.mark()
+	l.accept("+-")
 	if n := l.acceptRun("0123456789."); n > 0 {
 		return true
 	}
-	if signed {
-		l.backupNumber()
-	}
+	l.reset(start)
 	return false
 }
 
@@ -814,20 +784,18 @@ func lexOR(l *lexer) state {
 // lexNumber scans for numbers, duration, and time literals.
 // The leading digit or sign has already been seen.
 func lexNumber(l *lexer) state {
-	m := l.mark()
-	l.backup()
+	l.backup() // rescan the leading character consumed by lexStmt
+	start := l.mark()
 	if l.scanTime() {
 		l.emit(tokenTime)
 		return stateStmt
 	}
-	l.reset(m)
-	l.backup()
+	l.reset(start)
 	if l.scanDuration() {
 		l.emit(tokenDuration)
 		return stateStmt
 	}
-	l.reset(m)
-	l.backup()
+	l.reset(start)
 	l.scanNumber()
 	l.emit(tokenNumber)
 	return stateStmt
