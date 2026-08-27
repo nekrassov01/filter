@@ -65,26 +65,19 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 		}
 		return !v, nil
 	case nodeComparison:
-		var field any
-		var err error
 		key := n.ident.v
-		if cache != nil {
-			if v, ok := cache[key]; ok {
-				field = v
-			} else {
-				field, err = t.Value(key)
-				if err == nil {
-					cache[key] = field
-				}
-			}
-		} else {
-			field, err = t.Value(key)
+		if v, ok := cache[key]; ok {
+			return evalComparison(n, v)
 		}
+		field, err := t.Value(key)
 		if err != nil {
 			return false, &Error{
 				Kind: KindEval,
 				Err:  err,
 			}
+		}
+		if cache != nil {
+			cache[key] = field
 		}
 		return evalComparison(n, field)
 	}

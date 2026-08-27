@@ -11,10 +11,10 @@ linters:
     - depguard
     - funlen
     - gocognit
+    - gomodguard
     - lll
     - maintidx
     - mnd
-    - nestif
     - nlreturn
     - testpackage
     - wsl
@@ -23,3 +23,6 @@ linters:
       - linters:
           - revive
         text: "package-comments"
+      - linters:
+          - revive
+        text: "stutters"
