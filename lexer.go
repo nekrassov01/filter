@@ -206,30 +206,37 @@ func (t tokenType) isStringType() bool {
 	}
 }
 
-// stateFn represents the state of the scanner as a function that returns the next state.
-type stateFn func(*lexer) stateFn
+// state represents the state of the scanner between tokens.
+// Dispatch is by value rather than by function pointer so that the lexer can
+// stay on the caller's stack (an indirect call would force it to escape).
+type state uint8
+
+const (
+	stateDone state = iota // scanning finished; only EOF tokens follow
+	stateStmt              // ready to scan the next token
+)
 
 // lexer holds the state of the scanner.
 type lexer struct {
-	input      string  // the string being scanned
-	state      stateFn // current state fn
-	token      token   // last emitted token waiting to be consumed
-	hasNext    bool    // flag there is a pending token
-	atEOF      bool    // we have hit the end of input and returned eof
-	parenDepth int     // nesting depth of ( ) exprs
-	pos        int     // current position in the input
-	startPos   int     // start position of this token
-	line       int     // 1+number of newlines seen
-	startLine  int     // start line of this token
-	col        int     // 1+number of characters since last newline
-	startCol   int     // start column of this token
+	input      string // the string being scanned
+	state      state  // current state
+	token      token  // last emitted token waiting to be consumed
+	hasNext    bool   // flag there is a pending token
+	atEOF      bool   // we have hit the end of input and returned eof
+	parenDepth int    // nesting depth of ( ) exprs
+	pos        int    // current position in the input
+	startPos   int    // start position of this token
+	line       int    // 1+number of newlines seen
+	startLine  int    // start line of this token
+	col        int    // 1+number of characters since last newline
+	startCol   int    // start column of this token
 }
 
 // newLexer creates a new lexer for the input string.
 func newLexer(input string) lexer {
 	return lexer{
 		input:     input,
-		state:     lexStmt,
+		state:     stateStmt,
 		line:      1,
 		startLine: 1,
 		col:       1,
@@ -244,7 +251,7 @@ func (l *lexer) nextToken() token {
 			l.hasNext = false
 			return l.token
 		}
-		if l.state == nil {
+		if l.state == stateDone {
 			return token{
 				typ:  tokenEOF,
 				pos:  l.pos,
@@ -252,7 +259,7 @@ func (l *lexer) nextToken() token {
 				col:  l.col,
 			}
 		}
-		l.state = l.state(l)
+		l.state = lexStmt(l)
 	}
 }
 
@@ -362,9 +369,8 @@ func (l *lexer) acceptDigits(n int) bool {
 	return true
 }
 
-// errorf returns an error token and terminates the scan by passing
-// back a nil pointer that will be the next state, terminating l.nextToken.
-func (l *lexer) errorf(format string, args ...any) stateFn {
+// errorf emits an error token and terminates the scan by returning stateDone.
+func (l *lexer) errorf(format string, args ...any) state {
 	l.token = token{
 		typ:  tokenError,
 		v:    fmt.Sprintf(format, args...),
@@ -373,7 +379,7 @@ func (l *lexer) errorf(format string, args ...any) stateFn {
 		col:  l.startCol,
 	}
 	l.hasNext = true
-	return nil
+	return stateDone
 }
 
 // scanEscape handles escape sequences in strings
@@ -549,38 +555,38 @@ func (l *lexer) scanNumber() bool {
 }
 
 // lexStmt is the top-level state for lexing.
-func lexStmt(l *lexer) stateFn {
+func lexStmt(l *lexer) state {
 	switch r := l.next(); {
 	case r == eof:
-		return lexEOF
+		return lexEOF(l)
 	case isSpace(r):
-		return lexSpace
+		return lexSpace(l)
 	case r == '"':
-		return lexDoubleQuotedString
+		return lexDoubleQuotedString(l)
 	case r == '\'':
-		return lexSingleQuotedString
+		return lexSingleQuotedString(l)
 	case r == '`':
-		return lexRawString
+		return lexRawString(l)
 	case r == '(':
-		return lexLparen
+		return lexLparen(l)
 	case r == ')':
-		return lexRparen
+		return lexRparen(l)
 	case r == '=':
-		return lexEQ
+		return lexEQ(l)
 	case r == '!':
-		return lexNOT
+		return lexNOT(l)
 	case r == '<':
-		return lexLT
+		return lexLT(l)
 	case r == '>':
-		return lexGT
+		return lexGT(l)
 	case r == '&':
-		return lexAND
+		return lexAND(l)
 	case r == '|':
-		return lexOR
+		return lexOR(l)
 	case unicode.IsDigit(r) || r == '.' || r == '+' || r == '-':
-		return lexNumber
+		return lexNumber(l)
 	case unicode.IsLetter(r) || r == '_':
-		return lexKeywordOrIdent
+		return lexKeywordOrIdent(l)
 	default:
 		w := max(runewidth.RuneWidth(r), 1)
 		return l.errorf("unexpected character %#U at %d:%d", r, l.line, l.col-w)
@@ -589,7 +595,7 @@ func lexStmt(l *lexer) stateFn {
 
 // lexEOF checks for the end of input and emits an EOF token.
 // Called when input is completely consumed.
-func lexEOF(l *lexer) stateFn {
+func lexEOF(l *lexer) state {
 	if l.parenDepth < 0 {
 		return l.errorf("unexpected right parenthesis at %d:%d", l.line, l.col)
 	}
@@ -597,34 +603,34 @@ func lexEOF(l *lexer) stateFn {
 		return l.errorf("unclosed left parenthesis at %d:%d", l.line, l.col)
 	}
 	l.emit(tokenEOF)
-	return nil
+	return stateDone
 }
 
 // lexSpace scans a run of space characters.
 // One space has already been seen.
-func lexSpace(l *lexer) stateFn {
+func lexSpace(l *lexer) state {
 	for isSpace(l.peek()) {
 		l.next()
 	}
 	l.ignore()
-	return lexStmt
+	return stateStmt
 }
 
 // lexDoubleQuotedString scans a double-quoted string.
 // One double quote has already been seen.
-func lexDoubleQuotedString(l *lexer) stateFn {
+func lexDoubleQuotedString(l *lexer) state {
 	return lexString(l, '"')
 }
 
 // lexSingleQuotedString scans a single-quoted string.
 // One single quote has already been seen.
-func lexSingleQuotedString(l *lexer) stateFn {
+func lexSingleQuotedString(l *lexer) state {
 	return lexString(l, '\'')
 }
 
 // lexString scans a quoted string, handling escape sequences.
 // It consumes the opening quote and expects a matching closing quote.
-func lexString(l *lexer, quote rune) stateFn {
+func lexString(l *lexer, quote rune) state {
 Loop:
 	for {
 		switch l.next() {
@@ -641,12 +647,12 @@ Loop:
 		}
 	}
 	l.emit(tokenString)
-	return lexStmt
+	return stateStmt
 }
 
 // lexRawString scans a backtick quoted string.
 // One backtick has already been seen.
-func lexRawString(l *lexer) stateFn {
+func lexRawString(l *lexer) state {
 Loop:
 	for {
 		switch l.next() {
@@ -659,26 +665,26 @@ Loop:
 		}
 	}
 	l.emit(tokenRawString)
-	return lexStmt
+	return stateStmt
 }
 
 // lexLparen emits a left parenthesis.
-func lexLparen(l *lexer) stateFn {
+func lexLparen(l *lexer) state {
 	l.emit(tokenLparen)
 	l.parenDepth++
-	return lexStmt
+	return stateStmt
 }
 
 // lexRparen emits a right parenthesis.
-func lexRparen(l *lexer) stateFn {
+func lexRparen(l *lexer) state {
 	l.emit(tokenRparen)
 	l.parenDepth--
-	return lexStmt
+	return stateStmt
 }
 
 // lexEQ scans for operators starting with an equality sign.
 // The leading '=' has already been seen.
-func lexEQ(l *lexer) stateFn {
+func lexEQ(l *lexer) state {
 	switch l.peek() {
 	case '=':
 		l.next()
@@ -699,13 +705,13 @@ func lexEQ(l *lexer) stateFn {
 	default:
 		return l.errorf("unexpected character %q after '=' at %d:%d", l.peek(), l.line, l.col)
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexNOT scans for operators starting with a negative sign.
 // The leading '!' has already been seen.
 // If unary, it emits a negative operator.
-func lexNOT(l *lexer) stateFn {
+func lexNOT(l *lexer) state {
 	switch l.peek() {
 	case '=':
 		l.next()
@@ -726,36 +732,36 @@ func lexNOT(l *lexer) stateFn {
 	default:
 		l.emit(tokenNOT)
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexLT scans for less than operators.
 // The leading '<' has already been seen.
-func lexLT(l *lexer) stateFn {
+func lexLT(l *lexer) state {
 	if l.peek() == '=' {
 		l.next()
 		l.emit(tokenLTE)
 	} else {
 		l.emit(tokenLT)
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexGT scans for greater than operators.
 // The leading '>' has already been seen.
-func lexGT(l *lexer) stateFn {
+func lexGT(l *lexer) state {
 	if l.peek() == '=' {
 		l.next()
 		l.emit(tokenGTE)
 	} else {
 		l.emit(tokenGT)
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexAND scans for the logical AND operator.
 // The leading '&' has already been seen.
-func lexAND(l *lexer) stateFn {
+func lexAND(l *lexer) state {
 	r := l.peek()
 	if r == '&' {
 		l.next()
@@ -763,12 +769,12 @@ func lexAND(l *lexer) stateFn {
 	} else {
 		return l.errorf("unexpected character %q after '&' at %d:%d", r, l.line, l.col)
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexOR scans for the logical OR operator.
 // The leading '|' has already been seen.
-func lexOR(l *lexer) stateFn {
+func lexOR(l *lexer) state {
 	r := l.peek()
 	if r == '|' {
 		l.next()
@@ -776,12 +782,12 @@ func lexOR(l *lexer) stateFn {
 	} else {
 		return l.errorf("unexpected character %q after '|' at %d:%d", r, l.line, l.col)
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexNumber scans for numbers, duration, and time literals.
 // The leading digit or sign has already been seen.
-func lexNumber(l *lexer) stateFn {
+func lexNumber(l *lexer) state {
 	// Try time
 	pos := l.pos
 	line := l.line
@@ -789,7 +795,7 @@ func lexNumber(l *lexer) stateFn {
 	l.backup()
 	if l.scanTime() {
 		l.emit(tokenTime)
-		return lexStmt
+		return stateStmt
 	}
 	// Try duration
 	l.pos = pos
@@ -798,7 +804,7 @@ func lexNumber(l *lexer) stateFn {
 	l.backup()
 	if l.scanDuration() {
 		l.emit(tokenDuration)
-		return lexStmt
+		return stateStmt
 	}
 	// Try number
 	l.pos = pos
@@ -807,14 +813,14 @@ func lexNumber(l *lexer) stateFn {
 	l.backup()
 	if l.scanNumber() {
 		l.emit(tokenNumber)
-		return lexStmt
+		return stateStmt
 	}
-	return lexStmt
+	return stateStmt
 }
 
 // lexKeywordOrIdent scans for keywords or identifiers.
 // The leading character has already been seen.
-func lexKeywordOrIdent(l *lexer) stateFn {
+func lexKeywordOrIdent(l *lexer) state {
 	for {
 		r := l.next()
 		if !isAlphaNumeric(r) && r != '_' {
@@ -824,10 +830,10 @@ func lexKeywordOrIdent(l *lexer) stateFn {
 	}
 	if isBoolLiteral(l.input[l.startPos:l.pos]) {
 		l.emit(tokenBool)
-		return lexStmt
+		return stateStmt
 	}
 	l.emit(tokenIdent)
-	return lexStmt
+	return stateStmt
 }
 
 // isSpace reports whether the rune is a space character.
