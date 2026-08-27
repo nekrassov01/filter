@@ -35,7 +35,7 @@ var testObject = testTarget{
 
 type testTarget map[string]any
 
-func (t testTarget) GetField(key string) (any, error) {
+func (t testTarget) Value(key string) (any, error) {
 	v, ok := t[key]
 	if !ok {
 		return nil, &Error{
