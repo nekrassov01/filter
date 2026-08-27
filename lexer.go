@@ -217,6 +217,13 @@ const (
 	stateStmt              // ready to scan the next token
 )
 
+// mark is a position in the input that the lexer can return to.
+type mark struct {
+	pos  int
+	line int
+	col  int
+}
+
 // lexer holds the state of the scanner.
 type lexer struct {
 	input      string // the string being scanned
@@ -270,6 +277,7 @@ func (l *lexer) next() rune {
 		l.atEOF = true
 		return eof
 	}
+	l.atEOF = false
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += w
 	if r == '\n' {
@@ -318,6 +326,24 @@ func (l *lexer) backupNumber() {
 	if l.col < 1 {
 		l.col = 1
 	}
+}
+
+// mark returns the current position.
+func (l *lexer) mark() mark {
+	return mark{
+		pos:  l.pos,
+		line: l.line,
+		col:  l.col,
+	}
+}
+
+// reset moves the lexer back to a marked position.
+// The end-of-input flag is cleared because the input is no longer exhausted.
+func (l *lexer) reset(m mark) {
+	l.pos = m.pos
+	l.line = m.line
+	l.col = m.col
+	l.atEOF = false
 }
 
 // emit passes an token back to the parser.
@@ -523,9 +549,10 @@ func (l *lexer) scanDurationNumber() bool {
 	return false
 }
 
-// scanNumber scans numbers in different formats.
+// scanNumber scans the longest run that can form a number literal.
+// It is purely lexical; the parser validates the text with strconv.
 // See https://github.com/golang/go/blob/master/src/text/template/parse/lex.go
-func (l *lexer) scanNumber() bool {
+func (l *lexer) scanNumber() {
 	// Optional leading sign.
 	l.accept("+-")
 	// Is it hex?
@@ -552,7 +579,6 @@ func (l *lexer) scanNumber() bool {
 		l.accept("+-")
 		l.acceptRun("0123456789_")
 	}
-	return true
 }
 
 // lexStmt is the top-level state for lexing.
@@ -788,33 +814,22 @@ func lexOR(l *lexer) state {
 // lexNumber scans for numbers, duration, and time literals.
 // The leading digit or sign has already been seen.
 func lexNumber(l *lexer) state {
-	// Try time
-	pos := l.pos
-	line := l.line
-	col := l.col
+	m := l.mark()
 	l.backup()
 	if l.scanTime() {
 		l.emit(tokenTime)
 		return stateStmt
 	}
-	// Try duration
-	l.pos = pos
-	l.line = line
-	l.col = col
+	l.reset(m)
 	l.backup()
 	if l.scanDuration() {
 		l.emit(tokenDuration)
 		return stateStmt
 	}
-	// Try number
-	l.pos = pos
-	l.line = line
-	l.col = col
+	l.reset(m)
 	l.backup()
-	if l.scanNumber() {
-		l.emit(tokenNumber)
-		return stateStmt
-	}
+	l.scanNumber()
+	l.emit(tokenNumber)
 	return stateStmt
 }
 
