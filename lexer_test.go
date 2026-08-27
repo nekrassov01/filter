@@ -132,6 +132,11 @@ func Test_tokenType_String(t *testing.T) {
 			expected: "duration",
 		},
 		{
+			name:     "time",
+			typ:      tokenTime,
+			expected: "time",
+		},
+		{
 			name:     "bool",
 			typ:      tokenBool,
 			expected: "boolean",
@@ -292,6 +297,43 @@ func Test_tokenType_literal(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			if actual := test.typ.literal(); actual != test.expected {
 				t.Errorf("expected %v, actual %v", test.expected, actual)
+			}
+		})
+	}
+}
+
+func Test_tokenType_isStringType(t *testing.T) {
+	tests := []struct {
+		name     string
+		typ      tokenType
+		expected bool
+	}{
+		{
+			name:     "string",
+			typ:      tokenString,
+			expected: true,
+		},
+		{
+			name:     "raw string",
+			typ:      tokenRawString,
+			expected: true,
+		},
+		{
+			name:     "number",
+			typ:      tokenNumber,
+			expected: false,
+		},
+		{
+			name:     "ident",
+			typ:      tokenIdent,
+			expected: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := test.typ.isStringType()
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.typ, test.expected, actual)
 			}
 		})
 	}
@@ -2027,6 +2069,17 @@ test2
 	}
 }
 
+func Test_lexer_nextToken(t *testing.T) {
+	l := newLexer("a")
+	want := []tokenType{tokenIdent, tokenEOF, tokenEOF}
+	for i, typ := range want {
+		actual := l.nextToken()
+		if actual.typ != typ {
+			t.Errorf(testTemplate, i, typ, actual.typ)
+		}
+	}
+}
+
 func Test_lexer_scanEscape(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -2062,6 +2115,107 @@ func Test_lexer_scanEscape(t *testing.T) {
 				pos:   0,
 			}
 			actual := l.scanEscape()
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.input, test.expected, actual)
+			}
+		})
+	}
+}
+
+func Test_lexer_scanTime(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name:     "utc",
+			input:    "2023-01-02T15:04:05Z",
+			expected: true,
+		},
+		{
+			name:     "utc lower",
+			input:    "2023-01-02T15:04:05z",
+			expected: true,
+		},
+		{
+			name:     "fraction",
+			input:    "2023-01-02T15:04:05.123Z",
+			expected: true,
+		},
+		{
+			name:     "offset plus",
+			input:    "2023-01-02T15:04:05+09:00",
+			expected: true,
+		},
+		{
+			name:     "offset minus",
+			input:    "2023-01-02T15:04:05-05:00",
+			expected: true,
+		},
+		{
+			name:     "no timezone",
+			input:    "2023-01-02T15:04:05",
+			expected: true,
+		},
+		{
+			name:     "fraction no timezone",
+			input:    "2023-01-02T15:04:05.5",
+			expected: true,
+		},
+		{
+			name:     "date only",
+			input:    "2023-01-02",
+			expected: false,
+		},
+		{
+			name:     "bad date",
+			input:    "2023/01/02T15:04:05Z",
+			expected: false,
+		},
+		{
+			name:     "missing separator",
+			input:    "2023-01-02 15:04:05Z",
+			expected: false,
+		},
+		{
+			name:     "missing seconds",
+			input:    "2023-01-02T15:04",
+			expected: false,
+		},
+		{
+			name:     "bad time",
+			input:    "2023-01-02T15-04-05Z",
+			expected: false,
+		},
+		{
+			name:     "empty fraction",
+			input:    "2023-01-02T15:04:05.Z",
+			expected: false,
+		},
+		{
+			name:     "bad offset",
+			input:    "2023-01-02T15:04:05+0900",
+			expected: false,
+		},
+		{
+			name:     "short offset",
+			input:    "2023-01-02T15:04:05+09",
+			expected: false,
+		},
+		{
+			name:     "empty",
+			input:    "",
+			expected: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := &lexer{
+				input: test.input,
+				pos:   0,
+			}
+			actual := l.scanTime()
 			if actual != test.expected {
 				t.Errorf(testTemplate, test.input, test.expected, actual)
 			}

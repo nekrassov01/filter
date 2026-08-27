@@ -384,6 +384,14 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:  "or missing right operand",
+			input: `HP>1 ||`,
+			expected: expected{
+				ok:  false,
+				err: `expected left parenthesis or identifier`,
+			},
+		},
+		{
 			name:  "parseComparison expect ident failure",
 			input: `==1`,
 			expected: expected{
@@ -469,6 +477,63 @@ func TestParse(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), test.expected.err) {
 				t.Errorf(testTemplate, test.input, test.expected.err, err)
+			}
+		})
+	}
+}
+
+func Test_unquote(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    token
+		expected string
+	}{
+		{
+			name: "string",
+			token: token{
+				typ: tokenString,
+				v:   `"abc"`,
+			},
+			expected: "abc",
+		},
+		{
+			name: "raw string",
+			token: token{
+				typ: tokenRawString,
+				v:   "`abc`",
+			},
+			expected: "abc",
+		},
+		{
+			name: "empty string",
+			token: token{
+				typ: tokenString,
+				v:   `""`,
+			},
+			expected: "",
+		},
+		{
+			name: "too short",
+			token: token{
+				typ: tokenString,
+				v:   `"`,
+			},
+			expected: `"`,
+		},
+		{
+			name: "number",
+			token: token{
+				typ: tokenNumber,
+				v:   "42",
+			},
+			expected: "42",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := unquote(test.token)
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.token.v, test.expected, actual)
 			}
 		})
 	}
