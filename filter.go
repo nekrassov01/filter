@@ -20,7 +20,7 @@ type Target interface {
 // Expr represents a parsed expression.
 type Expr struct {
 	nodes  []node // expression tree nodes
-	root   int    // index of the root node
+	root   int32  // index of the root node
 	nident int    // number of distinct identifiers
 	shared bool   // some identifier is referenced more than once
 }
@@ -44,7 +44,7 @@ type field struct {
 	ok bool
 }
 
-func eval(nodes []node, i int, t Target, cache []field) (bool, error) {
+func eval(nodes []node, i int32, t Target, cache []field) (bool, error) {
 	n := &nodes[i]
 	switch n.typ {
 	case nodeBinary:

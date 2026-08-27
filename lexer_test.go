@@ -143,7 +143,7 @@ func Test_tokenType_String(t *testing.T) {
 		},
 		{
 			name:     "invalid",
-			typ:      256,
+			typ:      255,
 			expected: "",
 		},
 	}
@@ -289,7 +289,7 @@ func Test_tokenType_literal(t *testing.T) {
 		},
 		{
 			name:     "invalid",
-			typ:      256,
+			typ:      255,
 			expected: "",
 		},
 	}

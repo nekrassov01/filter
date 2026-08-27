@@ -25,7 +25,7 @@ func Test_nodeType_String(t *testing.T) {
 		},
 		{
 			name:     "invalid",
-			typ:      256,
+			typ:      255,
 			expected: "",
 		},
 	}

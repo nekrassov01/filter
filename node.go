@@ -6,7 +6,7 @@ import (
 )
 
 // nodeType represents the type of a node in the expression tree.
-type nodeType int
+type nodeType uint8
 
 const (
 	nodeBinary     nodeType = iota // binary operator node type
@@ -31,8 +31,8 @@ func (t nodeType) String() string {
 type node struct {
 	// Node metadata
 	typ   nodeType       // type of the node
-	left  int            // left child index
-	right int            // right child index
+	left  int32          // left child index
+	right int32          // right child index
 	ident token          // identifier token for variable nodes
 	op    token          // operator token for binary and comparison nodes
 	val   token          // value token for literal nodes
@@ -53,8 +53,8 @@ type node struct {
 func newNodeBinary(p *parser, left int, op token, right int) int {
 	node := node{
 		typ:   nodeBinary,
-		left:  left,
-		right: right,
+		left:  int32(left),  //nolint:gosec // bounded by MaxInput
+		right: int32(right), //nolint:gosec // bounded by MaxInput
 		op:    op,
 	}
 	return p.addNode(node)
@@ -64,7 +64,7 @@ func newNodeBinary(p *parser, left int, op token, right int) int {
 func newNodeNOT(p *parser, child int, op token) int {
 	node := node{
 		typ:  nodeNOT,
-		left: child,
+		left: int32(child), //nolint:gosec // bounded by MaxInput
 		op:   op,
 	}
 	return p.addNode(node)

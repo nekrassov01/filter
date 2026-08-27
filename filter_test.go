@@ -937,7 +937,7 @@ func Test_eval(t *testing.T) {
 			name: "invalid node type",
 			nodes: []node{
 				{
-					typ: nodeType(-1),
+					typ: nodeType(255),
 				},
 			},
 			expected: "invalid node type",

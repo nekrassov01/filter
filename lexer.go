@@ -16,14 +16,14 @@ const eof = -1
 type token struct {
 	typ  tokenType
 	v    string
-	pos  int
-	line int
-	col  int
-	idx  int // identifier index assigned by the parser (identifier tokens only)
+	pos  int32
+	line int32
+	col  int32
+	idx  int32
 }
 
 // tokenType represents the type of token produced by the lexer.
-type tokenType int
+type tokenType uint8
 
 const (
 	tokenError     tokenType = iota // error
@@ -255,9 +255,9 @@ func (l *lexer) nextToken() token {
 		if l.state == stateDone {
 			return token{
 				typ:  tokenEOF,
-				pos:  l.pos,
-				line: l.line,
-				col:  l.col,
+				pos:  int32(l.pos),  //nolint:gosec // bounded by MaxInput
+				line: int32(l.line), //nolint:gosec // bounded by MaxInput
+				col:  int32(l.col),  //nolint:gosec // bounded by MaxInput
 			}
 		}
 		l.state = lexStmt(l)
@@ -276,7 +276,7 @@ func (l *lexer) next() rune {
 		l.line++
 		l.col = 1
 	} else {
-		l.col += max(runewidth.RuneWidth(r), 1)
+		l.col += width(r)
 	}
 	return r
 }
@@ -305,7 +305,7 @@ func (l *lexer) backup() {
 			}
 			l.col = col
 		} else {
-			l.col -= max(runewidth.RuneWidth(r), 1)
+			l.col -= width(r)
 			l.col = max(l.col, 1)
 		}
 	}
@@ -325,9 +325,9 @@ func (l *lexer) emit(typ tokenType) {
 	l.token = token{
 		typ:  typ,
 		v:    l.input[l.startPos:l.pos],
-		pos:  l.startPos,
-		line: l.startLine,
-		col:  l.startCol,
+		pos:  int32(l.startPos),  //nolint:gosec // bounded by MaxInput
+		line: int32(l.startLine), //nolint:gosec // bounded by MaxInput
+		col:  int32(l.startCol),  //nolint:gosec // bounded by MaxInput
 	}
 	l.hasNext = true
 	l.startPos = l.pos
@@ -375,9 +375,9 @@ func (l *lexer) errorf(format string, args ...any) state {
 	l.token = token{
 		typ:  tokenError,
 		v:    fmt.Sprintf(format, args...),
-		pos:  l.startPos,
-		line: l.startLine,
-		col:  l.startCol,
+		pos:  int32(l.startPos),  //nolint:gosec // bounded by MaxInput
+		line: int32(l.startLine), //nolint:gosec // bounded by MaxInput
+		col:  int32(l.startCol),  //nolint:gosec // bounded by MaxInput
 	}
 	l.hasNext = true
 	return stateDone
@@ -589,8 +589,7 @@ func lexStmt(l *lexer) state {
 	case unicode.IsLetter(r) || r == '_':
 		return lexKeywordOrIdent(l)
 	default:
-		w := max(runewidth.RuneWidth(r), 1)
-		return l.errorf("unexpected character %#U at %d:%d", r, l.line, l.col-w)
+		return l.errorf("unexpected character %#U at %d:%d", r, l.line, l.col-width(r))
 	}
 }
 
@@ -835,6 +834,15 @@ func lexKeywordOrIdent(l *lexer) state {
 	}
 	l.emit(tokenIdent)
 	return stateStmt
+}
+
+// width returns the display width of the rune used for column tracking.
+// ASCII is resolved without consulting the runewidth tables.
+func width(r rune) int {
+	if r < utf8.RuneSelf {
+		return 1
+	}
+	return max(runewidth.RuneWidth(r), 1)
 }
 
 // isSpace reports whether the rune is a space character.

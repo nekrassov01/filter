@@ -416,6 +416,14 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:  "input too long",
+			input: "HP > " + strings.Repeat("1", MaxInput),
+			expected: expected{
+				ok:  false,
+				err: `input too long`,
+			},
+		},
+		{
 			name:  "parseComparison expect ident failure",
 			input: `==1`,
 			expected: expected{
@@ -571,8 +579,8 @@ func repr(e *Expr) string {
 		}
 		return "\"" + v + "\""
 	}
-	var walk func(int) string
-	walk = func(i int) string {
+	var walk func(int32) string
+	walk = func(i int32) string {
 		n := e.nodes[i]
 		switch n.typ {
 		case nodeBinary:

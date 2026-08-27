@@ -16,6 +16,11 @@ const Epsilon = 1e-9
 // Guards against pathological inputs causing excessive work. Counts total openings, not current depth.
 const MaxParen = 256
 
+// MaxInput is the maximum input length in bytes accepted by Parse.
+// Positions and node indices are stored as int32; bounding the input keeps
+// every int to int32 conversion in the lexer and parser within range.
+const MaxInput = 1 << 20
+
 // nodeBufSize is the number of nodes the parser stores inline before moving
 // to a heap-allocated slice. Written by index rather than by append so that
 // the parser stays on the stack of Parse.
@@ -43,6 +48,12 @@ func Parse(input string) (*Expr, error) {
 			Err:  fmt.Errorf("empty input"),
 		}
 	}
+	if len(input) > MaxInput {
+		return nil, &Error{
+			Kind: KindParse,
+			Err:  fmt.Errorf("input too long: %d bytes exceeds limit %d", len(input), MaxInput),
+		}
+	}
 	p := parser{
 		lexer: newLexer(input),
 	}
@@ -63,7 +74,7 @@ func Parse(input string) (*Expr, error) {
 	}
 	return &Expr{
 		nodes:  nodes,
-		root:   n,
+		root:   int32(n), //nolint:gosec // bounded by MaxInput
 		nident: p.nident,
 		shared: p.shared,
 	}, nil
@@ -189,7 +200,7 @@ func (p *parser) parseComparison() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	ident.idx = p.identIndex(ident.v)
+	ident.idx = int32(p.identIndex(ident.v)) //nolint:gosec // bounded by MaxInput
 	op, err := p.next()
 	if err != nil {
 		return 0, err
