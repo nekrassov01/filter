@@ -22,8 +22,8 @@ type Stats struct {
 	Speed      int64
 }
 
-// GetField returns the value of the specified field.
-func (o *Stats) GetField(key string) (any, error) {
+// Value returns the value of the specified field.
+func (o *Stats) Value(key string) (any, error) {
 	switch key {
 	case "CLASS", "Class":
 		return o.Class, nil

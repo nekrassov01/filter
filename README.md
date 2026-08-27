@@ -29,7 +29,7 @@
 
 - Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
 - Numeric & duration RHS literals: parsed eagerly during parsing (including quoted forms like `"42"` or `"1500ms"`); eval just compares pre‑parsed values.
-- Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times does not add proportional `GetField` overhead.
+- Field value reuse: per evaluation a tiny map caches each identifier the first time it is requested; referencing the same field dozens of times does not add proportional `Value` overhead.
 
 ## Benchmarks
 
@@ -155,8 +155,8 @@ type MyTarget struct {
     Enabled bool
 }
 
-// GetField maps a field name to its value.
-func (t *MyTarget) GetField(key string) (any, error) {
+// Value maps a field name to its value.
+func (t *MyTarget) Value(key string) (any, error) {
     switch key {
     case "Name":
         return t.Name, nil

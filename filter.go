@@ -10,7 +10,7 @@ import (
 
 // Target implements the entity to be evaluated.
 type Target interface {
-	GetField(key string) (any, error)
+	Value(key string) (any, error)
 }
 
 // Expr represents an expression in the parser.
@@ -72,13 +72,13 @@ func eval(nodes []node, i int, t Target, cache map[string]any) (bool, error) {
 			if v, ok := cache[key]; ok {
 				field = v
 			} else {
-				field, err = t.GetField(key)
+				field, err = t.Value(key)
 				if err == nil {
 					cache[key] = field
 				}
 			}
 		} else {
-			field, err = t.GetField(key)
+			field, err = t.Value(key)
 		}
 		if err != nil {
 			return false, &Error{
