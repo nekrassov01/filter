@@ -9,6 +9,9 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+// eof defines the end of input.
+const eof = -1
+
 // token represents a token produced by the lexer.
 type token struct {
 	typ  tokenType
@@ -203,19 +206,6 @@ func (t tokenType) isStringType() bool {
 	}
 }
 
-// isBoolLiteral checks if the string is a boolean literal.
-func isBoolLiteral(s string) bool {
-	switch s {
-	case "false", "False", "FALSE", "true", "True", "TRUE":
-		return true
-	default:
-		return false
-	}
-}
-
-// eof defines the end of input.
-const eof = -1
-
 // stateFn represents the state of the scanner as a function that returns the next state.
 type stateFn func(*lexer) stateFn
 
@@ -384,6 +374,178 @@ func (l *lexer) errorf(format string, args ...any) stateFn {
 	}
 	l.hasNext = true
 	return nil
+}
+
+// scanEscape handles escape sequences in strings
+// It consumes the escape character and expects a valid escape sequence.
+func (l *lexer) scanEscape() bool {
+	r := l.next()
+	switch r {
+	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\':
+		// These are valid escape sequences
+		return true
+	case '"', '\'':
+		// escaped quotes are valid in strings
+		return true
+	case '0':
+		// Simple \0 for null character
+		return true
+	case 'x':
+		// \xHH - 2 digit hex
+		return l.scanHexEscape(2)
+	case 'u':
+		// \uHHHH - 4 digit unicode
+		return l.scanHexEscape(4)
+	case eof:
+		// Error if we reach EOF in an escape sequence
+		return false
+	default:
+		// Error for any other escape sequence
+		return false
+	}
+}
+
+// scanHexEscape handles hexadecimal escape sequences
+// It consumes the specified number of hex digits.
+func (l *lexer) scanHexEscape(digits int) bool {
+	for range digits {
+		r := l.next()
+		if !(unicode.IsDigit(r) || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+// scanTime scans a time literal.
+func (l *lexer) scanTime() bool {
+	// Date: YYYY-MM-DD
+	if !l.acceptDigits(4) || !l.accept("-") || !l.acceptDigits(2) || !l.accept("-") || !l.acceptDigits(2) {
+		return false
+	}
+	// 'T' separator
+	if !l.accept("T") {
+		return false
+	}
+	// Time: HH:MM:SS
+	if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
+		return false
+	}
+	// Optional fractional seconds: '.' 1+DIGIT
+	if l.accept(".") {
+		r := l.next()
+		if !unicode.IsDigit(r) {
+			return false
+		}
+		l.acceptRun("0123456789")
+	}
+	// Optional timezone: 'Z'/'z' or (+|-)HH:MM
+	if l.accept("Zz") {
+		return true
+	}
+	if l.accept("+-") {
+		if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
+			return false
+		}
+		return true
+	}
+	// No timezone provided (allowed by our extension)
+	return true
+}
+
+// scanDuration scans for duration literals.
+// Determines validity by the longest match,
+// the remainder is treated as the next token.
+func (l *lexer) scanDuration() bool {
+	valid := false
+	for {
+		start := l.pos
+		if !l.scanDurationNumber() {
+			break
+		}
+		found := false
+		switch r := l.next(); r {
+		case 'n':
+			if l.accept("s") {
+				found = true
+			}
+		case 'u':
+			if l.accept("s") {
+				found = true
+			}
+		case 'μ':
+			if l.accept("s") {
+				found = true
+			}
+		case 'm':
+			l.accept("s")
+			found = true
+		case 's':
+			found = true
+		case 'h':
+			found = true
+		default:
+			for l.pos > start {
+				l.backupNumber()
+			}
+		}
+		if !found {
+			break
+		}
+		valid = true
+		r := l.peek()
+		if r == eof || (!unicode.IsDigit(r) && r != '.') {
+			break
+		}
+	}
+	if !valid {
+		return false
+	}
+	return true
+}
+
+// scanDurationNumber scans a number in a duration literal.
+func (l *lexer) scanDurationNumber() bool {
+	signed := l.accept("+-")
+	if n := l.acceptRun("0123456789."); n > 0 {
+		return true
+	}
+	if signed {
+		l.backupNumber()
+	}
+	return false
+}
+
+// scanNumber scans numbers in different formats.
+// See https://github.com/golang/go/blob/master/src/text/template/parse/lex.go
+func (l *lexer) scanNumber() bool {
+	// Optional leading sign.
+	l.accept("+-")
+	// Is it hex?
+	digits := "0123456789_"
+	if l.accept("0") {
+		// Note: Leading 0 does not mean octal in floats.
+		if l.accept("xX") {
+			digits = "0123456789abcdefABCDEF_"
+		} else if l.accept("oO") {
+			digits = "01234567_"
+		} else if l.accept("bB") {
+			digits = "01_"
+		}
+	}
+	l.acceptRun(digits)
+	if l.accept(".") {
+		l.acceptRun(digits)
+	}
+	if len(digits) == 10+1 && l.accept("eE") {
+		l.accept("+-")
+		l.acceptRun("0123456789_")
+	}
+	if len(digits) == 16+6+1 && l.accept("pP") {
+		l.accept("+-")
+		l.acceptRun("0123456789_")
+	}
+	return true
 }
 
 // lexStmt is the top-level state for lexing.
@@ -668,178 +830,6 @@ func lexKeywordOrIdent(l *lexer) stateFn {
 	return lexStmt
 }
 
-// scanEscape handles escape sequences in strings
-// It consumes the escape character and expects a valid escape sequence.
-func (l *lexer) scanEscape() bool {
-	r := l.next()
-	switch r {
-	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\':
-		// These are valid escape sequences
-		return true
-	case '"', '\'':
-		// escaped quotes are valid in strings
-		return true
-	case '0':
-		// Simple \0 for null character
-		return true
-	case 'x':
-		// \xHH - 2 digit hex
-		return l.scanHexEscape(2)
-	case 'u':
-		// \uHHHH - 4 digit unicode
-		return l.scanHexEscape(4)
-	case eof:
-		// Error if we reach EOF in an escape sequence
-		return false
-	default:
-		// Error for any other escape sequence
-		return false
-	}
-}
-
-// scanHexEscape handles hexadecimal escape sequences
-// It consumes the specified number of hex digits.
-func (l *lexer) scanHexEscape(digits int) bool {
-	for range digits {
-		r := l.next()
-		if !(unicode.IsDigit(r) || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F')) {
-			return false
-		}
-	}
-	return true
-}
-
-// scanTime scans a time literal.
-func (l *lexer) scanTime() bool {
-	// Date: YYYY-MM-DD
-	if !l.acceptDigits(4) || !l.accept("-") || !l.acceptDigits(2) || !l.accept("-") || !l.acceptDigits(2) {
-		return false
-	}
-	// 'T' separator
-	if !l.accept("T") {
-		return false
-	}
-	// Time: HH:MM:SS
-	if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
-		return false
-	}
-	// Optional fractional seconds: '.' 1+DIGIT
-	if l.accept(".") {
-		r := l.next()
-		if !unicode.IsDigit(r) {
-			return false
-		}
-		l.acceptRun("0123456789")
-	}
-	// Optional timezone: 'Z'/'z' or (+|-)HH:MM
-	if l.accept("Zz") {
-		return true
-	}
-	if l.accept("+-") {
-		if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
-			return false
-		}
-		return true
-	}
-	// No timezone provided (allowed by our extension)
-	return true
-}
-
-// scanDuration scans for duration literals.
-// Determines validity by the longest match,
-// the remainder is treated as the next token.
-func (l *lexer) scanDuration() bool {
-	valid := false
-	for {
-		start := l.pos
-		if !l.scanDurationNumber() {
-			break
-		}
-		found := false
-		switch r := l.next(); r {
-		case 'n':
-			if l.accept("s") {
-				found = true
-			}
-		case 'u':
-			if l.accept("s") {
-				found = true
-			}
-		case 'μ':
-			if l.accept("s") {
-				found = true
-			}
-		case 'm':
-			l.accept("s")
-			found = true
-		case 's':
-			found = true
-		case 'h':
-			found = true
-		default:
-			for l.pos > start {
-				l.backupNumber()
-			}
-		}
-		if !found {
-			break
-		}
-		valid = true
-		r := l.peek()
-		if r == eof || (!unicode.IsDigit(r) && r != '.') {
-			break
-		}
-	}
-	if !valid {
-		return false
-	}
-	return true
-}
-
-// scanDurationNumber scans a number in a duration literal.
-func (l *lexer) scanDurationNumber() bool {
-	signed := l.accept("+-")
-	if n := l.acceptRun("0123456789."); n > 0 {
-		return true
-	}
-	if signed {
-		l.backupNumber()
-	}
-	return false
-}
-
-// scanNumber scans numbers in different formats.
-// See https://github.com/golang/go/blob/master/src/text/template/parse/lex.go
-func (l *lexer) scanNumber() bool {
-	// Optional leading sign.
-	l.accept("+-")
-	// Is it hex?
-	digits := "0123456789_"
-	if l.accept("0") {
-		// Note: Leading 0 does not mean octal in floats.
-		if l.accept("xX") {
-			digits = "0123456789abcdefABCDEF_"
-		} else if l.accept("oO") {
-			digits = "01234567_"
-		} else if l.accept("bB") {
-			digits = "01_"
-		}
-	}
-	l.acceptRun(digits)
-	if l.accept(".") {
-		l.acceptRun(digits)
-	}
-	if len(digits) == 10+1 && l.accept("eE") {
-		l.accept("+-")
-		l.acceptRun("0123456789_")
-	}
-	if len(digits) == 16+6+1 && l.accept("pP") {
-		l.accept("+-")
-		l.acceptRun("0123456789_")
-	}
-	return true
-}
-
 // isSpace reports whether the rune is a space character.
 func isSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\r' || r == '\n'
@@ -848,4 +838,14 @@ func isSpace(r rune) bool {
 // isAlphaNumeric reports whether the rune is a valid alphanumeric character.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+// isBoolLiteral checks if the string is a boolean literal.
+func isBoolLiteral(s string) bool {
+	switch s {
+	case "false", "False", "FALSE", "true", "True", "TRUE":
+		return true
+	default:
+		return false
+	}
 }

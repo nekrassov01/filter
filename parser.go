@@ -9,6 +9,17 @@ import (
 	"time"
 )
 
+// Epsilon is a small value used to compare numerical equality.
+const Epsilon = 1e-9
+
+// MaxParen is the maximum number of opening '(' tokens allowed in one expression.
+// Guards against pathological inputs causing excessive work. Counts total openings, not current depth.
+const MaxParen = 256
+
+// regexMap stores compiled regex patterns to reduce allocations on repeated parses.
+// key: pattern string, value: *regexp.Regexp
+var regexMap sync.Map
+
 // Parse parses a string expression into an Expr.
 func Parse(input string) (*Expr, error) {
 	p, err := newParser(input)
@@ -30,17 +41,6 @@ func Parse(input string) (*Expr, error) {
 		root:   n,
 	}, nil
 }
-
-// Epsilon is a small value used to compare numerical equality.
-const Epsilon = 1e-9
-
-// MaxParen is the maximum number of opening '(' tokens allowed in one expression.
-// Guards against pathological inputs causing excessive work. Counts total openings, not current depth.
-const MaxParen = 256
-
-// regexMap stores compiled regex patterns to reduce allocations on repeated parses.
-// key: pattern string, value: *regexp.Regexp
-var regexMap sync.Map
 
 // parser represents a parser for the expression.
 type parser struct {
@@ -65,86 +65,6 @@ func newParser(input string) (parser, error) {
 		nodes:  make([]node, 0, 16),
 		idents: make(map[string]struct{}),
 	}, nil
-}
-
-// next returns the next token from the lexer.
-func (p *parser) next() (token, error) {
-	if p.peeked {
-		p.peeked = false
-		if p.current.typ == tokenError {
-			return p.current, &Error{
-				Kind: KindLex,
-				Err:  errors.New(p.current.v),
-			}
-		}
-		return p.current, nil
-	}
-	p.current = p.lexer.nextToken()
-	if p.current.typ == tokenError {
-		return p.current, &Error{
-			Kind: KindLex,
-			Err:  errors.New(p.current.v),
-		}
-	}
-	return p.current, nil
-}
-
-// peek returns the next token without consuming it.
-func (p *parser) peek() token {
-	if !p.peeked {
-		p.current = p.lexer.nextToken()
-		p.peeked = true
-	}
-	return p.current
-}
-
-// expect returns the next token and consumes it if it matches the expected type.
-func (p *parser) expect(typ tokenType) (token, error) {
-	t, err := p.next()
-	if err != nil {
-		return t, err
-	}
-	if t.typ != typ {
-		return t, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v),
-		}
-	}
-	return t, nil
-}
-
-// unquote removes the surrounding quotes from a string token.
-func unquote(t token) string {
-	n := len(t.v)
-	if t.typ.isStringType() && n >= 2 {
-		return t.v[1 : n-1]
-	}
-	return t.v
-}
-
-// handleRegex processes a regex token and associates it with a node.
-// Caches compiled regex patterns to reduce allocations on repeated parses.
-func (p *parser) handleRegex(t token, i int) error {
-	if t.v == "" {
-		return &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col),
-		}
-	}
-	if cached, ok := regexMap.Load(t.v); ok {
-		p.nodes[i].re = cached.(*regexp.Regexp)
-	} else {
-		re, err := regexp.Compile(t.v)
-		if err != nil {
-			return &Error{
-				Kind: KindParse,
-				Err:  fmt.Errorf("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err),
-			}
-		}
-		regexMap.Store(t.v, re)
-		p.nodes[i].re = re
-	}
-	return nil
 }
 
 // parseExpr parses an expression.
@@ -304,4 +224,84 @@ func (p *parser) parseComparison() (int, error) {
 		}
 	}
 	return i, nil
+}
+
+// handleRegex processes a regex token and associates it with a node.
+// Caches compiled regex patterns to reduce allocations on repeated parses.
+func (p *parser) handleRegex(t token, i int) error {
+	if t.v == "" {
+		return &Error{
+			Kind: KindParse,
+			Err:  fmt.Errorf("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col),
+		}
+	}
+	if cached, ok := regexMap.Load(t.v); ok {
+		p.nodes[i].re = cached.(*regexp.Regexp)
+	} else {
+		re, err := regexp.Compile(t.v)
+		if err != nil {
+			return &Error{
+				Kind: KindParse,
+				Err:  fmt.Errorf("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err),
+			}
+		}
+		regexMap.Store(t.v, re)
+		p.nodes[i].re = re
+	}
+	return nil
+}
+
+// expect returns the next token and consumes it if it matches the expected type.
+func (p *parser) expect(typ tokenType) (token, error) {
+	t, err := p.next()
+	if err != nil {
+		return t, err
+	}
+	if t.typ != typ {
+		return t, &Error{
+			Kind: KindParse,
+			Err:  fmt.Errorf("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v),
+		}
+	}
+	return t, nil
+}
+
+// next returns the next token from the lexer.
+func (p *parser) next() (token, error) {
+	if p.peeked {
+		p.peeked = false
+		if p.current.typ == tokenError {
+			return p.current, &Error{
+				Kind: KindLex,
+				Err:  errors.New(p.current.v),
+			}
+		}
+		return p.current, nil
+	}
+	p.current = p.lexer.nextToken()
+	if p.current.typ == tokenError {
+		return p.current, &Error{
+			Kind: KindLex,
+			Err:  errors.New(p.current.v),
+		}
+	}
+	return p.current, nil
+}
+
+// peek returns the next token without consuming it.
+func (p *parser) peek() token {
+	if !p.peeked {
+		p.current = p.lexer.nextToken()
+		p.peeked = true
+	}
+	return p.current
+}
+
+// unquote removes the surrounding quotes from a string token.
+func unquote(t token) string {
+	n := len(t.v)
+	if t.typ.isStringType() && n >= 2 {
+		return t.v[1 : n-1]
+	}
+	return t.v
 }
