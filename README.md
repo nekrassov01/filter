@@ -12,11 +12,12 @@
 
 ## Overview
 
-`filter` focuses on one task: evaluating small boolean filter expressions in Go without the weight of a general expression engine. The motivation is to avoid large, reflection-heavy or feature-rich DSLs when you only need predictable field filtering. Core traits: minimal syntax (comparisons, basic logical operators, regex, case-insensitive equality), no reflection (caller supplies values via a tiny interface), deterministic errors with positions, and cached regex compilation. This keeps the surface area small while remaining fast and explicit.
+`filter` focuses on one task: evaluating small boolean filter expressions in Go without the weight of a general expression engine. The motivation is to avoid large, reflection-heavy or feature-rich DSLs when you only need predictable value filtering. Core traits: minimal syntax (comparisons, basic logical operators, regex, case-insensitive equality), no reflection (caller supplies values via a tiny interface), deterministic errors with positions, and cached regex compilation. This keeps the surface area small while remaining fast and explicit.
 
 ## Features
 
 - Comparisons, regex, logical AND / OR / NOT
+- Values via a one-method `Resolver` interface: `Resolve(name string) (any, bool)`
 - Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
 - Case-insensitive equality: `==*` / `!=*`
 - Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
@@ -28,8 +29,8 @@
 `filter` intentionally does a small amount of work once, so that evaluating an expression many times stays flat:
 
 - Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
-- Number, time, and duration RHS literals: validated and converted once during parsing, so malformed literals are reported as parse errors with their position; eval just compares pre‑parsed values. Quoted forms like `"42"` or `"1500ms"` are string literals and are converted at evaluation time when compared against a numeric, time, or duration field.
-- Field value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 8 distinct identifiers); referencing the same field dozens of times does not add proportional `Value` overhead. Expressions where every identifier appears once skip the cache entirely.
+- Number, time, and duration RHS literals: validated and converted once during parsing, so malformed literals are reported as parse errors with their position; eval just compares pre‑parsed values. Quoted forms like `"42"` or `"1500ms"` are string literals and are converted at evaluation time when compared against a numeric, time, or duration value.
+- Resolved value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 8 distinct identifiers); referencing the same identifier dozens of times does not add proportional `Resolve` overhead. Expressions where every identifier appears once skip the cache entirely.
 
 ## Benchmarks
 
@@ -147,27 +148,27 @@ import (
     "github.com/nekrassov01/filter"
 )
 
-// MyTarget represents the example filter target.
-type MyTarget struct {
+// Record is the example value to filter.
+type Record struct {
     Name    string
     Latency time.Duration
     Retries int
     Enabled bool
 }
 
-// Value maps a field name to its value.
-func (t *MyTarget) Value(key string) (any, error) {
-    switch key {
+// Resolve maps an identifier to its value.
+func (r *Record) Resolve(name string) (any, bool) {
+    switch name {
     case "Name":
-        return t.Name, nil
+        return r.Name, true
     case "Latency":
-        return t.Latency, nil
+        return r.Latency, true
     case "Retries", "RetryCount":
-        return t.Retries, nil
+        return r.Retries, true
     case "Enabled":
-        return t.Enabled, nil
+        return r.Enabled, true
     default:
-        return nil, fmt.Errorf("field not found: %q", key)
+        return nil, false
     }
 }
 
@@ -179,14 +180,14 @@ func main() {
         panic(err)
     }
 
-    target := &MyTarget{
+    record := &Record{
         Name:    "foobar",
         Latency: 100 * time.Millisecond,
         Retries: 3,
         Enabled: true,
     }
 
-    ok, err := expr.Eval(target)
+    ok, err := expr.Eval(record)
     if err != nil {
         panic(err)
     }

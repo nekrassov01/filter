@@ -1,7 +1,6 @@
 package examples
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -22,36 +21,36 @@ type Stats struct {
 	Speed      int64
 }
 
-// Value returns the value of the specified field.
-func (o *Stats) Value(key string) (any, error) {
-	switch key {
+// Resolve returns the value bound to the identifier.
+func (o *Stats) Resolve(name string) (any, bool) {
+	switch name {
 	case "CLASS", "Class":
-		return o.Class, nil
+		return o.Class, true
 	case "NAME", "Name":
-		return o.Name, nil
+		return o.Name, true
 	case "BIRTH", "Birth", "BirthDate":
-		return o.Birth, nil
+		return o.Birth, true
 	case "ATB", "Atb", "ActiveTimeBattleGauge":
-		return o.ATBGauge, nil
+		return o.ATBGauge, true
 	case "HP", "Hp", "HitPoint":
-		return o.HitPoint, nil
+		return o.HitPoint, true
 	case "SP", "Sp", "SkillPoint":
-		return o.SkillPoint, nil
+		return o.SkillPoint, true
 	case "MP", "Mp", "MagicPoint", "SpellPoint":
-		return o.SpellPoint, nil
+		return o.SpellPoint, true
 	case "LP", "Lp", "LifePoint":
-		return o.LifePoint, nil
+		return o.LifePoint, true
 	case "STR", "Str", "Strength":
-		return o.Strength, nil
+		return o.Strength, true
 	case "STA", "Sta", "Stamina":
-		return o.Stamina, nil
+		return o.Stamina, true
 	case "DEX", "Dex", "Dexterity":
-		return o.Dexterity, nil
+		return o.Dexterity, true
 	case "MAG", "Mag", "Magic":
-		return o.Magic, nil
+		return o.Magic, true
 	case "SPD", "Spd", "Speed":
-		return o.Speed, nil
+		return o.Speed, true
 	default:
-		return nil, fmt.Errorf("field not found: %q", key)
+		return nil, false
 	}
 }

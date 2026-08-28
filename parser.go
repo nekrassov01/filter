@@ -234,7 +234,7 @@ func (p *parser) parseComparison() (int, error) {
 		}
 	}
 	// Typed literals are validated here, once; string literals compared
-	// against typed fields are converted at evaluation time instead.
+	// against typed values are converted at evaluation time instead.
 	switch val.typ {
 	case tokenTime:
 		t, err := time.Parse(time.RFC3339, val.v)
