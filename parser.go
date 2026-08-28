@@ -62,10 +62,12 @@ func Parse(input string) (*Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.peek().typ != tokenEOF {
+	if t := p.peek(); t.typ != tokenEOF {
 		return nil, &Error{
 			Kind: KindParse,
-			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
+			Line: int(t.line),
+			Col:  int(t.col),
+			Err:  fmt.Errorf("unexpected token after parsing: %s", t.v),
 		}
 	}
 	nodes := p.nodes
@@ -174,7 +176,9 @@ func (p *parser) parsePrimary() (int, error) {
 		if p.parenCount > MaxParen {
 			return 0, &Error{
 				Kind: KindParse,
-				Err:  fmt.Errorf("too many parentheses: exceeded limit %d at %d:%d", MaxParen, t.line, t.col),
+				Line: int(t.line),
+				Col:  int(t.col),
+				Err:  fmt.Errorf("too many parentheses: exceeded limit %d", MaxParen),
 			}
 		}
 		expr, err := p.parseExpr()
@@ -190,7 +194,9 @@ func (p *parser) parsePrimary() (int, error) {
 	default:
 		return 0, &Error{
 			Kind: KindParse,
-			Err:  fmt.Errorf("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.v),
+			Line: int(t.line),
+			Col:  int(t.col),
+			Err:  fmt.Errorf("expected left parenthesis or identifier, got %s: %q", t.typ, t.v),
 		}
 	}
 }
@@ -210,7 +216,9 @@ func (p *parser) parseComparison() (int, error) {
 	if !op.typ.isComparisonOperatorType() {
 		return 0, &Error{
 			Kind: KindParse,
-			Err:  fmt.Errorf("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.v),
+			Line: int(op.line),
+			Col:  int(op.col),
+			Err:  fmt.Errorf("expected comparison operator, got %s: %q", op.typ, op.v),
 		}
 	}
 	val, err := p.next()
@@ -220,7 +228,9 @@ func (p *parser) parseComparison() (int, error) {
 	if !val.typ.isValueType() {
 		return 0, &Error{
 			Kind: KindParse,
-			Err:  fmt.Errorf("expected value, got %s at %d:%d: %q", val.typ, val.line, val.col, val.v),
+			Line: int(val.line),
+			Col:  int(val.col),
+			Err:  fmt.Errorf("expected value, got %s: %q", val.typ, val.v),
 		}
 	}
 	if val.typ == tokenString || val.typ == tokenRawString {
@@ -243,7 +253,9 @@ func (p *parser) parseComparison() (int, error) {
 		if err != nil {
 			return 0, &Error{
 				Kind: KindParse,
-				Err:  fmt.Errorf("invalid time at %d:%d: %q", val.line, val.col, val.v),
+				Line: int(val.line),
+				Col:  int(val.col),
+				Err:  fmt.Errorf("invalid time %q", val.v),
 			}
 		}
 		p.node(i).time = t
@@ -253,7 +265,9 @@ func (p *parser) parseComparison() (int, error) {
 		if err != nil {
 			return 0, &Error{
 				Kind: KindParse,
-				Err:  fmt.Errorf("invalid duration at %d:%d: %q", val.line, val.col, val.v),
+				Line: int(val.line),
+				Col:  int(val.col),
+				Err:  fmt.Errorf("invalid duration %q", val.v),
 			}
 		}
 		p.node(i).dur = d
@@ -263,7 +277,9 @@ func (p *parser) parseComparison() (int, error) {
 		if err != nil {
 			return 0, &Error{
 				Kind: KindParse,
-				Err:  fmt.Errorf("invalid number at %d:%d: %q", val.line, val.col, val.v),
+				Line: int(val.line),
+				Col:  int(val.col),
+				Err:  fmt.Errorf("invalid number %q", val.v),
 			}
 		}
 		p.node(i).num = f
@@ -278,7 +294,9 @@ func (p *parser) handleRegex(t token, i int) error {
 	if t.v == "" {
 		return &Error{
 			Kind: KindParse,
-			Err:  fmt.Errorf("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col),
+			Line: int(t.line),
+			Col:  int(t.col),
+			Err:  fmt.Errorf("invalid regex %q: empty pattern", t.v),
 		}
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
@@ -288,7 +306,9 @@ func (p *parser) handleRegex(t token, i int) error {
 		if err != nil {
 			return &Error{
 				Kind: KindParse,
-				Err:  fmt.Errorf("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err),
+				Line: int(t.line),
+				Col:  int(t.col),
+				Err:  fmt.Errorf("invalid regex %q: %w", t.v, err),
 			}
 		}
 		regexMap.Store(t.v, re)
@@ -361,7 +381,9 @@ func (p *parser) expect(typ tokenType) (token, error) {
 	if t.typ != typ {
 		return t, &Error{
 			Kind: KindParse,
-			Err:  fmt.Errorf("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v),
+			Line: int(t.line),
+			Col:  int(t.col),
+			Err:  fmt.Errorf("expected %s, got %s: %q", typ, t.typ, t.v),
 		}
 	}
 	return t, nil
@@ -374,6 +396,8 @@ func (p *parser) next() (token, error) {
 		if p.current.typ == tokenError {
 			return p.current, &Error{
 				Kind: KindLex,
+				Line: int(p.current.line),
+				Col:  int(p.current.col),
 				Err:  errors.New(p.current.v),
 			}
 		}
@@ -383,6 +407,8 @@ func (p *parser) next() (token, error) {
 	if p.current.typ == tokenError {
 		return p.current, &Error{
 			Kind: KindLex,
+			Line: int(p.current.line),
+			Col:  int(p.current.col),
 			Err:  errors.New(p.current.v),
 		}
 	}

@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -19,24 +20,34 @@ const (
 	KindLex
 )
 
-// Error represents an error in the filter processing.
+// Error is an error detected while lexing, parsing, or evaluating an expression.
+// Line and Col locate the offending token in the input (1-based, Col counted in
+// display width); both are 0 when the error has no position, such as empty input.
 type Error struct {
 	Kind ErrorKind
+	Line int
+	Col  int
 	Err  error
 }
 
-// Error returns the error message.
+// Error returns the message in the form "<kind> at <line>:<col>: <detail>",
+// omitting the position when Line is 0.
 func (e *Error) Error() string {
+	var prefix string
 	switch e.Kind {
 	case KindEval:
-		return message("eval error", e.Err.Error())
+		prefix = "eval error"
 	case KindParse:
-		return message("parse error", e.Err.Error())
+		prefix = "parse error"
 	case KindLex:
-		return message("token error", e.Err.Error())
+		prefix = "token error"
 	default:
-		return message("unknown error", e.Err.Error())
+		prefix = "unknown error"
 	}
+	if e.Line > 0 {
+		prefix = fmt.Sprintf("%s at %d:%d", prefix, e.Line, e.Col)
+	}
+	return message(prefix, e.Err.Error())
 }
 
 // Unwrap returns the underlying error.

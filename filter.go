@@ -74,7 +74,9 @@ func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		default:
 			return false, &Error{
 				Kind: KindEval,
-				Err:  fmt.Errorf("invalid logical operator at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+				Line: int(n.op.line),
+				Col:  int(n.op.col),
+				Err:  fmt.Errorf("invalid logical operator %q", n.op.typ.literal()),
 			}
 		}
 	case nodeNOT:
@@ -91,7 +93,9 @@ func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		if !ok {
 			return false, &Error{
 				Kind: KindEval,
-				Err:  fmt.Errorf("unknown identifier at %d:%d: %q", n.ident.line, n.ident.col, n.ident.v),
+				Line: int(n.ident.line),
+				Col:  int(n.ident.col),
+				Err:  fmt.Errorf("unknown identifier %q", n.ident.v),
 			}
 		}
 		if cache != nil {
@@ -101,7 +105,9 @@ func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 	}
 	return false, &Error{
 		Kind: KindEval,
-		Err:  fmt.Errorf("invalid node type at %d:%d: %q", n.op.line, n.op.col, n.op.typ),
+		Line: int(n.op.line),
+		Col:  int(n.op.col),
+		Err:  fmt.Errorf("invalid node type %q", n.op.typ),
 	}
 }
 
@@ -161,7 +167,9 @@ func evalString(n *node, v string) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for string value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Line: int(n.op.line),
+			Col:  int(n.op.col),
+			Err:  fmt.Errorf("invalid operator for string value %q", n.op.typ.literal()),
 		}
 	}
 }
@@ -174,7 +182,9 @@ func evalNumber(n *node, v float64) (bool, error) {
 		if err != nil {
 			return false, &Error{
 				Kind: KindEval,
-				Err:  fmt.Errorf("invalid number at %d:%d: %q", n.val.line, n.val.col, n.val.v),
+				Line: int(n.val.line),
+				Col:  int(n.val.col),
+				Err:  fmt.Errorf("invalid number %q", n.val.v),
 			}
 		}
 		f = parsed
@@ -195,7 +205,9 @@ func evalNumber(n *node, v float64) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for number value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Line: int(n.op.line),
+			Col:  int(n.op.col),
+			Err:  fmt.Errorf("invalid operator for number value %q", n.op.typ.literal()),
 		}
 	}
 }
@@ -208,7 +220,9 @@ func evalTime(n *node, v time.Time) (bool, error) {
 		if err != nil {
 			return false, &Error{
 				Kind: KindEval,
-				Err:  fmt.Errorf("invalid time at %d:%d: %q", n.val.line, n.val.col, n.val.v),
+				Line: int(n.val.line),
+				Col:  int(n.val.col),
+				Err:  fmt.Errorf("invalid time %q", n.val.v),
 			}
 		}
 		t = parsed
@@ -229,7 +243,9 @@ func evalTime(n *node, v time.Time) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for time value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Line: int(n.op.line),
+			Col:  int(n.op.col),
+			Err:  fmt.Errorf("invalid operator for time value %q", n.op.typ.literal()),
 		}
 	}
 }
@@ -242,7 +258,9 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 		if err != nil {
 			return false, &Error{
 				Kind: KindEval,
-				Err:  fmt.Errorf("invalid duration at %d:%d: %q", n.val.line, n.val.col, n.val.v),
+				Line: int(n.val.line),
+				Col:  int(n.val.col),
+				Err:  fmt.Errorf("invalid duration %q", n.val.v),
 			}
 		}
 		d = parsed
@@ -263,7 +281,9 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for duration value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Line: int(n.op.line),
+			Col:  int(n.op.col),
+			Err:  fmt.Errorf("invalid operator for duration value %q", n.op.typ.literal()),
 		}
 	}
 }

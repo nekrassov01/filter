@@ -18,6 +18,7 @@
 
 - Comparisons, regex, logical AND / OR / NOT
 - Values via a one-method `Resolver` interface: `Resolve(name string) (any, bool)`
+- Errors are `*filter.Error` with `Kind`, `Line`, and `Col`
 - Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
 - Case-insensitive equality: `==*` / `!=*`
 - Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`

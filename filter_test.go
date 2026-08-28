@@ -676,7 +676,7 @@ func TestEval(t *testing.T) {
 			resolver: testObject,
 			expected: expected{
 				ok:  false,
-				err: `unknown identifier at 1:1: "Invalid"`,
+				err: `eval error at 1:1: unknown identifier "Invalid"`,
 			},
 		},
 		{
@@ -774,7 +774,7 @@ func TestEval(t *testing.T) {
 			resolver: testObject,
 			expected: expected{
 				ok:  false,
-				err: `unknown identifier at 1:15: "Unknown"`,
+				err: `eval error at 1:15: unknown identifier "Unknown"`,
 			},
 		},
 		{

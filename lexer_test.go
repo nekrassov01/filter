@@ -735,10 +735,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid escape sequence in string at 1:5",
-					pos:  0,
+					v:    "invalid escape sequence in string",
+					pos:  4,
 					line: 1,
-					col:  1,
+					col:  5,
 				},
 			},
 		},
@@ -748,10 +748,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unterminated quoted string at 1:2",
-					pos:  0,
+					v:    "unterminated quoted string",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -1315,7 +1315,7 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected character U+005C '\\' at 1:1",
+					v:    "unexpected character U+005C '\\'",
 					pos:  0,
 					line: 1,
 					col:  1,
@@ -1342,7 +1342,7 @@ func Test_lex(t *testing.T) {
 				},
 				{
 					typ:  tokenError,
-					v:    "unclosed left parenthesis at 1:3",
+					v:    "unclosed left parenthesis",
 					pos:  2,
 					line: 1,
 					col:  3,
@@ -1369,7 +1369,7 @@ func Test_lex(t *testing.T) {
 				},
 				{
 					typ:  tokenError,
-					v:    "unexpected right parenthesis at 1:3",
+					v:    "unexpected right parenthesis",
 					pos:  2,
 					line: 1,
 					col:  3,
@@ -1417,7 +1417,7 @@ func Test_lex(t *testing.T) {
 				},
 				{
 					typ:  tokenError,
-					v:    "unclosed left parenthesis at 1:6",
+					v:    "unclosed left parenthesis",
 					pos:  5,
 					line: 1,
 					col:  6,
@@ -1465,7 +1465,7 @@ func Test_lex(t *testing.T) {
 				},
 				{
 					typ:  tokenError,
-					v:    "unexpected right parenthesis at 1:6",
+					v:    "unexpected right parenthesis",
 					pos:  5,
 					line: 1,
 					col:  6,
@@ -1478,10 +1478,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid utf8 encoding in string at 1:3",
-					pos:  0,
+					v:    "invalid utf8 encoding in string",
+					pos:  4,
 					line: 1,
-					col:  1,
+					col:  3,
 				},
 			},
 		},
@@ -1491,10 +1491,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unterminated quoted string at 1:13",
-					pos:  0,
+					v:    "unterminated quoted string",
+					pos:  12,
 					line: 1,
-					col:  1,
+					col:  13,
 				},
 			},
 		},
@@ -1504,10 +1504,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unterminated quoted string at 1:13",
-					pos:  0,
+					v:    "unterminated quoted string",
+					pos:  12,
 					line: 1,
-					col:  1,
+					col:  13,
 				},
 			},
 		},
@@ -1517,10 +1517,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid escape sequence in string at 1:7",
-					pos:  0,
+					v:    "invalid escape sequence in string",
+					pos:  6,
 					line: 1,
-					col:  1,
+					col:  7,
 				},
 			},
 		},
@@ -1530,10 +1530,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid utf8 encoding in raw string at 1:3",
-					pos:  0,
+					v:    "invalid utf8 encoding in raw string",
+					pos:  4,
 					line: 1,
-					col:  1,
+					col:  3,
 				},
 			},
 		},
@@ -1543,10 +1543,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unterminated raw string at 1:13",
-					pos:  0,
+					v:    "unterminated raw string",
+					pos:  12,
 					line: 1,
-					col:  1,
+					col:  13,
 				},
 			},
 		},
@@ -1556,10 +1556,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected character '!' after '=' at 1:2",
-					pos:  0,
+					v:    "unexpected character '!' after '='",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -1569,10 +1569,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected character '|' after '&' at 1:2",
-					pos:  0,
+					v:    "unexpected character '|' after '&'",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -1582,10 +1582,10 @@ func Test_lex(t *testing.T) {
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected character '&' after '|' at 1:2",
-					pos:  0,
+					v:    "unexpected character '&' after '|'",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -2255,10 +2255,10 @@ test2
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected end of input after '=' at 1:2",
-					pos:  0,
+					v:    "unexpected end of input after '='",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -2268,10 +2268,10 @@ test2
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected end of input after '&' at 1:2",
-					pos:  0,
+					v:    "unexpected end of input after '&'",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -2281,10 +2281,10 @@ test2
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "unexpected end of input after '|' at 1:2",
-					pos:  0,
+					v:    "unexpected end of input after '|'",
+					pos:  1,
 					line: 1,
-					col:  1,
+					col:  2,
 				},
 			},
 		},
@@ -2301,10 +2301,10 @@ test2
 				},
 				{
 					typ:  tokenError,
-					v:    "unexpected end of input after '=' at 1:4",
-					pos:  2,
+					v:    "unexpected end of input after '='",
+					pos:  3,
 					line: 1,
-					col:  3,
+					col:  4,
 				},
 			},
 		},
@@ -2321,7 +2321,7 @@ test2
 				},
 				{
 					typ:  tokenError,
-					v:    "unexpected character U+007E '~' at 1:3",
+					v:    "unexpected character U+007E '~'",
 					pos:  2,
 					line: 1,
 					col:  3,
@@ -2367,10 +2367,10 @@ test2
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid escape sequence in string at 1:6",
-					pos:  0,
+					v:    "invalid escape sequence in string",
+					pos:  5,
 					line: 1,
-					col:  1,
+					col:  6,
 				},
 			},
 		},
@@ -2380,10 +2380,10 @@ test2
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid escape sequence in string at 1:6",
-					pos:  0,
+					v:    "invalid escape sequence in string",
+					pos:  5,
 					line: 1,
-					col:  1,
+					col:  6,
 				},
 			},
 		},
@@ -2393,10 +2393,10 @@ test2
 			expected: []token{
 				{
 					typ:  tokenError,
-					v:    "invalid escape sequence in string at 1:7",
-					pos:  0,
+					v:    "invalid escape sequence in string",
+					pos:  6,
 					line: 1,
-					col:  1,
+					col:  7,
 				},
 			},
 		},
@@ -2543,7 +2543,7 @@ test2
 				},
 				{
 					typ:  tokenError,
-					v:    "unexpected character U+FF03 '＃' at 1:3",
+					v:    "unexpected character U+FF03 '＃'",
 					pos:  2,
 					line: 1,
 					col:  3,
@@ -2714,7 +2714,7 @@ test2
 				},
 				{
 					typ:  tokenError,
-					v:    "unexpected character U+003A ':' at 1:14",
+					v:    "unexpected character U+003A ':'",
 					pos:  13,
 					line: 1,
 					col:  14,

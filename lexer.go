@@ -822,15 +822,15 @@ func (l *lexer) acceptDigits(n int) bool {
 }
 
 // errorf emits an error token and terminates the scan.
-// The current line and column are appended to the message.
+// The token is positioned where the error was detected, not where the
+// current token started.
 func (l *lexer) errorf(format string, args ...any) state {
-	args = append(args, l.line, l.col)
 	l.token = token{
 		typ:  tokenError,
-		v:    fmt.Sprintf(format+" at %d:%d", args...),
-		pos:  int32(l.startPos),  //nolint:gosec // bounded by MaxInput
-		line: int32(l.startLine), //nolint:gosec // bounded by MaxInput
-		col:  int32(l.startCol),  //nolint:gosec // bounded by MaxInput
+		v:    fmt.Sprintf(format, args...),
+		pos:  int32(l.pos),  //nolint:gosec // bounded by MaxInput
+		line: int32(l.line), //nolint:gosec // bounded by MaxInput
+		col:  int32(l.col),  //nolint:gosec // bounded by MaxInput
 	}
 	l.hasNext = true
 	return stateDone
