@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -63,12 +62,7 @@ func Parse(input string) (*Expr, error) {
 		return nil, err
 	}
 	if t := p.peek(); t.typ != tokenEOF {
-		return nil, &Error{
-			Kind: KindParse,
-			Line: int(t.line),
-			Col:  int(t.col),
-			Err:  fmt.Errorf("unexpected token after parsing: %s", t.v),
-		}
+		return nil, newError(KindParse, t, "unexpected token after parsing: %s", t.v)
 	}
 	nodes := p.nodes
 	if nodes == nil {
@@ -174,12 +168,7 @@ func (p *parser) parsePrimary() (int, error) {
 		}
 		p.parenCount++
 		if p.parenCount > MaxParen {
-			return 0, &Error{
-				Kind: KindParse,
-				Line: int(t.line),
-				Col:  int(t.col),
-				Err:  fmt.Errorf("too many parentheses: exceeded limit %d", MaxParen),
-			}
+			return 0, newError(KindParse, t, "too many parentheses: exceeded limit %d", MaxParen)
 		}
 		expr, err := p.parseExpr()
 		if err != nil {
@@ -192,12 +181,7 @@ func (p *parser) parsePrimary() (int, error) {
 	case tokenIdent:
 		return p.parseComparison()
 	default:
-		return 0, &Error{
-			Kind: KindParse,
-			Line: int(t.line),
-			Col:  int(t.col),
-			Err:  fmt.Errorf("expected left parenthesis or identifier, got %s: %q", t.typ, t.v),
-		}
+		return 0, newError(KindParse, t, "expected left parenthesis or identifier, got %s: %q", t.typ, t.v)
 	}
 }
 
@@ -214,24 +198,14 @@ func (p *parser) parseComparison() (int, error) {
 		return 0, err
 	}
 	if !op.typ.isComparisonOperatorType() {
-		return 0, &Error{
-			Kind: KindParse,
-			Line: int(op.line),
-			Col:  int(op.col),
-			Err:  fmt.Errorf("expected comparison operator, got %s: %q", op.typ, op.v),
-		}
+		return 0, newError(KindParse, op, "expected comparison operator, got %s: %q", op.typ, op.v)
 	}
 	val, err := p.next()
 	if err != nil {
 		return 0, err
 	}
 	if !val.typ.isValueType() {
-		return 0, &Error{
-			Kind: KindParse,
-			Line: int(val.line),
-			Col:  int(val.col),
-			Err:  fmt.Errorf("expected value, got %s: %q", val.typ, val.v),
-		}
+		return 0, newError(KindParse, val, "expected value, got %s: %q", val.typ, val.v)
 	}
 	if val.typ == tokenString || val.typ == tokenRawString {
 		val.v = unquote(val)
@@ -251,36 +225,21 @@ func (p *parser) parseComparison() (int, error) {
 	case tokenTime:
 		t, err := time.Parse(time.RFC3339, val.v)
 		if err != nil {
-			return 0, &Error{
-				Kind: KindParse,
-				Line: int(val.line),
-				Col:  int(val.col),
-				Err:  fmt.Errorf("invalid time %q", val.v),
-			}
+			return 0, newError(KindParse, val, "invalid time %q", val.v)
 		}
 		p.node(i).time = t
 		p.node(i).hasTime = true
 	case tokenDuration:
 		d, err := time.ParseDuration(val.v)
 		if err != nil {
-			return 0, &Error{
-				Kind: KindParse,
-				Line: int(val.line),
-				Col:  int(val.col),
-				Err:  fmt.Errorf("invalid duration %q", val.v),
-			}
+			return 0, newError(KindParse, val, "invalid duration %q", val.v)
 		}
 		p.node(i).dur = d
 		p.node(i).hasDur = true
 	case tokenNumber:
 		f, err := strconv.ParseFloat(val.v, 64)
 		if err != nil {
-			return 0, &Error{
-				Kind: KindParse,
-				Line: int(val.line),
-				Col:  int(val.col),
-				Err:  fmt.Errorf("invalid number %q", val.v),
-			}
+			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
 		p.node(i).num = f
 		p.node(i).hasNum = true
@@ -292,24 +251,14 @@ func (p *parser) parseComparison() (int, error) {
 // Compiled patterns are cached in regexMap to reduce allocations on repeated parses.
 func (p *parser) handleRegex(t token, i int) error {
 	if t.v == "" {
-		return &Error{
-			Kind: KindParse,
-			Line: int(t.line),
-			Col:  int(t.col),
-			Err:  fmt.Errorf("invalid regex %q: empty pattern", t.v),
-		}
+		return newError(KindParse, t, "invalid regex %q: empty pattern", t.v)
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
 		p.node(i).re = cached.(*regexp.Regexp)
 	} else {
 		re, err := regexp.Compile(t.v)
 		if err != nil {
-			return &Error{
-				Kind: KindParse,
-				Line: int(t.line),
-				Col:  int(t.col),
-				Err:  fmt.Errorf("invalid regex %q: %w", t.v, err),
-			}
+			return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
 		}
 		regexMap.Store(t.v, re)
 		p.node(i).re = re
@@ -379,12 +328,7 @@ func (p *parser) expect(typ tokenType) (token, error) {
 		return t, err
 	}
 	if t.typ != typ {
-		return t, &Error{
-			Kind: KindParse,
-			Line: int(t.line),
-			Col:  int(t.col),
-			Err:  fmt.Errorf("expected %s, got %s: %q", typ, t.typ, t.v),
-		}
+		return t, newError(KindParse, t, "expected %s, got %s: %q", typ, t.typ, t.v)
 	}
 	return t, nil
 }
@@ -394,23 +338,13 @@ func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
 		if p.current.typ == tokenError {
-			return p.current, &Error{
-				Kind: KindLex,
-				Line: int(p.current.line),
-				Col:  int(p.current.col),
-				Err:  errors.New(p.current.v),
-			}
+			return p.current, newError(KindLex, p.current, "%s", p.current.v)
 		}
 		return p.current, nil
 	}
 	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
-		return p.current, &Error{
-			Kind: KindLex,
-			Line: int(p.current.line),
-			Col:  int(p.current.col),
-			Err:  errors.New(p.current.v),
-		}
+		return p.current, newError(KindLex, p.current, "%s", p.current.v)
 	}
 	return p.current, nil
 }

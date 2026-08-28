@@ -55,6 +55,17 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+// newError returns an Error of the given kind positioned at t.
+// The message is formatted as by fmt.Errorf, so %w wraps a cause.
+func newError(kind ErrorKind, t token, format string, args ...any) *Error {
+	return &Error{
+		Kind: kind,
+		Line: int(t.line),
+		Col:  int(t.col),
+		Err:  fmt.Errorf(format, args...),
+	}
+}
+
 // message joins a prefix and a message with a colon, returning only the
 // prefix when the message is empty.
 func message(prefix, msg string) string {

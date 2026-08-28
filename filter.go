@@ -72,12 +72,7 @@ func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 			}
 			return eval(nodes, n.right, r, cache)
 		default:
-			return false, &Error{
-				Kind: KindEval,
-				Line: int(n.op.line),
-				Col:  int(n.op.col),
-				Err:  fmt.Errorf("invalid logical operator %q", n.op.typ.literal()),
-			}
+			return false, newError(KindEval, n.op, "invalid logical operator %q", n.op.typ.literal())
 		}
 	case nodeNOT:
 		v, err := eval(nodes, n.left, r, cache)
@@ -91,24 +86,14 @@ func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		}
 		v, ok := r.Resolve(n.ident.v)
 		if !ok {
-			return false, &Error{
-				Kind: KindEval,
-				Line: int(n.ident.line),
-				Col:  int(n.ident.col),
-				Err:  fmt.Errorf("unknown identifier %q", n.ident.v),
-			}
+			return false, newError(KindEval, n.ident, "unknown identifier %q", n.ident.v)
 		}
 		if cache != nil {
 			cache[n.ident.idx] = cached{v: v, ok: true}
 		}
 		return evalComparison(n, v)
 	}
-	return false, &Error{
-		Kind: KindEval,
-		Line: int(n.op.line),
-		Col:  int(n.op.col),
-		Err:  fmt.Errorf("invalid node type %q", n.op.typ),
-	}
+	return false, newError(KindEval, n.op, "invalid node type %q", n.op.typ)
 }
 
 // evalComparison evaluates a comparison expression against a resolved value.
@@ -165,12 +150,7 @@ func evalString(n *node, v string) (bool, error) {
 	case tokenNREQ, tokenNREQI:
 		return !n.re.MatchString(v), nil
 	default:
-		return false, &Error{
-			Kind: KindEval,
-			Line: int(n.op.line),
-			Col:  int(n.op.col),
-			Err:  fmt.Errorf("invalid operator for string value %q", n.op.typ.literal()),
-		}
+		return false, newError(KindEval, n.op, "invalid operator for string value %q", n.op.typ.literal())
 	}
 }
 
@@ -180,12 +160,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 	if !n.hasNum {
 		parsed, err := strconv.ParseFloat(n.val.v, 64)
 		if err != nil {
-			return false, &Error{
-				Kind: KindEval,
-				Line: int(n.val.line),
-				Col:  int(n.val.col),
-				Err:  fmt.Errorf("invalid number %q", n.val.v),
-			}
+			return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
 		}
 		f = parsed
 	}
@@ -203,12 +178,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 	case tokenNEQ:
 		return math.Abs(v-f) > Epsilon, nil
 	default:
-		return false, &Error{
-			Kind: KindEval,
-			Line: int(n.op.line),
-			Col:  int(n.op.col),
-			Err:  fmt.Errorf("invalid operator for number value %q", n.op.typ.literal()),
-		}
+		return false, newError(KindEval, n.op, "invalid operator for number value %q", n.op.typ.literal())
 	}
 }
 
@@ -218,12 +188,7 @@ func evalTime(n *node, v time.Time) (bool, error) {
 	if !n.hasTime {
 		parsed, err := time.Parse(time.RFC3339, n.val.v)
 		if err != nil {
-			return false, &Error{
-				Kind: KindEval,
-				Line: int(n.val.line),
-				Col:  int(n.val.col),
-				Err:  fmt.Errorf("invalid time %q", n.val.v),
-			}
+			return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
 		}
 		t = parsed
 	}
@@ -241,12 +206,7 @@ func evalTime(n *node, v time.Time) (bool, error) {
 	case tokenNEQ:
 		return !v.Equal(t), nil
 	default:
-		return false, &Error{
-			Kind: KindEval,
-			Line: int(n.op.line),
-			Col:  int(n.op.col),
-			Err:  fmt.Errorf("invalid operator for time value %q", n.op.typ.literal()),
-		}
+		return false, newError(KindEval, n.op, "invalid operator for time value %q", n.op.typ.literal())
 	}
 }
 
@@ -256,12 +216,7 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 	if !n.hasDur {
 		parsed, err := time.ParseDuration(n.val.v)
 		if err != nil {
-			return false, &Error{
-				Kind: KindEval,
-				Line: int(n.val.line),
-				Col:  int(n.val.col),
-				Err:  fmt.Errorf("invalid duration %q", n.val.v),
-			}
+			return false, newError(KindEval, n.val, "invalid duration %q", n.val.v)
 		}
 		d = parsed
 	}
@@ -279,11 +234,6 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 	case tokenNEQ:
 		return v != d, nil
 	default:
-		return false, &Error{
-			Kind: KindEval,
-			Line: int(n.op.line),
-			Col:  int(n.op.col),
-			Err:  fmt.Errorf("invalid operator for duration value %q", n.op.typ.literal()),
-		}
+		return false, newError(KindEval, n.op, "invalid operator for duration value %q", n.op.typ.literal())
 	}
 }
