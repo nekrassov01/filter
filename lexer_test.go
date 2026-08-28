@@ -2223,6 +2223,65 @@ test2
 				},
 			},
 		},
+		{
+			name:  "eq at end of input",
+			input: "=",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '=' at 1:2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "and at end of input",
+			input: "&",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '&' at 1:2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "or at end of input",
+			input: "|",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '|' at 1:2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "eq followed by lone eq",
+			input: "===",
+			expected: []token{
+				{
+					typ:  tokenEQ,
+					v:    "==",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '=' at 1:4",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

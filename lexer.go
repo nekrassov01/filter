@@ -330,7 +330,7 @@ func (l *lexer) lexRparen() state {
 // lexEQ scans for operators starting with an equality sign.
 // The leading '=' has already been seen.
 func (l *lexer) lexEQ() state {
-	switch l.peek() {
+	switch r := l.peek(); r {
 	case '=':
 		l.next()
 		if r := l.peek(); r == '*' {
@@ -347,8 +347,10 @@ func (l *lexer) lexEQ() state {
 		} else {
 			l.emit(tokenREQ)
 		}
+	case eof:
+		return l.errorf("unexpected end of input after '=' at %d:%d", l.line, l.col)
 	default:
-		return l.errorf("unexpected character %q after '=' at %d:%d", l.peek(), l.line, l.col)
+		return l.errorf("unexpected character %q after '=' at %d:%d", r, l.line, l.col)
 	}
 	return stateStmt
 }
@@ -407,11 +409,13 @@ func (l *lexer) lexGT() state {
 // lexAND scans for the logical AND operator.
 // The leading '&' has already been seen.
 func (l *lexer) lexAND() state {
-	r := l.peek()
-	if r == '&' {
+	switch r := l.peek(); r {
+	case '&':
 		l.next()
 		l.emit(tokenAND)
-	} else {
+	case eof:
+		return l.errorf("unexpected end of input after '&' at %d:%d", l.line, l.col)
+	default:
 		return l.errorf("unexpected character %q after '&' at %d:%d", r, l.line, l.col)
 	}
 	return stateStmt
@@ -420,11 +424,13 @@ func (l *lexer) lexAND() state {
 // lexOR scans for the logical OR operator.
 // The leading '|' has already been seen.
 func (l *lexer) lexOR() state {
-	r := l.peek()
-	if r == '|' {
+	switch r := l.peek(); r {
+	case '|':
 		l.next()
 		l.emit(tokenOR)
-	} else {
+	case eof:
+		return l.errorf("unexpected end of input after '|' at %d:%d", l.line, l.col)
+	default:
 		return l.errorf("unexpected character %q after '|' at %d:%d", r, l.line, l.col)
 	}
 	return stateStmt
