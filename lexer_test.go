@@ -2223,6 +2223,634 @@ test2
 				},
 			},
 		},
+		{
+			name:  "case-insensitive regex operators",
+			input: "=~* !~*",
+			expected: []token{
+				{
+					typ:  tokenREQI,
+					v:    "=~*",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNREQI,
+					v:    "!~*",
+					pos:  4,
+					line: 1,
+					col:  5,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  7,
+					line: 1,
+					col:  8,
+				},
+			},
+		},
+		{
+			name:  "eq at end of input",
+			input: "=",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '=' at 1:2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "and at end of input",
+			input: "&",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '&' at 1:2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "or at end of input",
+			input: "|",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '|' at 1:2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "eq followed by lone eq",
+			input: "===",
+			expected: []token{
+				{
+					typ:  tokenEQ,
+					v:    "==",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenError,
+					v:    "unexpected end of input after '=' at 1:4",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+			},
+		},
+		{
+			name:  "neq followed by tilde",
+			input: "!=~",
+			expected: []token{
+				{
+					typ:  tokenNEQ,
+					v:    "!=",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenError,
+					v:    "unexpected character U+007E '~' at 1:3",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+			},
+		},
+		{
+			name:  "lte followed by negative number",
+			input: "a<=-1",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "a",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenLTE,
+					v:    "<=",
+					pos:  1,
+					line: 1,
+					col:  2,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-1",
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  5,
+					line: 1,
+					col:  6,
+				},
+			},
+		},
+		{
+			name:  "escape at end of input",
+			input: "\"abc\\",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "invalid escape sequence in string at 1:6",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "short hex escape",
+			input: "\"\\x4\"",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "invalid escape sequence in string at 1:6",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "short unicode escape",
+			input: "\"\\u00\"",
+			expected: []token{
+				{
+					typ:  tokenError,
+					v:    "invalid escape sequence in string at 1:7",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name:  "empty strings",
+			input: "\"\" '' ``",
+			expected: []token{
+				{
+					typ:  tokenString,
+					v:    "\"\"",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenString,
+					v:    "''",
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+				{
+					typ:  tokenRawString,
+					v:    "``",
+					pos:  6,
+					line: 1,
+					col:  7,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  8,
+					line: 1,
+					col:  9,
+				},
+			},
+		},
+		{
+			name:  "other quote kind inside string",
+			input: "'it\"s' \"it's\"",
+			expected: []token{
+				{
+					typ:  tokenString,
+					v:    "'it\"s'",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenString,
+					v:    "\"it's\"",
+					pos:  7,
+					line: 1,
+					col:  8,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  13,
+					line: 1,
+					col:  14,
+				},
+			},
+		},
+		{
+			name:  "raw string keeps backslash",
+			input: "`a\\nb`",
+			expected: []token{
+				{
+					typ:  tokenRawString,
+					v:    "`a\\nb`",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  6,
+					line: 1,
+					col:  7,
+				},
+			},
+		},
+		{
+			name:  "raw string spanning lines",
+			input: "`a\nb` x",
+			expected: []token{
+				{
+					typ:  tokenRawString,
+					v:    "`a\nb`",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "x",
+					pos:  6,
+					line: 2,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  7,
+					line: 2,
+					col:  5,
+				},
+			},
+		},
+		{
+			name:  "tab and crlf whitespace",
+			input: "a\t\r\nb",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "a",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "b",
+					pos:  4,
+					line: 2,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  5,
+					line: 2,
+					col:  2,
+				},
+			},
+		},
+		{
+			name:  "wide unexpected character",
+			input: "a ＃",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "a",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenError,
+					v:    "unexpected character U+FF03 '＃' at 1:3",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+			},
+		},
+		{
+			name:  "time",
+			input: "2023-01-02T15:04:05Z",
+			expected: []token{
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02T15:04:05Z",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  20,
+					line: 1,
+					col:  21,
+				},
+			},
+		},
+		{
+			name:  "time with fraction and offset",
+			input: "2023-01-02T15:04:05.123+09:00 x",
+			expected: []token{
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02T15:04:05.123+09:00",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "x",
+					pos:  30,
+					line: 1,
+					col:  31,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  31,
+					line: 1,
+					col:  32,
+				},
+			},
+		},
+		{
+			name:  "time without zone",
+			input: "2023-01-02T15:04:05",
+			expected: []token{
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02T15:04:05",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  19,
+					line: 1,
+					col:  20,
+				},
+			},
+		},
+		{
+			name:  "time after operator",
+			input: "T>2023-01-02T15:04:05Z",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "T",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenGT,
+					v:    ">",
+					pos:  1,
+					line: 1,
+					col:  2,
+				},
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02T15:04:05Z",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  22,
+					line: 1,
+					col:  23,
+				},
+			},
+		},
+		{
+			name:  "date only is not a time",
+			input: "2023-01-02",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "2023",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-01",
+					pos:  4,
+					line: 1,
+					col:  5,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-02",
+					pos:  7,
+					line: 1,
+					col:  8,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  10,
+					line: 1,
+					col:  11,
+				},
+			},
+		},
+		{
+			name:  "lowercase time separator is not a time",
+			input: "2023-01-02t15:04:05Z",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "2023",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-01",
+					pos:  4,
+					line: 1,
+					col:  5,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "-02",
+					pos:  7,
+					line: 1,
+					col:  8,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "t15",
+					pos:  10,
+					line: 1,
+					col:  11,
+				},
+				{
+					typ:  tokenError,
+					v:    "unexpected character U+003A ':' at 1:14",
+					pos:  13,
+					line: 1,
+					col:  14,
+				},
+			},
+		},
+		{
+			name:  "duration with micro sign",
+			input: "1μs",
+			expected: []token{
+				{
+					typ:  tokenDuration,
+					v:    "1μs",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  4,
+					line: 1,
+					col:  4,
+				},
+			},
+		},
+		{
+			name:  "number with underscore",
+			input: "1_000",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "1_000",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  5,
+					line: 1,
+					col:  6,
+				},
+			},
+		},
+		{
+			name:  "exponent then unit is not a duration",
+			input: "1e5s",
+			expected: []token{
+				{
+					typ:  tokenNumber,
+					v:    "1e5",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "s",
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  4,
+					line: 1,
+					col:  5,
+				},
+			},
+		},
+		{
+			name:  "identifiers with underscore and digits",
+			input: "_x a1 x_1",
+			expected: []token{
+				{
+					typ:  tokenIdent,
+					v:    "_x",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "a1",
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "x_1",
+					pos:  6,
+					line: 1,
+					col:  7,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  9,
+					line: 1,
+					col:  10,
+				},
+			},
+		},
+		{
+			name:  "number in parentheses",
+			input: "(1)",
+			expected: []token{
+				{
+					typ:  tokenLparen,
+					v:    "(",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenNumber,
+					v:    "1",
+					pos:  1,
+					line: 1,
+					col:  2,
+				},
+				{
+					typ:  tokenRparen,
+					v:    ")",
+					pos:  2,
+					line: 1,
+					col:  3,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  3,
+					line: 1,
+					col:  4,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -2238,121 +2866,6 @@ test2
 				}
 			}
 			if !reflect.DeepEqual(actual, test.expected) {
-				t.Errorf(testTemplate, test.input, test.expected, actual)
-			}
-		})
-	}
-}
-
-func Test_lexer_nextToken(t *testing.T) {
-	l := newLexer("a")
-	want := []tokenType{tokenIdent, tokenEOF, tokenEOF}
-	for i, typ := range want {
-		actual := l.nextToken()
-		if actual.typ != typ {
-			t.Errorf(testTemplate, i, typ, actual.typ)
-		}
-	}
-}
-
-func Test_lexer_backup(t *testing.T) {
-	type expected struct {
-		pos  int
-		line int
-		col  int
-	}
-	tests := []struct {
-		name     string
-		input    string
-		steps    func(l *lexer)
-		expected expected
-	}{
-		{
-			name:  "backup is idempotent until the next read",
-			input: "ab",
-			steps: func(l *lexer) {
-				l.next()
-				l.next()
-				l.backup()
-				l.backup()
-			},
-			expected: expected{
-				pos:  1,
-				line: 1,
-				col:  2,
-			},
-		},
-		{
-			name:  "backup at end of input does not move",
-			input: "a",
-			steps: func(l *lexer) {
-				l.next()
-				l.next()
-				l.backup()
-			},
-			expected: expected{
-				pos:  1,
-				line: 1,
-				col:  2,
-			},
-		},
-		{
-			name:  "backup across newline restores line and column",
-			input: "ab\n",
-			steps: func(l *lexer) {
-				l.next()
-				l.next()
-				l.next()
-				l.backup()
-			},
-			expected: expected{
-				pos:  2,
-				line: 1,
-				col:  3,
-			},
-		},
-		{
-			name:  "backup over wide rune restores column by width",
-			input: "名前",
-			steps: func(l *lexer) {
-				l.next()
-				l.next()
-				l.backup()
-			},
-			expected: expected{
-				pos:  3,
-				line: 1,
-				col:  3,
-			},
-		},
-		{
-			name:  "backup after reset does not move",
-			input: "abc",
-			steps: func(l *lexer) {
-				l.next()
-				m := l.mark()
-				l.next()
-				l.next()
-				l.reset(m)
-				l.backup()
-			},
-			expected: expected{
-				pos:  1,
-				line: 1,
-				col:  2,
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			l := newLexer(test.input)
-			test.steps(&l)
-			actual := expected{
-				pos:  l.pos,
-				line: l.line,
-				col:  l.col,
-			}
-			if actual != test.expected {
 				t.Errorf(testTemplate, test.input, test.expected, actual)
 			}
 		})
@@ -2619,6 +3132,121 @@ func Test_lexer_scanNumber(t *testing.T) {
 			}
 			l.scanNumber()
 			actual := test.input[l.startPos:l.pos]
+			if actual != test.expected {
+				t.Errorf(testTemplate, test.input, test.expected, actual)
+			}
+		})
+	}
+}
+
+func Test_lexer_nextToken(t *testing.T) {
+	l := newLexer("a")
+	want := []tokenType{tokenIdent, tokenEOF, tokenEOF}
+	for i, typ := range want {
+		actual := l.nextToken()
+		if actual.typ != typ {
+			t.Errorf(testTemplate, i, typ, actual.typ)
+		}
+	}
+}
+
+func Test_lexer_backup(t *testing.T) {
+	type expected struct {
+		pos  int
+		line int
+		col  int
+	}
+	tests := []struct {
+		name     string
+		input    string
+		steps    func(l *lexer)
+		expected expected
+	}{
+		{
+			name:  "backup is idempotent until the next read",
+			input: "ab",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+		{
+			name:  "backup at end of input does not move",
+			input: "a",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+		{
+			name:  "backup across newline restores line and column",
+			input: "ab\n",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  2,
+				line: 1,
+				col:  3,
+			},
+		},
+		{
+			name:  "backup over wide rune restores column by width",
+			input: "名前",
+			steps: func(l *lexer) {
+				l.next()
+				l.next()
+				l.backup()
+			},
+			expected: expected{
+				pos:  3,
+				line: 1,
+				col:  3,
+			},
+		},
+		{
+			name:  "backup after reset does not move",
+			input: "abc",
+			steps: func(l *lexer) {
+				l.next()
+				m := l.mark()
+				l.next()
+				l.next()
+				l.reset(m)
+				l.backup()
+			},
+			expected: expected{
+				pos:  1,
+				line: 1,
+				col:  2,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := newLexer(test.input)
+			test.steps(&l)
+			actual := expected{
+				pos:  l.pos,
+				line: l.line,
+				col:  l.col,
+			}
 			if actual != test.expected {
 				t.Errorf(testTemplate, test.input, test.expected, actual)
 			}
