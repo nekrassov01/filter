@@ -9,7 +9,7 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// eof defines the end of input.
+// eof is the rune returned by next at the end of input.
 const eof = -1
 
 // token represents a token produced by the lexer.
@@ -25,6 +25,7 @@ type token struct {
 // tokenType represents the type of token produced by the lexer.
 type tokenType uint8
 
+// Token types produced by the lexer.
 const (
 	tokenError     tokenType = iota // error
 	tokenEOF                        // end of file
@@ -54,7 +55,7 @@ const (
 	tokenBool                       // boolean literal
 )
 
-// String returns a string representation of the token type.
+// String returns a human-readable name for the token type.
 func (t tokenType) String() string {
 	switch t {
 	case tokenError:
@@ -114,8 +115,8 @@ func (t tokenType) String() string {
 	}
 }
 
-// literal returns the literal of a operator token.
-// If the literal is not unique, an empty string is returned.
+// literal returns the source text of an operator or delimiter token, or an
+// empty string for tokens whose text is not fixed.
 func (t tokenType) literal() string {
 	switch t {
 	case tokenGT:
@@ -177,7 +178,7 @@ func (t tokenType) isRegexOperatorType() bool {
 	}
 }
 
-// isCaseInsensitiveRegexOperatorType reports whether the token is a case insensitive regex operator.
+// isCaseInsensitiveRegexOperatorType reports whether the token is a case-insensitive regex operator.
 func (t tokenType) isCaseInsensitiveRegexOperatorType() bool {
 	switch t {
 	case tokenREQI, tokenNREQI:
@@ -187,7 +188,7 @@ func (t tokenType) isCaseInsensitiveRegexOperatorType() bool {
 	}
 }
 
-// isValueType reports whether the token is a value type.
+// isValueType reports whether the token can be the right-hand side of a comparison.
 func (t tokenType) isValueType() bool {
 	switch t {
 	case tokenString, tokenRawString, tokenNumber, tokenTime, tokenDuration, tokenBool:
@@ -197,7 +198,7 @@ func (t tokenType) isValueType() bool {
 	}
 }
 
-// isStringType reports whether the token is a string type.
+// isStringType reports whether the token is a quoted or raw string literal.
 func (t tokenType) isStringType() bool {
 	switch t {
 	case tokenString, tokenRawString:
@@ -212,6 +213,7 @@ func (t tokenType) isStringType() bool {
 // stay on the caller's stack (an indirect call would force it to escape).
 type state uint8
 
+// Scanner states.
 const (
 	stateDone state = iota // scanning finished; only EOF tokens follow
 	stateStmt              // ready to scan the next token
@@ -224,7 +226,7 @@ type mark struct {
 	col  int
 }
 
-// lexer holds the state of the scanner.
+// lexer scans an input string into tokens on demand.
 type lexer struct {
 	input      string // the string being scanned
 	state      state  // current state
@@ -252,7 +254,7 @@ func newLexer(input string) lexer {
 	}
 }
 
-// lexStmt is the top-level state for lexing.
+// lexStmt dispatches on the next rune to the state that scans the token it starts.
 func (l *lexer) lexStmt() state {
 	switch r := l.next(); {
 	case r == eof:
@@ -291,8 +293,8 @@ func (l *lexer) lexStmt() state {
 	}
 }
 
-// lexEOF checks for the end of input and emits an EOF token.
-// Called when input is completely consumed.
+// lexEOF emits the EOF token once the input is consumed, or an error when
+// parentheses are unbalanced.
 func (l *lexer) lexEOF() state {
 	if l.parenDepth < 0 {
 		return l.errorf("unexpected right parenthesis")
@@ -328,7 +330,7 @@ func (l *lexer) lexRparen() state {
 	return stateStmt
 }
 
-// lexEQ scans for operators starting with an equality sign.
+// lexEQ scans the operators starting with '=': ==, ==*, =~, and =~*.
 // The leading '=' has already been seen.
 func (l *lexer) lexEQ() state {
 	switch r := l.peek(); r {
@@ -356,9 +358,8 @@ func (l *lexer) lexEQ() state {
 	return stateStmt
 }
 
-// lexNOT scans for operators starting with a negative sign.
-// The leading '!' has already been seen.
-// If unary, it emits a negative operator.
+// lexNOT scans the operators starting with '!': !=, !=*, !~, !~*, and the
+// unary NOT when no operator character follows. The leading '!' has already been seen.
 func (l *lexer) lexNOT() state {
 	switch l.peek() {
 	case '=':
@@ -383,7 +384,7 @@ func (l *lexer) lexNOT() state {
 	return stateStmt
 }
 
-// lexLT scans for less than operators.
+// lexLT scans the < and <= operators.
 // The leading '<' has already been seen.
 func (l *lexer) lexLT() state {
 	if l.peek() == '=' {
@@ -395,7 +396,7 @@ func (l *lexer) lexLT() state {
 	return stateStmt
 }
 
-// lexGT scans for greater than operators.
+// lexGT scans the > and >= operators.
 // The leading '>' has already been seen.
 func (l *lexer) lexGT() state {
 	if l.peek() == '=' {
@@ -407,7 +408,7 @@ func (l *lexer) lexGT() state {
 	return stateStmt
 }
 
-// lexAND scans for the logical AND operator.
+// lexAND scans the && operator.
 // The leading '&' has already been seen.
 func (l *lexer) lexAND() state {
 	switch r := l.peek(); r {
@@ -422,7 +423,7 @@ func (l *lexer) lexAND() state {
 	return stateStmt
 }
 
-// lexOR scans for the logical OR operator.
+// lexOR scans the || operator.
 // The leading '|' has already been seen.
 func (l *lexer) lexOR() state {
 	switch r := l.peek(); r {
@@ -449,8 +450,8 @@ func (l *lexer) lexSingleQuotedString() state {
 	return l.lexString('\'')
 }
 
-// lexString scans a quoted string, handling escape sequences.
-// It consumes the opening quote and expects a matching closing quote.
+// lexString scans a quoted string up to the matching closing quote,
+// validating escape sequences. The opening quote has already been seen.
 func (l *lexer) lexString(quote rune) state {
 Loop:
 	for {
@@ -489,8 +490,8 @@ Loop:
 	return stateStmt
 }
 
-// lexNumber scans for numbers, duration, and time literals.
-// The leading digit or sign has already been seen.
+// lexNumber scans a time, duration, or number literal, trying them in that
+// order. The leading digit, sign, or dot has already been seen.
 func (l *lexer) lexNumber() state {
 	l.backup() // rescan the leading character consumed by lexStmt
 	start := l.mark()
@@ -509,8 +510,8 @@ func (l *lexer) lexNumber() state {
 	return stateStmt
 }
 
-// lexKeywordOrIdent scans for keywords or identifiers.
-// The leading character has already been seen.
+// lexKeywordOrIdent scans an identifier and emits it as a boolean literal
+// when it spells true or false. The leading character has already been seen.
 func (l *lexer) lexKeywordOrIdent() state {
 	for {
 		r := l.next()
@@ -527,8 +528,8 @@ func (l *lexer) lexKeywordOrIdent() state {
 	return stateStmt
 }
 
-// scanEscape handles escape sequences in strings
-// It consumes the escape character and expects a valid escape sequence.
+// scanEscape consumes the escape sequence following a backslash and reports
+// whether it is valid.
 func (l *lexer) scanEscape() bool {
 	r := l.next()
 	switch r {
@@ -556,8 +557,8 @@ func (l *lexer) scanEscape() bool {
 	}
 }
 
-// scanHexEscape handles hexadecimal escape sequences
-// It consumes the specified number of hex digits.
+// scanHexEscape consumes the given number of hexadecimal digits and reports
+// whether all of them were present.
 func (l *lexer) scanHexEscape(digits int) bool {
 	for range digits {
 		r := l.next()
@@ -568,7 +569,8 @@ func (l *lexer) scanHexEscape(digits int) bool {
 	return true
 }
 
-// scanTime scans a time literal.
+// scanTime scans an RFC 3339 time literal, allowing the time zone to be
+// omitted, and reports whether one was found.
 func (l *lexer) scanTime() bool {
 	// Date: YYYY-MM-DD
 	if !l.acceptDigits(4) || !l.accept("-") || !l.acceptDigits(2) || !l.accept("-") || !l.acceptDigits(2) {
@@ -604,9 +606,9 @@ func (l *lexer) scanTime() bool {
 	return true
 }
 
-// scanDuration scans for duration literals.
-// Determines validity by the longest match,
-// the remainder is treated as the next token.
+// scanDuration scans a duration literal made of number and unit pairs and
+// reports whether one was found. It takes the longest match; the remainder
+// becomes the next token.
 func (l *lexer) scanDuration() bool {
 	valid := false
 	for {
@@ -653,7 +655,8 @@ func (l *lexer) scanDuration() bool {
 	return true
 }
 
-// scanDurationNumber scans a number in a duration literal.
+// scanDurationNumber scans the signed number before a unit in a duration
+// literal and reports whether any digits were found.
 func (l *lexer) scanDurationNumber() bool {
 	start := l.mark()
 	l.accept("+-")
@@ -696,7 +699,8 @@ func (l *lexer) scanNumber() {
 	}
 }
 
-// nextToken returns the next token from the input (on-demand state machine advancement).
+// nextToken returns the next token, advancing the state machine until one is
+// emitted. After the input is exhausted it keeps returning EOF tokens.
 func (l *lexer) nextToken() token {
 	for {
 		if l.hasNext {
@@ -715,7 +719,8 @@ func (l *lexer) nextToken() token {
 	}
 }
 
-// next returns the next rune in the input.
+// next consumes and returns the next rune, or eof at the end of input,
+// updating the line and column.
 func (l *lexer) next() rune {
 	l.prev = l.mark()
 	if l.pos >= len(l.input) {
@@ -732,7 +737,7 @@ func (l *lexer) next() rune {
 	return r
 }
 
-// peek returns but does not consume the next rune in the input.
+// peek returns the next rune without consuming it.
 func (l *lexer) peek() rune {
 	r := l.next()
 	l.backup()
@@ -746,7 +751,7 @@ func (l *lexer) backup() {
 	l.reset(l.prev)
 }
 
-// mark returns the current position.
+// mark returns the current position for a later reset.
 func (l *lexer) mark() mark {
 	return mark{
 		pos:  l.pos,
@@ -763,7 +768,8 @@ func (l *lexer) reset(m mark) {
 	l.prev = m
 }
 
-// emit passes an token back to the parser.
+// emit records a token of the given type spanning the pending input and
+// starts the next token after it.
 func (l *lexer) emit(typ tokenType) {
 	l.token = token{
 		typ:  typ,
@@ -778,14 +784,14 @@ func (l *lexer) emit(typ tokenType) {
 	l.startCol = l.col
 }
 
-// ignore skips over the pending input before this point.
+// ignore discards the pending input without emitting a token.
 func (l *lexer) ignore() {
 	l.startPos = l.pos
 	l.startLine = l.line
 	l.startCol = l.col
 }
 
-// accept consumes the next rune if it's from the valid set.
+// accept consumes the next rune if it is in valid and reports whether it did.
 func (l *lexer) accept(valid string) bool {
 	if strings.ContainsRune(valid, l.next()) {
 		return true
@@ -794,7 +800,7 @@ func (l *lexer) accept(valid string) bool {
 	return false
 }
 
-// acceptRun consumes a run of runes from the valid set.
+// acceptRun consumes a run of runes from valid and returns how many it consumed.
 func (l *lexer) acceptRun(valid string) int {
 	n := 0
 	for strings.ContainsRune(valid, l.next()) {
@@ -804,6 +810,8 @@ func (l *lexer) acceptRun(valid string) int {
 	return n
 }
 
+// acceptDigits consumes exactly n decimal digits and reports whether all of
+// them were present.
 func (l *lexer) acceptDigits(n int) bool {
 	for range n {
 		if !unicode.IsDigit(l.next()) {
@@ -837,17 +845,17 @@ func width(r rune) int {
 	return max(runewidth.RuneWidth(r), 1)
 }
 
-// isSpace reports whether the rune is a space character.
+// isSpace reports whether the rune is a space, tab, carriage return, or newline.
 func isSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\r' || r == '\n'
 }
 
-// isAlphaNumeric reports whether the rune is a valid alphanumeric character.
+// isAlphaNumeric reports whether the rune is a letter, a digit, or an underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
-// isBoolLiteral checks if the string is a boolean literal.
+// isBoolLiteral reports whether s spells true or false in lower, title, or upper case.
 func isBoolLiteral(s string) bool {
 	switch s {
 	case "false", "False", "FALSE", "true", "True", "TRUE":

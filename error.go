@@ -4,9 +4,10 @@ import (
 	"strings"
 )
 
-// ErrorKind represents the kind of error.
+// ErrorKind identifies the stage at which an error was detected.
 type ErrorKind int
 
+// Error kinds, in the order the stages run at evaluation time.
 const (
 	// KindEval is the evaluation error kind.
 	KindEval ErrorKind = iota
@@ -43,7 +44,8 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
-// message constructs an error message with a prefix and message.
+// message joins a prefix and a message with a colon, returning only the
+// prefix when the message is empty.
 func message(prefix, msg string) string {
 	if msg == "" {
 		return prefix

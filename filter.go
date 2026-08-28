@@ -46,6 +46,8 @@ type cached struct {
 	ok bool
 }
 
+// eval evaluates the node at index i, resolving identifiers through r and
+// reusing values from cache when it is non-nil.
 func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 	n := &nodes[i]
 	switch n.typ {

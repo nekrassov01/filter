@@ -13,7 +13,8 @@ import (
 const Epsilon = 1e-9
 
 // MaxParen is the maximum number of opening '(' tokens allowed in one expression.
-// Guards against pathological inputs causing excessive work. Counts total openings, not current depth.
+// It guards against pathological inputs and counts total openings, not the
+// current nesting depth.
 const MaxParen = 256
 
 // MaxInput is the maximum input length in bytes accepted by Parse.
@@ -36,11 +37,11 @@ const identBufSize = 8
 // grows the slice when the guess is low.
 const nodeCharsEstimate = 8
 
-// regexMap stores compiled regex patterns to reduce allocations on repeated parses.
-// key: pattern string, value: *regexp.Regexp
+// regexMap caches compiled regular expressions across parses. Keys are
+// pattern strings and values are *regexp.Regexp.
 var regexMap sync.Map
 
-// Parse parses a string expression into an Expr.
+// Parse parses input into an Expr that can be evaluated repeatedly.
 func Parse(input string) (*Expr, error) {
 	if input == "" {
 		return nil, &Error{
@@ -97,7 +98,7 @@ type parser struct {
 	shared     bool                 // some identifier is referenced more than once
 }
 
-// parseExpr parses an expression.
+// parseExpr parses OR expressions, the lowest precedence level.
 func (p *parser) parseExpr() (int, error) {
 	left, err := p.parseAND()
 	if err != nil {
@@ -121,7 +122,7 @@ func (p *parser) parseExpr() (int, error) {
 	return left, nil
 }
 
-// parseAND parses an AND expression.
+// parseAND parses AND expressions, which bind tighter than OR.
 func (p *parser) parseAND() (int, error) {
 	left, err := p.parseNOT()
 	if err != nil {
@@ -145,7 +146,7 @@ func (p *parser) parseAND() (int, error) {
 	return left, nil
 }
 
-// parseNOT parses a NOT expression.
+// parseNOT parses an optional NOT prefix followed by a primary expression.
 func (p *parser) parseNOT() (int, error) {
 	if p.peek().typ == tokenNOT {
 		t, err := p.next()
@@ -161,7 +162,7 @@ func (p *parser) parseNOT() (int, error) {
 	return p.parsePrimary()
 }
 
-// parsePrimary parses a primary expression.
+// parsePrimary parses a parenthesized expression or a comparison.
 func (p *parser) parsePrimary() (int, error) {
 	t := p.peek()
 	switch t.typ {
@@ -194,7 +195,8 @@ func (p *parser) parsePrimary() (int, error) {
 	}
 }
 
-// parseComparison parses a comparison expression.
+// parseComparison parses an identifier, a comparison operator, and a literal,
+// validating typed literals as it goes.
 func (p *parser) parseComparison() (int, error) {
 	ident, err := p.expect(tokenIdent)
 	if err != nil {
@@ -270,8 +272,8 @@ func (p *parser) parseComparison() (int, error) {
 	return i, nil
 }
 
-// handleRegex processes a regex token and associates it with a node.
-// Caches compiled regex patterns to reduce allocations on repeated parses.
+// handleRegex compiles the regex pattern in t and stores it on node i.
+// Compiled patterns are cached in regexMap to reduce allocations on repeated parses.
 func (p *parser) handleRegex(t token, i int) error {
 	if t.v == "" {
 		return &Error{
@@ -365,7 +367,7 @@ func (p *parser) expect(typ tokenType) (token, error) {
 	return t, nil
 }
 
-// next returns the next token from the lexer.
+// next consumes and returns the next token, reporting lexer errors as Error.
 func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
@@ -396,7 +398,7 @@ func (p *parser) peek() token {
 	return p.current
 }
 
-// unquote removes the surrounding quotes from a string token.
+// unquote returns the text of a string token without its surrounding quotes.
 func unquote(t token) string {
 	n := len(t.v)
 	if t.typ.isStringType() && n >= 2 {
