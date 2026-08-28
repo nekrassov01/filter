@@ -8,13 +8,14 @@ import (
 // nodeType represents the type of a node in the expression tree.
 type nodeType uint8
 
+// Node types of the expression tree.
 const (
 	nodeBinary     nodeType = iota // binary operator node type
 	nodeNOT                        // logical NOT node type
 	nodeComparison                 // comparison node type
 )
 
-// String returns a string representation of the node type.
+// String returns a human-readable name for the node type.
 func (t nodeType) String() string {
 	switch t {
 	case nodeBinary:

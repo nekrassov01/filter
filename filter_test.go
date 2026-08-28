@@ -13,7 +13,7 @@ expected: %v
 actual:   %v
 `
 
-var testObject = testTarget{
+var testObject = testResolver{
 	"String":       "HelloWorld",
 	"StringNumber": "123",
 	"Int":          42,
@@ -33,17 +33,11 @@ var testObject = testTarget{
 	"Bool":         true,
 }
 
-type testTarget map[string]any
+type testResolver map[string]any
 
-func (t testTarget) Value(key string) (any, error) {
-	v, ok := t[key]
-	if !ok {
-		return nil, &Error{
-			Kind: KindEval,
-			Err:  fmt.Errorf("field not found: %q", key),
-		}
-	}
-	return v, nil
+func (t testResolver) Resolve(name string) (any, bool) {
+	v, ok := t[name]
+	return v, ok
 }
 
 func TestEval(t *testing.T) {
@@ -55,95 +49,95 @@ func TestEval(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		target   testTarget
+		resolver testResolver
 		expected expected
 	}{
 		// String comparison
 		{
-			name:   "string eq",
-			input:  `String=="HelloWorld"`,
-			target: testObject,
+			name:     "string eq",
+			input:    `String=="HelloWorld"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "string eq false",
-			input:  `String=="X"`,
-			target: testObject,
+			name:     "string eq false",
+			input:    `String=="X"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "string neq",
-			input:  `String!="X"`,
-			target: testObject,
+			name:     "string neq",
+			input:    `String!="X"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "string eqi true",
-			input:  `String==*"helloworld"`,
-			target: testObject,
+			name:     "string eqi true",
+			input:    `String==*"helloworld"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "string eqi false",
-			input:  `String==*"hellox"`,
-			target: testObject,
+			name:     "string eqi false",
+			input:    `String==*"hellox"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "string neqi true",
-			input:  `String!=*"hellox"`,
-			target: testObject,
+			name:     "string neqi true",
+			input:    `String!=*"hellox"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "string neqi false",
-			input:  `String!=*"helloworld"`,
-			target: testObject,
+			name:     "string neqi false",
+			input:    `String!=*"helloworld"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "regex match",
-			input:  `String=~"^Hello"`,
-			target: testObject,
+			name:     "regex match",
+			input:    `String=~"^Hello"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "regex no match",
-			input:  `String=~"world$"`,
-			target: testObject,
+			name:     "regex no match",
+			input:    `String=~"world$"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "regex neg match",
-			input:  `String!~"^Hello"`,
-			target: testObject,
+			name:     "regex neg match",
+			input:    `String!~"^Hello"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
@@ -151,198 +145,198 @@ func TestEval(t *testing.T) {
 		},
 		// Numeric comparisons
 		{
-			name:   "int gt",
-			input:  `Int>40`,
-			target: testObject,
+			name:     "int gt",
+			input:    `Int>40`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "int gt false",
-			input:  `Int>100`,
-			target: testObject,
+			name:     "int gt false",
+			input:    `Int>100`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "int eq",
-			input:  `Int==42`,
-			target: testObject,
+			name:     "int eq",
+			input:    `Int==42`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "int eq false",
-			input:  `Int==41`,
-			target: testObject,
+			name:     "int eq false",
+			input:    `Int==41`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "int neq",
-			input:  `Int!=41`,
-			target: testObject,
+			name:     "int neq",
+			input:    `Int!=41`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "int neq false",
-			input:  `Int!=42`,
-			target: testObject,
+			name:     "int neq false",
+			input:    `Int!=42`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "int gte false",
-			input:  `Int>=100`,
-			target: testObject,
+			name:     "int gte false",
+			input:    `Int>=100`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "int lt false",
-			input:  `Int<40`,
-			target: testObject,
+			name:     "int lt false",
+			input:    `Int<40`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "int lte false",
-			input:  `Int<=41`,
-			target: testObject,
+			name:     "int lte false",
+			input:    `Int<=41`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "int8 gt",
-			input:  `Int8>1`,
-			target: testObject,
+			name:     "int8 gt",
+			input:    `Int8>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "int16 gt",
-			input:  `Int16>1`,
-			target: testObject,
+			name:     "int16 gt",
+			input:    `Int16>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "int32 gt",
-			input:  `Int32>1`,
-			target: testObject,
+			name:     "int32 gt",
+			input:    `Int32>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "int64 gt",
-			input:  `Int64>1`,
-			target: testObject,
+			name:     "int64 gt",
+			input:    `Int64>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "uint gt",
-			input:  `Uint>1`,
-			target: testObject,
+			name:     "uint gt",
+			input:    `Uint>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "uint8 gt",
-			input:  `Uint8>1`,
-			target: testObject,
+			name:     "uint8 gt",
+			input:    `Uint8>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "uint16 gt",
-			input:  `Uint16>1`,
-			target: testObject,
+			name:     "uint16 gt",
+			input:    `Uint16>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "uint32 gt",
-			input:  `Uint32>1`,
-			target: testObject,
+			name:     "uint32 gt",
+			input:    `Uint32>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "uint64 gt",
-			input:  `Uint64>1`,
-			target: testObject,
+			name:     "uint64 gt",
+			input:    `Uint64>1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "float32 gt",
-			input:  `Float32>2`,
-			target: testObject,
+			name:     "float32 gt",
+			input:    `Float32>2`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			}},
 		{
-			name:   "float lt",
-			input:  `Float64<3.2`,
-			target: testObject,
+			name:     "float lt",
+			input:    `Float64<3.2`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "float gte",
-			input:  `Float64>=3.14`,
-			target: testObject,
+			name:     "float gte",
+			input:    `Float64>=3.14`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "float eq epsilon",
-			input:  `Float64==3.1400000001`,
-			target: testObject,
+			name:     "float eq epsilon",
+			input:    `Float64==3.1400000001`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "float neq epsilon",
-			input:  `Float64!=3.1401`,
-			target: testObject,
+			name:     "float neq epsilon",
+			input:    `Float64!=3.1401`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
@@ -350,126 +344,126 @@ func TestEval(t *testing.T) {
 		},
 		// Duration
 		{
-			name:   "duration gt",
-			input:  `Duration>1s`,
-			target: testObject,
+			name:     "duration gt",
+			input:    `Duration>1s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "duration gte false",
-			input:  `Duration>=2s`,
-			target: testObject,
+			name:     "duration gte false",
+			input:    `Duration>=2s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "duration gt false",
-			input:  `Duration>2s`,
-			target: testObject,
+			name:     "duration gt false",
+			input:    `Duration>2s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "duration gte true",
-			input:  `Duration>=1500ms`,
-			target: testObject,
+			name:     "duration gte true",
+			input:    `Duration>=1500ms`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "duration lt",
-			input:  `Duration<2s`,
-			target: testObject,
+			name:     "duration lt",
+			input:    `Duration<2s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "duration lt false",
-			input:  `Duration<1s`,
-			target: testObject,
+			name:     "duration lt false",
+			input:    `Duration<1s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "duration lte true",
-			input:  `Duration<=1500ms`,
-			target: testObject,
+			name:     "duration lte true",
+			input:    `Duration<=1500ms`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "duration lte false",
-			input:  `Duration<=1s`,
-			target: testObject,
+			name:     "duration lte false",
+			input:    `Duration<=1s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "duration eq",
-			input:  `Duration==1500ms`,
-			target: testObject,
+			name:     "duration eq",
+			input:    `Duration==1500ms`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "duration eq false",
-			input:  `Duration==2s`,
-			target: testObject,
+			name:     "duration eq false",
+			input:    `Duration==2s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "duration neq",
-			input:  `Duration!=2s`,
-			target: testObject,
+			name:     "duration neq",
+			input:    `Duration!=2s`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "invalid operator duration",
-			input:  `Duration=~"1500ms"`,
-			target: testObject,
+			name:     "invalid operator duration",
+			input:    `Duration=~"1500ms"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `invalid operator for duration`,
 			},
 		},
 		{
-			name:   "duration neq false",
-			input:  `Duration!=1500ms`,
-			target: testObject,
+			name:     "duration neq false",
+			input:    `Duration!=1500ms`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "duration invalid at eval",
-			input:  `Duration>bad`,
-			target: testObject,
+			name:     "duration invalid at eval",
+			input:    `Duration>bad`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `expected value, got identifier`,
@@ -477,108 +471,108 @@ func TestEval(t *testing.T) {
 		},
 		// Time
 		{
-			name:   "time gt",
-			input:  `Time>'2024-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time gt",
+			input:    `Time>'2024-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "time gt false",
-			input:  `Time>'2026-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time gt false",
+			input:    `Time>'2026-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "time gte",
-			input:  `Time>='2025-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time gte",
+			input:    `Time>='2025-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "time gte false",
-			input:  `Time>='2026-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time gte false",
+			input:    `Time>='2026-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "time lt",
-			input:  `Time<'2026-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time lt",
+			input:    `Time<'2026-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "time lt false",
-			input:  `Time<'2024-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time lt false",
+			input:    `Time<'2024-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "time lte",
-			input:  `Time<='2025-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time lte",
+			input:    `Time<='2025-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "time lte false",
-			input:  `Time<='2024-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time lte false",
+			input:    `Time<='2024-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "time eq",
-			input:  `Time=='2025-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time eq",
+			input:    `Time=='2025-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "time eq false",
-			input:  `Time=='2024-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time eq false",
+			input:    `Time=='2024-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "time neq",
-			input:  `Time!='2024-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time neq",
+			input:    `Time!='2024-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "time neq false",
-			input:  `Time!='2025-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time neq false",
+			input:    `Time!='2025-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
@@ -586,36 +580,36 @@ func TestEval(t *testing.T) {
 		},
 		// Combined logicals
 		{
-			name:   "combined logicals",
-			input:  `String=="HelloWorld" && Int==42 || Float64<3.0`,
-			target: testObject,
+			name:     "combined logicals",
+			input:    `String=="HelloWorld" && Int==42 || Float64<3.0`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "combined logicals false",
-			input:  `String=="HelloWorld" && Int==41 || Float64<3.0`,
-			target: testObject,
+			name:     "combined logicals false",
+			input:    `String=="HelloWorld" && Int==41 || Float64<3.0`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "combined logicals with parens",
-			input:  `(String=="HelloWorld" && Int==41) || (Float64<3.2 && Bool==true)`,
-			target: testObject,
+			name:     "combined logicals with parens",
+			input:    `(String=="HelloWorld" && Int==41) || (Float64<3.2 && Bool==true)`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "combined logicals with parens false",
-			input:  `(String=="HelloWorld" && Int==41) || (Float64<3.0 && Bool==true)`,
-			target: testObject,
+			name:     "combined logicals with parens false",
+			input:    `(String=="HelloWorld" && Int==41) || (Float64<3.0 && Bool==true)`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
@@ -623,72 +617,72 @@ func TestEval(t *testing.T) {
 		},
 		// Bool
 		{
-			name:   "bool eq",
-			input:  `Bool==true`,
-			target: testObject,
+			name:     "bool eq",
+			input:    `Bool==true`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "bool neq",
-			input:  `Bool!=false`,
-			target: testObject,
+			name:     "bool neq",
+			input:    `Bool!=false`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "and true",
-			input:  `Int>40&&Float64<4`,
-			target: testObject,
+			name:     "and true",
+			input:    `Int>40&&Float64<4`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "and false",
-			input:  `Int>40&&Float64>4`,
-			target: testObject,
+			name:     "and false",
+			input:    `Int>40&&Float64>4`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "or true",
-			input:  `Int>100||Float64<4`,
-			target: testObject,
+			name:     "or true",
+			input:    `Int>100||Float64<4`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "or short-circuit left true",
-			input:  `Bool==true || InvalidField==1`,
-			target: testObject,
+			name:     "or short-circuit left true",
+			input:    `Bool==true || Invalid==1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "or left error",
-			input:  `InvalidField==1 || Bool==true`,
-			target: testObject,
+			name:     "or left error",
+			input:    `Invalid==1 || Bool==true`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
-				err: `field not found`,
+				err: `unknown identifier at 1:1: "Invalid"`,
 			},
 		},
 		{
-			name:   "same field referenced twice",
-			input:  `Int>40 && Int<50`,
-			target: testObject,
+			name:     "same identifier referenced twice",
+			input:    `Int>40 && Int<50`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
@@ -706,8 +700,8 @@ func TestEval(t *testing.T) {
 				}
 				return b.String() + " && F0 == 0"
 			}(),
-			target: func() testTarget {
-				t := testTarget{}
+			resolver: func() testResolver {
+				t := testResolver{}
 				for i := range 10 {
 					t[fmt.Sprintf("F%d", i)] = i
 				}
@@ -719,36 +713,36 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:   "not true->false",
-			input:  `!(Int>40)`,
-			target: testObject,
+			name:     "not true->false",
+			input:    `!(Int>40)`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "not false->true",
-			input:  `!(Int<40)`,
-			target: testObject,
+			name:     "not false->true",
+			input:    `!(Int<40)`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
 			},
 		},
 		{
-			name:   "and short-circuit left false",
-			input:  `Int>100 && InvalidField==1`,
-			target: testObject,
+			name:     "and short-circuit left false",
+			input:    `Int>100 && Invalid==1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: false,
 			},
 		},
 		{
-			name:   "not inner eval error",
-			input:  `!(InvalidField==1)`,
-			target: testObject,
+			name:     "not inner eval error",
+			input:    `!(Invalid==1)`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
@@ -756,9 +750,9 @@ func TestEval(t *testing.T) {
 		},
 		// Mixed
 		{
-			name:   "precedence",
-			input:  `Int>40&&Float64<4||Bool==false`,
-			target: testObject,
+			name:     "precedence",
+			input:    `Int>40&&Float64<4||Bool==false`,
+			resolver: testObject,
 			expected: expected{
 				ok:  true,
 				val: true,
@@ -766,117 +760,117 @@ func TestEval(t *testing.T) {
 		},
 		// Errors
 		{
-			name:   "binary left eval error",
-			input:  `UnknownField==1 && Bool==true`,
-			target: testObject,
+			name:     "binary left eval error",
+			input:    `Unknown==1 && Bool==true`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "binary right eval error",
-			input:  `Bool==true && UnknownField==1`,
-			target: testObject,
+			name:     "binary right eval error",
+			input:    `Bool==true && Unknown==1`,
+			resolver: testObject,
+			expected: expected{
+				ok:  false,
+				err: `unknown identifier at 1:15: "Unknown"`,
+			},
+		},
+		{
+			name:     "unknown identifier",
+			input:    `Invalid==1`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "invalid field",
-			input:  `InvalidField==1`,
-			target: testObject,
+			name:     "type mismatch 1",
+			input:    `Int>"abc"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "type mismatch 1",
-			input:  `Int>"abc"`,
-			target: testObject,
+			name:     "type mismatch 2",
+			input:    `String>"HelloWorld"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "type mismatch 2",
-			input:  `String>"HelloWorld"`,
-			target: testObject,
+			name:     "type mismatch 3",
+			input:    `Int=~"42"`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "type mismatch 3",
-			input:  `Int=~"42"`,
-			target: testObject,
-			expected: expected{
-				ok:  false,
-				err: `eval error`,
-			},
-		},
-		{
-			name:   "invalid number right",
-			input:  `Int>1+0`,
-			target: testObject,
+			name:     "invalid number right",
+			input:    `Int>1+0`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `parse error`,
 			},
 		},
 		{
-			name:   "invalid duration right",
-			input:  `Duration>1xs`,
-			target: testObject,
+			name:     "invalid duration right",
+			input:    `Duration>1xs`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `parse error`,
 			},
 		},
 		{
-			name:   "regex compile error",
-			input:  `String=~"["`,
-			target: testObject,
+			name:     "regex compile error",
+			input:    `String=~"["`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `parse error`,
 			},
 		},
 		{
-			name:   "regex not found",
-			input:  `String=~""`,
-			target: testObject,
+			name:     "regex not found",
+			input:    `String=~""`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `parse error`,
 			},
 		},
 		{
-			name:   "invalid time",
-			input:  `Time>'invalid-time'`,
-			target: testObject,
+			name:     "invalid time",
+			input:    `Time>'invalid-time'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "time invalid operator",
-			input:  `Time=~'2025-01-01T00:00:00Z'`,
-			target: testObject,
+			name:     "time invalid operator",
+			input:    `Time=~'2025-01-01T00:00:00Z'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
 			},
 		},
 		{
-			name:   "invalid duration",
-			input:  `Duration>'bad-duration'`,
-			target: testObject,
+			name:     "invalid duration",
+			input:    `Duration>'bad-duration'`,
+			resolver: testObject,
 			expected: expected{
 				ok:  false,
 				err: `eval error`,
@@ -891,7 +885,7 @@ func TestEval(t *testing.T) {
 					t.Errorf(testTemplate, test.input, "", parseError)
 					return
 				}
-				actual, evalError := expr.Eval(test.target)
+				actual, evalError := expr.Eval(test.resolver)
 				if evalError != nil {
 					t.Errorf(testTemplate, test.input, test.expected.val, evalError)
 					return
@@ -902,7 +896,7 @@ func TestEval(t *testing.T) {
 				return
 			}
 			if parseError == nil {
-				_, evalError := expr.Eval(test.target)
+				_, evalError := expr.Eval(test.resolver)
 				if evalError == nil || !strings.Contains(evalError.Error(), test.expected.err) {
 					t.Errorf(testTemplate, test.input, test.expected.err, evalError)
 				}

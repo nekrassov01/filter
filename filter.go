@@ -8,13 +8,15 @@ import (
 	"time"
 )
 
-// fieldCacheSize is the number of field values cached on the stack per evaluation.
+// cacheSize is the number of resolved values cached on the stack per evaluation.
 // Expressions with more distinct identifiers fall back to a heap-allocated cache.
-const fieldCacheSize = 8
+const cacheSize = 8
 
-// Target implements the entity to be evaluated.
-type Target interface {
-	Value(key string) (any, error)
+// Resolver resolves an identifier in an expression to its value.
+// The second result reports whether the identifier is known; unknown
+// identifiers are reported by Eval as an error with the position.
+type Resolver interface {
+	Resolve(name string) (any, bool)
 }
 
 // Expr represents a parsed expression.
@@ -25,48 +27,50 @@ type Expr struct {
 	shared bool   // some identifier is referenced more than once
 }
 
-// Eval evaluates the expression against a target.
-func (e *Expr) Eval(t Target) (bool, error) {
+// Eval evaluates the expression against the values provided by r.
+func (e *Expr) Eval(r Resolver) (bool, error) {
 	if !e.shared {
-		return eval(e.nodes, e.root, t, nil)
+		return eval(e.nodes, e.root, r, nil)
 	}
-	var buf [fieldCacheSize]field
+	var buf [cacheSize]cached
 	cache := buf[:]
-	if e.nident > fieldCacheSize {
-		cache = make([]field, e.nident)
+	if e.nident > cacheSize {
+		cache = make([]cached, e.nident)
 	}
-	return eval(e.nodes, e.root, t, cache)
+	return eval(e.nodes, e.root, r, cache)
 }
 
-// field holds a fetched field value for reuse within one evaluation.
-type field struct {
+// cached holds a resolved value for reuse within one evaluation.
+type cached struct {
 	v  any
 	ok bool
 }
 
-func eval(nodes []node, i int32, t Target, cache []field) (bool, error) {
+// eval evaluates the node at index i, resolving identifiers through r and
+// reusing values from cache when it is non-nil.
+func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 	n := &nodes[i]
 	switch n.typ {
 	case nodeBinary:
 		switch n.op.typ {
 		case tokenAND:
-			left, err := eval(nodes, n.left, t, cache)
+			left, err := eval(nodes, n.left, r, cache)
 			if err != nil {
 				return false, err
 			}
 			if !left {
 				return false, nil
 			}
-			return eval(nodes, n.right, t, cache)
+			return eval(nodes, n.right, r, cache)
 		case tokenOR:
-			left, err := eval(nodes, n.left, t, cache)
+			left, err := eval(nodes, n.left, r, cache)
 			if err != nil {
 				return false, err
 			}
 			if left {
 				return true, nil
 			}
-			return eval(nodes, n.right, t, cache)
+			return eval(nodes, n.right, r, cache)
 		default:
 			return false, &Error{
 				Kind: KindEval,
@@ -74,7 +78,7 @@ func eval(nodes []node, i int32, t Target, cache []field) (bool, error) {
 			}
 		}
 	case nodeNOT:
-		v, err := eval(nodes, n.left, t, cache)
+		v, err := eval(nodes, n.left, r, cache)
 		if err != nil {
 			return false, err
 		}
@@ -83,15 +87,15 @@ func eval(nodes []node, i int32, t Target, cache []field) (bool, error) {
 		if cache != nil && cache[n.ident.idx].ok {
 			return evalComparison(n, cache[n.ident.idx].v)
 		}
-		v, err := t.Value(n.ident.v)
-		if err != nil {
+		v, ok := r.Resolve(n.ident.v)
+		if !ok {
 			return false, &Error{
 				Kind: KindEval,
-				Err:  err,
+				Err:  fmt.Errorf("unknown identifier at %d:%d: %q", n.ident.line, n.ident.col, n.ident.v),
 			}
 		}
 		if cache != nil {
-			cache[n.ident.idx] = field{v: v, ok: true}
+			cache[n.ident.idx] = cached{v: v, ok: true}
 		}
 		return evalComparison(n, v)
 	}
@@ -101,7 +105,7 @@ func eval(nodes []node, i int32, t Target, cache []field) (bool, error) {
 	}
 }
 
-// evalComparison evaluates a comparison expression against a target field.
+// evalComparison evaluates a comparison expression against a resolved value.
 func evalComparison(n *node, v any) (bool, error) {
 	switch v := v.(type) {
 	case string:
@@ -139,7 +143,7 @@ func evalComparison(n *node, v any) (bool, error) {
 	}
 }
 
-// evalString evaluates a string expression against a target.
+// evalString evaluates a comparison against a string value.
 func evalString(n *node, v string) (bool, error) {
 	switch n.op.typ {
 	case tokenEQ:
@@ -157,12 +161,12 @@ func evalString(n *node, v string) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for string field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Err:  fmt.Errorf("invalid operator for string value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
 	}
 }
 
-// evalNumber evaluates a number expression against a target.
+// evalNumber evaluates a comparison against a numeric value.
 func evalNumber(n *node, v float64) (bool, error) {
 	f := n.num
 	if !n.hasNum {
@@ -191,12 +195,12 @@ func evalNumber(n *node, v float64) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for number field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Err:  fmt.Errorf("invalid operator for number value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
 	}
 }
 
-// evalTime evaluates a time expression against a target.
+// evalTime evaluates a comparison against a time value.
 func evalTime(n *node, v time.Time) (bool, error) {
 	t := n.time
 	if !n.hasTime {
@@ -225,12 +229,12 @@ func evalTime(n *node, v time.Time) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for time field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Err:  fmt.Errorf("invalid operator for time value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
 	}
 }
 
-// evalDuration evaluates a duration expression against a target.
+// evalDuration evaluates a comparison against a duration value.
 func evalDuration(n *node, v time.Duration) (bool, error) {
 	d := n.dur
 	if !n.hasDur {
@@ -259,7 +263,7 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 	default:
 		return false, &Error{
 			Kind: KindEval,
-			Err:  fmt.Errorf("invalid operator for duration field at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
+			Err:  fmt.Errorf("invalid operator for duration value at %d:%d: %q", n.op.line, n.op.col, n.op.typ.literal()),
 		}
 	}
 }
