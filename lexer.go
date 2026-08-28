@@ -286,7 +286,8 @@ func (l *lexer) lexStmt() state {
 	case unicode.IsLetter(r) || r == '_':
 		return l.lexKeywordOrIdent()
 	default:
-		return l.errorf("unexpected character %#U at %d:%d", r, l.line, l.col-width(r))
+		l.backup()
+		return l.errorf("unexpected character %#U", r)
 	}
 }
 
@@ -294,10 +295,10 @@ func (l *lexer) lexStmt() state {
 // Called when input is completely consumed.
 func (l *lexer) lexEOF() state {
 	if l.parenDepth < 0 {
-		return l.errorf("unexpected right parenthesis at %d:%d", l.line, l.col)
+		return l.errorf("unexpected right parenthesis")
 	}
 	if l.parenDepth > 0 {
-		return l.errorf("unclosed left parenthesis at %d:%d", l.line, l.col)
+		return l.errorf("unclosed left parenthesis")
 	}
 	l.emit(tokenEOF)
 	return stateDone
@@ -348,9 +349,9 @@ func (l *lexer) lexEQ() state {
 			l.emit(tokenREQ)
 		}
 	case eof:
-		return l.errorf("unexpected end of input after '=' at %d:%d", l.line, l.col)
+		return l.errorf("unexpected end of input after '='")
 	default:
-		return l.errorf("unexpected character %q after '=' at %d:%d", r, l.line, l.col)
+		return l.errorf("unexpected character %q after '='", r)
 	}
 	return stateStmt
 }
@@ -414,9 +415,9 @@ func (l *lexer) lexAND() state {
 		l.next()
 		l.emit(tokenAND)
 	case eof:
-		return l.errorf("unexpected end of input after '&' at %d:%d", l.line, l.col)
+		return l.errorf("unexpected end of input after '&'")
 	default:
-		return l.errorf("unexpected character %q after '&' at %d:%d", r, l.line, l.col)
+		return l.errorf("unexpected character %q after '&'", r)
 	}
 	return stateStmt
 }
@@ -429,9 +430,9 @@ func (l *lexer) lexOR() state {
 		l.next()
 		l.emit(tokenOR)
 	case eof:
-		return l.errorf("unexpected end of input after '|' at %d:%d", l.line, l.col)
+		return l.errorf("unexpected end of input after '|'")
 	default:
-		return l.errorf("unexpected character %q after '|' at %d:%d", r, l.line, l.col)
+		return l.errorf("unexpected character %q after '|'", r)
 	}
 	return stateStmt
 }
@@ -455,12 +456,12 @@ Loop:
 	for {
 		switch l.next() {
 		case utf8.RuneError:
-			return l.errorf("invalid utf8 encoding in string at %d:%d", l.line, l.col)
+			return l.errorf("invalid utf8 encoding in string")
 		case eof, '\n':
-			return l.errorf("unterminated quoted string at %d:%d", l.line, l.col)
+			return l.errorf("unterminated quoted string")
 		case '\\':
 			if !l.scanEscape() {
-				return l.errorf("invalid escape sequence in string at %d:%d", l.line, l.col)
+				return l.errorf("invalid escape sequence in string")
 			}
 		case quote:
 			break Loop
@@ -477,9 +478,9 @@ Loop:
 	for {
 		switch l.next() {
 		case utf8.RuneError:
-			return l.errorf("invalid utf8 encoding in raw string at %d:%d", l.line, l.col)
+			return l.errorf("invalid utf8 encoding in raw string")
 		case eof:
-			return l.errorf("unterminated raw string at %d:%d", l.line, l.col)
+			return l.errorf("unterminated raw string")
 		case '`':
 			break Loop
 		}
@@ -812,11 +813,13 @@ func (l *lexer) acceptDigits(n int) bool {
 	return true
 }
 
-// errorf emits an error token and terminates the scan by returning stateDone.
+// errorf emits an error token and terminates the scan.
+// The current line and column are appended to the message.
 func (l *lexer) errorf(format string, args ...any) state {
+	args = append(args, l.line, l.col)
 	l.token = token{
 		typ:  tokenError,
-		v:    fmt.Sprintf(format, args...),
+		v:    fmt.Sprintf(format+" at %d:%d", args...),
 		pos:  int32(l.startPos),  //nolint:gosec // bounded by MaxInput
 		line: int32(l.startLine), //nolint:gosec // bounded by MaxInput
 		col:  int32(l.startCol),  //nolint:gosec // bounded by MaxInput
