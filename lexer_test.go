@@ -3152,9 +3152,9 @@ func Test_lexer_nextToken(t *testing.T) {
 
 func Test_lexer_backup(t *testing.T) {
 	type expected struct {
-		pos  int
-		line int
-		col  int
+		pos  int32
+		line int32
+		col  int32
 	}
 	tests := []struct {
 		name     string

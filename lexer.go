@@ -221,9 +221,9 @@ const (
 
 // mark is a position in the input that the lexer can return to.
 type mark struct {
-	pos  int
-	line int
-	col  int
+	pos  int32
+	line int32
+	col  int32
 }
 
 // lexer scans an input string into tokens on demand.
@@ -234,12 +234,12 @@ type lexer struct {
 	hasNext    bool   // flag there is a pending token
 	prev       mark   // position before the last next; backup returns here
 	parenDepth int    // nesting depth of ( ) exprs
-	pos        int    // current position in the input
-	startPos   int    // start position of this token
-	line       int    // 1+number of newlines seen
-	startLine  int    // start line of this token
-	col        int    // 1+number of characters since last newline
-	startCol   int    // start column of this token
+	pos        int32  // current byte offset in the input
+	startPos   int32  // byte offset where the current token starts
+	line       int32  // 1+number of newlines seen
+	startLine  int32  // line where the current token starts
+	col        int32  // 1+display width of the runes since the last newline
+	startCol   int32  // column where the current token starts
 }
 
 // newLexer creates a new lexer for the input string.
@@ -710,9 +710,9 @@ func (l *lexer) nextToken() token {
 		if l.state == stateDone {
 			return token{
 				typ:  tokenEOF,
-				pos:  int32(l.pos),  //nolint:gosec // bounded by MaxInput
-				line: int32(l.line), //nolint:gosec // bounded by MaxInput
-				col:  int32(l.col),  //nolint:gosec // bounded by MaxInput
+				pos:  l.pos,
+				line: l.line,
+				col:  l.col,
 			}
 		}
 		l.state = l.lexStmt()
@@ -723,11 +723,12 @@ func (l *lexer) nextToken() token {
 // updating the line and column.
 func (l *lexer) next() rune {
 	l.prev = l.mark()
-	if l.pos >= len(l.input) {
+	if int(l.pos) >= len(l.input) {
 		return eof
 	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-	l.pos += w
+	//nolint:gosec // a rune is at most utf8.UTFMax bytes
+	l.pos += int32(w)
 	if r == '\n' {
 		l.line++
 		l.col = 1
@@ -774,9 +775,9 @@ func (l *lexer) emit(typ tokenType) {
 	l.token = token{
 		typ:  typ,
 		v:    l.input[l.startPos:l.pos],
-		pos:  int32(l.startPos),  //nolint:gosec // bounded by MaxInput
-		line: int32(l.startLine), //nolint:gosec // bounded by MaxInput
-		col:  int32(l.startCol),  //nolint:gosec // bounded by MaxInput
+		pos:  l.startPos,
+		line: l.startLine,
+		col:  l.startCol,
 	}
 	l.hasNext = true
 	l.startPos = l.pos
@@ -828,9 +829,9 @@ func (l *lexer) errorf(format string, args ...any) state {
 	l.token = token{
 		typ:  tokenError,
 		v:    fmt.Sprintf(format, args...),
-		pos:  int32(l.pos),  //nolint:gosec // bounded by MaxInput
-		line: int32(l.line), //nolint:gosec // bounded by MaxInput
-		col:  int32(l.col),  //nolint:gosec // bounded by MaxInput
+		pos:  l.pos,
+		line: l.line,
+		col:  l.col,
 	}
 	l.hasNext = true
 	return stateDone
@@ -838,11 +839,12 @@ func (l *lexer) errorf(format string, args ...any) state {
 
 // width returns the display width of the rune used for column tracking.
 // ASCII is resolved without consulting the runewidth tables.
-func width(r rune) int {
+func width(r rune) int32 {
 	if r < utf8.RuneSelf {
 		return 1
 	}
-	return max(runewidth.RuneWidth(r), 1)
+	//nolint:gosec // display width is 1 or 2
+	return int32(max(runewidth.RuneWidth(r), 1))
 }
 
 // isSpace reports whether the rune is a space, tab, carriage return, or newline.

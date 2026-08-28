@@ -18,7 +18,7 @@ const MaxParen = 256
 
 // MaxInput is the maximum input length in bytes accepted by Parse.
 // Positions and node indices are stored as int32; bounding the input keeps
-// every int to int32 conversion in the lexer and parser within range.
+// them within range without checks on every increment.
 const MaxInput = 1 << 20
 
 // nodeBufSize is the number of nodes the parser stores inline before moving
@@ -71,8 +71,8 @@ func Parse(input string) (*Expr, error) {
 	}
 	return &Expr{
 		nodes:  nodes,
-		root:   int32(n), //nolint:gosec // bounded by MaxInput
-		nident: p.nident,
+		root:   n,
+		nident: int(p.nident),
 		shared: p.shared,
 	}, nil
 }
@@ -87,15 +87,15 @@ type parser struct {
 	parenCount int                  // number of opening parentheses
 	nodeBuf    [nodeBufSize]node    // expression tree nodes until nodeBuf is full
 	nodes      []node               // all expression tree nodes once nodeBuf overflowed
-	nnode      int                  // number of nodes
+	nnode      int32                // number of nodes
 	identBuf   [identBufSize]string // distinct identifiers until identBuf is full
 	idents     []string             // all distinct identifiers once identBuf overflowed
-	nident     int                  // number of distinct identifiers
+	nident     int32                // number of distinct identifiers
 	shared     bool                 // some identifier is referenced more than once
 }
 
 // parseExpr parses OR expressions, the lowest precedence level.
-func (p *parser) parseExpr() (int, error) {
+func (p *parser) parseExpr() (int32, error) {
 	left, err := p.parseAND()
 	if err != nil {
 		return 0, err
@@ -119,7 +119,7 @@ func (p *parser) parseExpr() (int, error) {
 }
 
 // parseAND parses AND expressions, which bind tighter than OR.
-func (p *parser) parseAND() (int, error) {
+func (p *parser) parseAND() (int32, error) {
 	left, err := p.parseNOT()
 	if err != nil {
 		return 0, err
@@ -143,7 +143,7 @@ func (p *parser) parseAND() (int, error) {
 }
 
 // parseNOT parses an optional NOT prefix followed by a primary expression.
-func (p *parser) parseNOT() (int, error) {
+func (p *parser) parseNOT() (int32, error) {
 	if p.peek().typ == tokenNOT {
 		t, err := p.next()
 		if err != nil {
@@ -159,7 +159,7 @@ func (p *parser) parseNOT() (int, error) {
 }
 
 // parsePrimary parses a parenthesized expression or a comparison.
-func (p *parser) parsePrimary() (int, error) {
+func (p *parser) parsePrimary() (int32, error) {
 	t := p.peek()
 	switch t.typ {
 	case tokenLparen:
@@ -187,12 +187,12 @@ func (p *parser) parsePrimary() (int, error) {
 
 // parseComparison parses an identifier, a comparison operator, and a literal,
 // validating typed literals as it goes.
-func (p *parser) parseComparison() (int, error) {
+func (p *parser) parseComparison() (int32, error) {
 	ident, err := p.expect(tokenIdent)
 	if err != nil {
 		return 0, err
 	}
-	ident.idx = int32(p.identIndex(ident.v)) //nolint:gosec // bounded by MaxInput
+	ident.idx = p.identIndex(ident.v)
 	op, err := p.next()
 	if err != nil {
 		return 0, err
@@ -249,7 +249,7 @@ func (p *parser) parseComparison() (int, error) {
 
 // handleRegex compiles the regex pattern in t and stores it on node i.
 // Compiled patterns are cached in regexMap to reduce allocations on repeated parses.
-func (p *parser) handleRegex(t token, i int) error {
+func (p *parser) handleRegex(t token, i int32) error {
 	if t.v == "" {
 		return newError(KindParse, t, "invalid regex %q: empty pattern", t.v)
 	}
@@ -267,13 +267,13 @@ func (p *parser) handleRegex(t token, i int) error {
 }
 
 // identIndex returns the index of the identifier, registering it on first use.
-func (p *parser) identIndex(name string) int {
+func (p *parser) identIndex(name string) int32 {
 	idents := p.idents
 	if idents == nil {
 		idents = p.identBuf[:p.nident]
 	}
-	for i, s := range idents {
-		if s == name {
+	for i := range p.nident {
+		if idents[i] == name {
 			p.shared = true
 			return i
 		}
@@ -294,7 +294,7 @@ func (p *parser) identIndex(name string) int {
 }
 
 // addNode stores a node and returns its index.
-func (p *parser) addNode(n node) int {
+func (p *parser) addNode(n node) int32 {
 	i := p.nnode
 	switch {
 	case p.nodes != nil:
@@ -304,8 +304,8 @@ func (p *parser) addNode(n node) int {
 	default:
 		// Estimate the final node count from the unread input so that large
 		// expressions grow in one step instead of doubling repeatedly.
-		remaining := len(p.lexer.input) - p.lexer.pos
-		p.nodes = make([]node, i, max(2*nodeBufSize, i+remaining/nodeCharsEstimate))
+		remaining := len(p.lexer.input) - int(p.lexer.pos)
+		p.nodes = make([]node, i, max(2*nodeBufSize, int(i)+remaining/nodeCharsEstimate))
 		copy(p.nodes, p.nodeBuf[:])
 		p.nodes = append(p.nodes, n)
 	}
@@ -314,7 +314,7 @@ func (p *parser) addNode(n node) int {
 }
 
 // node returns the node at index i.
-func (p *parser) node(i int) *node {
+func (p *parser) node(i int32) *node {
 	if p.nodes != nil {
 		return &p.nodes[i]
 	}
