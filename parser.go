@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -19,7 +18,7 @@ const MaxParen = 256
 
 // MaxInput is the maximum input length in bytes accepted by Parse.
 // Positions and node indices are stored as int32; bounding the input keeps
-// every int to int32 conversion in the lexer and parser within range.
+// them within range without checks on every increment.
 const MaxInput = 1 << 20
 
 // nodeBufSize is the number of nodes the parser stores inline before moving
@@ -62,11 +61,8 @@ func Parse(input string) (*Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.peek().typ != tokenEOF {
-		return nil, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("unexpected token after parsing: %s", p.peek().v),
-		}
+	if t := p.peek(); t.typ != tokenEOF {
+		return nil, newError(KindParse, t, "unexpected token after parsing: %s", t.v)
 	}
 	nodes := p.nodes
 	if nodes == nil {
@@ -75,8 +71,8 @@ func Parse(input string) (*Expr, error) {
 	}
 	return &Expr{
 		nodes:  nodes,
-		root:   int32(n), //nolint:gosec // bounded by MaxInput
-		nident: p.nident,
+		root:   n,
+		nident: int(p.nident),
 		shared: p.shared,
 	}, nil
 }
@@ -91,15 +87,15 @@ type parser struct {
 	parenCount int                  // number of opening parentheses
 	nodeBuf    [nodeBufSize]node    // expression tree nodes until nodeBuf is full
 	nodes      []node               // all expression tree nodes once nodeBuf overflowed
-	nnode      int                  // number of nodes
+	nnode      int32                // number of nodes
 	identBuf   [identBufSize]string // distinct identifiers until identBuf is full
 	idents     []string             // all distinct identifiers once identBuf overflowed
-	nident     int                  // number of distinct identifiers
+	nident     int32                // number of distinct identifiers
 	shared     bool                 // some identifier is referenced more than once
 }
 
 // parseExpr parses OR expressions, the lowest precedence level.
-func (p *parser) parseExpr() (int, error) {
+func (p *parser) parseExpr() (int32, error) {
 	left, err := p.parseAND()
 	if err != nil {
 		return 0, err
@@ -123,7 +119,7 @@ func (p *parser) parseExpr() (int, error) {
 }
 
 // parseAND parses AND expressions, which bind tighter than OR.
-func (p *parser) parseAND() (int, error) {
+func (p *parser) parseAND() (int32, error) {
 	left, err := p.parseNOT()
 	if err != nil {
 		return 0, err
@@ -147,7 +143,7 @@ func (p *parser) parseAND() (int, error) {
 }
 
 // parseNOT parses an optional NOT prefix followed by a primary expression.
-func (p *parser) parseNOT() (int, error) {
+func (p *parser) parseNOT() (int32, error) {
 	if p.peek().typ == tokenNOT {
 		t, err := p.next()
 		if err != nil {
@@ -163,7 +159,7 @@ func (p *parser) parseNOT() (int, error) {
 }
 
 // parsePrimary parses a parenthesized expression or a comparison.
-func (p *parser) parsePrimary() (int, error) {
+func (p *parser) parsePrimary() (int32, error) {
 	t := p.peek()
 	switch t.typ {
 	case tokenLparen:
@@ -172,10 +168,7 @@ func (p *parser) parsePrimary() (int, error) {
 		}
 		p.parenCount++
 		if p.parenCount > MaxParen {
-			return 0, &Error{
-				Kind: KindParse,
-				Err:  fmt.Errorf("too many parentheses: exceeded limit %d at %d:%d", MaxParen, t.line, t.col),
-			}
+			return 0, newError(KindParse, t, "too many parentheses: exceeded limit %d", MaxParen)
 		}
 		expr, err := p.parseExpr()
 		if err != nil {
@@ -188,40 +181,31 @@ func (p *parser) parsePrimary() (int, error) {
 	case tokenIdent:
 		return p.parseComparison()
 	default:
-		return 0, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("expected left parenthesis or identifier, got %s at %d:%d: %q", t.typ, t.line, t.col, t.v),
-		}
+		return 0, newError(KindParse, t, "expected left parenthesis or identifier, got %s: %q", t.typ, t.v)
 	}
 }
 
 // parseComparison parses an identifier, a comparison operator, and a literal,
 // validating typed literals as it goes.
-func (p *parser) parseComparison() (int, error) {
+func (p *parser) parseComparison() (int32, error) {
 	ident, err := p.expect(tokenIdent)
 	if err != nil {
 		return 0, err
 	}
-	ident.idx = int32(p.identIndex(ident.v)) //nolint:gosec // bounded by MaxInput
+	ident.idx = p.identIndex(ident.v)
 	op, err := p.next()
 	if err != nil {
 		return 0, err
 	}
 	if !op.typ.isComparisonOperatorType() {
-		return 0, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("expected comparison operator, got %s at %d:%d: %q", op.typ, op.line, op.col, op.v),
-		}
+		return 0, newError(KindParse, op, "expected comparison operator, got %s: %q", op.typ, op.v)
 	}
 	val, err := p.next()
 	if err != nil {
 		return 0, err
 	}
 	if !val.typ.isValueType() {
-		return 0, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("expected value, got %s at %d:%d: %q", val.typ, val.line, val.col, val.v),
-		}
+		return 0, newError(KindParse, val, "expected value, got %s: %q", val.typ, val.v)
 	}
 	if val.typ == tokenString || val.typ == tokenRawString {
 		val.v = unquote(val)
@@ -241,30 +225,21 @@ func (p *parser) parseComparison() (int, error) {
 	case tokenTime:
 		t, err := time.Parse(time.RFC3339, val.v)
 		if err != nil {
-			return 0, &Error{
-				Kind: KindParse,
-				Err:  fmt.Errorf("invalid time at %d:%d: %q", val.line, val.col, val.v),
-			}
+			return 0, newError(KindParse, val, "invalid time %q", val.v)
 		}
 		p.node(i).time = t
 		p.node(i).hasTime = true
 	case tokenDuration:
 		d, err := time.ParseDuration(val.v)
 		if err != nil {
-			return 0, &Error{
-				Kind: KindParse,
-				Err:  fmt.Errorf("invalid duration at %d:%d: %q", val.line, val.col, val.v),
-			}
+			return 0, newError(KindParse, val, "invalid duration %q", val.v)
 		}
 		p.node(i).dur = d
 		p.node(i).hasDur = true
 	case tokenNumber:
 		f, err := strconv.ParseFloat(val.v, 64)
 		if err != nil {
-			return 0, &Error{
-				Kind: KindParse,
-				Err:  fmt.Errorf("invalid number at %d:%d: %q", val.line, val.col, val.v),
-			}
+			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
 		p.node(i).num = f
 		p.node(i).hasNum = true
@@ -274,22 +249,16 @@ func (p *parser) parseComparison() (int, error) {
 
 // handleRegex compiles the regex pattern in t and stores it on node i.
 // Compiled patterns are cached in regexMap to reduce allocations on repeated parses.
-func (p *parser) handleRegex(t token, i int) error {
+func (p *parser) handleRegex(t token, i int32) error {
 	if t.v == "" {
-		return &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("invalid regex %q at %d:%d: empty pattern", t.v, t.line, t.col),
-		}
+		return newError(KindParse, t, "invalid regex %q: empty pattern", t.v)
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
 		p.node(i).re = cached.(*regexp.Regexp)
 	} else {
 		re, err := regexp.Compile(t.v)
 		if err != nil {
-			return &Error{
-				Kind: KindParse,
-				Err:  fmt.Errorf("invalid regex %q at %d:%d: %w", t.v, t.line, t.col, err),
-			}
+			return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
 		}
 		regexMap.Store(t.v, re)
 		p.node(i).re = re
@@ -298,13 +267,13 @@ func (p *parser) handleRegex(t token, i int) error {
 }
 
 // identIndex returns the index of the identifier, registering it on first use.
-func (p *parser) identIndex(name string) int {
+func (p *parser) identIndex(name string) int32 {
 	idents := p.idents
 	if idents == nil {
 		idents = p.identBuf[:p.nident]
 	}
-	for i, s := range idents {
-		if s == name {
+	for i := range p.nident {
+		if idents[i] == name {
 			p.shared = true
 			return i
 		}
@@ -325,7 +294,7 @@ func (p *parser) identIndex(name string) int {
 }
 
 // addNode stores a node and returns its index.
-func (p *parser) addNode(n node) int {
+func (p *parser) addNode(n node) int32 {
 	i := p.nnode
 	switch {
 	case p.nodes != nil:
@@ -335,8 +304,8 @@ func (p *parser) addNode(n node) int {
 	default:
 		// Estimate the final node count from the unread input so that large
 		// expressions grow in one step instead of doubling repeatedly.
-		remaining := len(p.lexer.input) - p.lexer.pos
-		p.nodes = make([]node, i, max(2*nodeBufSize, i+remaining/nodeCharsEstimate))
+		remaining := len(p.lexer.input) - int(p.lexer.pos)
+		p.nodes = make([]node, i, max(2*nodeBufSize, int(i)+remaining/nodeCharsEstimate))
 		copy(p.nodes, p.nodeBuf[:])
 		p.nodes = append(p.nodes, n)
 	}
@@ -345,7 +314,7 @@ func (p *parser) addNode(n node) int {
 }
 
 // node returns the node at index i.
-func (p *parser) node(i int) *node {
+func (p *parser) node(i int32) *node {
 	if p.nodes != nil {
 		return &p.nodes[i]
 	}
@@ -359,10 +328,7 @@ func (p *parser) expect(typ tokenType) (token, error) {
 		return t, err
 	}
 	if t.typ != typ {
-		return t, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("expected %s, got %s at %d:%d: %q", typ, t.typ, t.line, t.col, t.v),
-		}
+		return t, newError(KindParse, t, "expected %s, got %s: %q", typ, t.typ, t.v)
 	}
 	return t, nil
 }
@@ -372,19 +338,13 @@ func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
 		if p.current.typ == tokenError {
-			return p.current, &Error{
-				Kind: KindLex,
-				Err:  errors.New(p.current.v),
-			}
+			return p.current, newError(KindLex, p.current, "%s", p.current.v)
 		}
 		return p.current, nil
 	}
 	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
-		return p.current, &Error{
-			Kind: KindLex,
-			Err:  errors.New(p.current.v),
-		}
+		return p.current, newError(KindLex, p.current, "%s", p.current.v)
 	}
 	return p.current, nil
 }

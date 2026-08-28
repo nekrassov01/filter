@@ -51,28 +51,28 @@ type node struct {
 }
 
 // newNodeBinary creates a new binary expression node.
-func newNodeBinary(p *parser, left int, op token, right int) int {
+func newNodeBinary(p *parser, left int32, op token, right int32) int32 {
 	node := node{
 		typ:   nodeBinary,
-		left:  int32(left),  //nolint:gosec // bounded by MaxInput
-		right: int32(right), //nolint:gosec // bounded by MaxInput
+		left:  left,
+		right: right,
 		op:    op,
 	}
 	return p.addNode(node)
 }
 
 // newNodeNOT creates a new NOT expression node.
-func newNodeNOT(p *parser, child int, op token) int {
+func newNodeNOT(p *parser, child int32, op token) int32 {
 	node := node{
 		typ:  nodeNOT,
-		left: int32(child), //nolint:gosec // bounded by MaxInput
+		left: child,
 		op:   op,
 	}
 	return p.addNode(node)
 }
 
 // newNodeComparison creates a new comparison expression node.
-func newNodeComparison(p *parser, ident token, op token, val token) int {
+func newNodeComparison(p *parser, ident token, op token, val token) int32 {
 	node := node{
 		typ:   nodeComparison,
 		ident: ident,

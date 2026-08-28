@@ -341,7 +341,7 @@ func TestParse(t *testing.T) {
 			input: `HP > .`,
 			expected: expected{
 				ok:  false,
-				err: `invalid number at 1:6: "."`,
+				err: `parse error at 1:6: invalid number "."`,
 			},
 		},
 		{
@@ -349,7 +349,7 @@ func TestParse(t *testing.T) {
 			input: `HP > -`,
 			expected: expected{
 				ok:  false,
-				err: `invalid number at 1:6: "-"`,
+				err: `parse error at 1:6: invalid number "-"`,
 			},
 		},
 		{
@@ -357,7 +357,7 @@ func TestParse(t *testing.T) {
 			input: `名前 == .`,
 			expected: expected{
 				ok:  false,
-				err: `invalid number at 1:9: "."`,
+				err: `parse error at 1:9: invalid number "."`,
 			},
 		},
 		{
@@ -365,7 +365,7 @@ func TestParse(t *testing.T) {
 			input: "a\n== -",
 			expected: expected{
 				ok:  false,
-				err: `invalid number at 2:4: "-"`,
+				err: `parse error at 2:4: invalid number "-"`,
 			},
 		},
 		{
@@ -381,7 +381,7 @@ func TestParse(t *testing.T) {
 			input: `HP > 0x`,
 			expected: expected{
 				ok:  false,
-				err: `invalid number at 1:6: "0x"`,
+				err: `parse error at 1:6: invalid number "0x"`,
 			},
 		},
 		{
@@ -389,7 +389,7 @@ func TestParse(t *testing.T) {
 			input: `HP > 1e`,
 			expected: expected{
 				ok:  false,
-				err: `invalid number at 1:6: "1e"`,
+				err: `parse error at 1:6: invalid number "1e"`,
 			},
 		},
 		{
@@ -397,7 +397,7 @@ func TestParse(t *testing.T) {
 			input: `Time > 2023-13-01T00:00:00Z`,
 			expected: expected{
 				ok:  false,
-				err: `invalid time at 1:8: "2023-13-01T00:00:00Z"`,
+				err: `parse error at 1:8: invalid time "2023-13-01T00:00:00Z"`,
 			},
 		},
 		{
@@ -405,7 +405,7 @@ func TestParse(t *testing.T) {
 			input: `Duration > 1.5.5s`,
 			expected: expected{
 				ok:  false,
-				err: `invalid duration at 1:12: "1.5.5s"`,
+				err: `parse error at 1:12: invalid duration "1.5.5s"`,
 			},
 		},
 		{
