@@ -2,42 +2,45 @@ package filter
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"sync"
 	"time"
 )
 
-// Epsilon is a small value used to compare numerical equality.
+// Epsilon is the tolerance within which two numbers compare as equal.
 const Epsilon = 1e-9
 
-// MaxParen is the maximum number of opening '(' tokens allowed in one expression.
-// It guards against pathological inputs and counts total openings, not the
-// current nesting depth.
+// MaxParen is the maximum number of opening parentheses in one expression.
 const MaxParen = 256
 
 // MaxInput is the maximum input length in bytes accepted by Parse.
-// Positions and node indices are stored as int32; bounding the input keeps
-// them within range without checks on every increment.
 const MaxInput = 1 << 20
 
-// nodeBufSize is the number of nodes the parser stores inline before moving
-// to a heap-allocated slice. Written by index rather than by append so that
-// the parser stays on the stack of Parse.
+// nodeBufSize is the number of nodes a parser holds inline.
 const nodeBufSize = 16
 
-// identBufSize is the number of distinct identifiers the parser stores inline
-// before moving to a heap-allocated slice. Written by index for the same
-// reason as nodeBufSize.
+// identBufSize is the number of distinct identifiers a parser holds inline.
 const identBufSize = 8
 
-// nodeCharsEstimate is the assumed number of input bytes per node when
-// sizing the overflow slice. It is an estimate, not a bound; append still
-// grows the slice when the guess is low.
+// nodeCharsEstimate is the assumed number of input bytes per node.
 const nodeCharsEstimate = 8
 
-// regexMap caches compiled regular expressions across parses. Keys are
-// pattern strings and values are *regexp.Regexp.
+// timeLayouts are the layouts a time literal may use, most common first.
+var timeLayouts = [...]string{
+	time.RFC3339,
+	"2006-01-02T15:04:05",
+	time.DateTime,
+	time.DateOnly,
+	time.RFC1123,
+	time.RFC1123Z,
+	time.RFC850,
+	time.RFC822,
+	time.RFC822Z,
+}
+
+// regexMap holds compiled regular expressions keyed by pattern.
 var regexMap sync.Map
 
 // Parse parses input into an Expr that can be evaluated repeatedly.
@@ -77,9 +80,9 @@ func Parse(input string) (*Expr, error) {
 	}, nil
 }
 
-// parser represents a parser for the expression.
-// It lives on the caller's stack for the duration of Parse; the fixed-size
-// buffers let small expressions parse without heap growth.
+// parser builds the expression tree for one input. Nodes and identifiers
+// are written into inline buffers by index so that the parser stays on the
+// stack of Parse.
 type parser struct {
 	lexer      lexer                // lexer for tokenizing input
 	current    token                // current token
@@ -185,8 +188,7 @@ func (p *parser) parsePrimary() (int32, error) {
 	}
 }
 
-// parseComparison parses an identifier, a comparison operator, and a literal,
-// validating typed literals as it goes.
+// parseComparison parses an identifier, a comparison operator, and a literal.
 func (p *parser) parseComparison() (int32, error) {
 	ident, err := p.expect(tokenIdent)
 	if err != nil {
@@ -219,11 +221,9 @@ func (p *parser) parseComparison() (int32, error) {
 			return 0, err
 		}
 	}
-	// Typed literals are validated here, once; string literals compared
-	// against typed values are converted at evaluation time instead.
 	switch val.typ {
 	case tokenTime:
-		t, err := time.Parse(time.RFC3339, val.v)
+		t, err := parseTime(val.v)
 		if err != nil {
 			return 0, newError(KindParse, val, "invalid time %q", val.v)
 		}
@@ -302,8 +302,6 @@ func (p *parser) addNode(n node) int32 {
 	case i < nodeBufSize:
 		p.nodeBuf[i] = n
 	default:
-		// Estimate the final node count from the unread input so that large
-		// expressions grow in one step instead of doubling repeatedly.
 		remaining := len(p.lexer.input) - int(p.lexer.pos)
 		p.nodes = make([]node, i, max(2*nodeBufSize, int(i)+remaining/nodeCharsEstimate))
 		copy(p.nodes, p.nodeBuf[:])
@@ -356,6 +354,51 @@ func (p *parser) peek() token {
 		p.peeked = true
 	}
 	return p.current
+}
+
+// parseTime converts Unix seconds or a literal in one of timeLayouts to a
+// UTC time. A zone abbreviation other than UTC or GMT is rejected, since
+// time.Parse resolves no other abbreviation to an offset.
+func parseTime(s string) (time.Time, error) {
+	// Unix seconds.
+	digits := s
+	if digits != "" && (digits[0] == '-' || digits[0] == '+') {
+		digits = digits[1:]
+	}
+	if digits != "" && digits[0] != '_' && digits[len(digits)-1] != '_' {
+		var sec int64
+		integer := true
+		for i := 0; i < len(digits) && integer; i++ {
+			switch c := digits[i]; {
+			case c == '_':
+			case '0' <= c && c <= '9':
+				d := int64(c - '0')
+				if sec > (math.MaxInt64-d)/10 {
+					return time.Time{}, fmt.Errorf("unix seconds out of range %q", s)
+				}
+				sec = sec*10 + d
+			default:
+				integer = false
+			}
+		}
+		if integer {
+			if s[0] == '-' {
+				sec = -sec
+			}
+			return time.Unix(sec, 0).UTC(), nil
+		}
+	}
+	for _, layout := range timeLayouts {
+		t, err := time.ParseInLocation(layout, s, time.UTC)
+		if err != nil {
+			continue
+		}
+		if name, _ := t.Zone(); name != "" && name != "UTC" && name != "GMT" {
+			return time.Time{}, fmt.Errorf("unknown time zone %q", name)
+		}
+		return t.UTC(), nil
+	}
+	return time.Time{}, fmt.Errorf("unrecognized time %q", s)
 }
 
 // unquote returns the text of a string token without its surrounding quotes.

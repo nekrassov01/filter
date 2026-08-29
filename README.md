@@ -22,7 +22,7 @@
 - Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
 - Case-insensitive equality: `==*` / `!=*`
 - Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
-- Time literals: [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339) only
+- Time literals: RFC 3339, RFC 1123, RFC 850, RFC 822, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, Unix seconds; zone-less forms are UTC
 - Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
 
 ## Performance
@@ -200,13 +200,21 @@ func main() {
 
 ### Literals
 
-| Kind     | Examples                               | Notes                              |
-| -------- | -------------------------------------- | ---------------------------------- |
-| String   | `"Hello"`, `'世界'`, `` `raw\ntext` `` | Double / single / raw (backtick)   |
-| Number   | `42`, `3.14`, `0x1.fp3`                | Subset of Go numeric literals      |
-| Time     | `2023-01-01T00:00:00Z`                 | Go `time.RFC3339` compatible       |
-| Duration | `1500ms`, `2s`, `1h30m`, `4000μs`      | Go `time.ParseDuration` compatible |
-| Boolean  | `true`, `false`, `True`, `FALSE`       | Case-insensitive variants accepted |
+| Kind     | Examples                                                                                                                | Notes                                                   |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| String   | `"Hello"`, `'世界'`, `` `raw\ntext` ``                                                                                  | Double / single / raw (backtick)                        |
+| Number   | `42`, `3.14`, `0x1.fp3`                                                                                                 | Subset of Go numeric literals                           |
+| Time     | `2023-01-01T00:00:00Z`, `2023-01-01T09:00:00`, `2023-01-01`, `'2023-01-01 09:00:00'`, `'Sun, 01 Jan 2023 09:00:00 GMT'` | Zone-less forms are UTC; quote when it contains a space |
+| Duration | `1500ms`, `2s`, `1h30m`, `4000μs`                                                                                       | Go `time.ParseDuration` compatible                      |
+| Boolean  | `true`, `false`, `True`, `FALSE`                                                                                        | Case-insensitive variants accepted                      |
+
+Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, RFC 1123, RFC 850, RFC 822 (each with a named or numeric zone), and integer Unix seconds. Rules that follow from Go's `time.Parse`:
+
+- Forms without a zone are read as UTC. A zone abbreviation is accepted only when it is `UTC` or `GMT`; use a numeric offset such as `+0900` for anything else
+- Fractional seconds are accepted after any clock time
+- Weekday names are not checked against the date
+- Two-digit years (RFC 822, RFC 850) map to 1969–2068
+- A number compared with a `time.Time` value is read as Unix seconds
 
 ### Operators
 

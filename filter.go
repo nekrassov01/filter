@@ -186,7 +186,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 func evalTime(n *node, v time.Time) (bool, error) {
 	t := n.time
 	if !n.hasTime {
-		parsed, err := time.Parse(time.RFC3339, n.val.v)
+		parsed, err := parseTime(n.val.v)
 		if err != nil {
 			return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
 		}

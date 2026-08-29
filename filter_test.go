@@ -850,6 +850,186 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			name:     "time eq bare rfc3339",
+			input:    `Time==2025-01-01T00:00:00Z`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq bare datetime without zone",
+			input:    `Time==2025-01-01T00:00:00`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq bare date",
+			input:    `Time==2025-01-01`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq date only",
+			input:    `Time=='2025-01-01'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time gt date only",
+			input:    `Time>'2024-12-31'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq datetime with space",
+			input:    `Time=='2025-01-01 00:00:00'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq datetime without zone",
+			input:    `Time=='2025-01-01T00:00:00'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time lt datetime with fraction and no zone",
+			input:    `Time<'2025-01-01 00:00:00.5'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq rfc1123 string",
+			input:    `Time=='Wed, 01 Jan 2025 00:00:00 UTC'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq rfc1123z string",
+			input:    `Time=='Wed, 01 Jan 2025 09:00:00 +0900'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq rfc850 string",
+			input:    `Time=='Wednesday, 01-Jan-25 00:00:00 UTC'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq rfc822 string",
+			input:    `Time=='01 Jan 25 00:00 UTC'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq unix seconds with underscores",
+			input:    `Time==1_735_689_600`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time with zone abbreviation other than utc",
+			input:    `Time=='Wed, 01 Jan 2025 00:00:00 EST'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  false,
+				err: `eval error at 1:7: invalid time "Wed, 01 Jan 2025 00:00:00 EST"`,
+			},
+		},
+		{
+			name:     "time eq unix seconds as string",
+			input:    `Time=='1735689600'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time eq unix seconds as number",
+			input:    `Time==1735689600`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time lt unix seconds as number",
+			input:    `Time<1735689601`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "time with fractional unix seconds",
+			input:    `Time==1735689600.5`,
+			resolver: testObject,
+			expected: expected{
+				ok:  false,
+				err: `eval error at 1:7: invalid time "1735689600.5"`,
+			},
+		},
+		{
+			name:     "time with out of range date",
+			input:    `Time>'2025-13-01'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  false,
+				err: `eval error at 1:6: invalid time "2025-13-01"`,
+			},
+		},
+		{
+			name:     "time with clock only",
+			input:    `Time>'12:00:00'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  false,
+				err: `invalid time "12:00:00"`,
+			},
+		},
+		{
 			name:     "invalid time",
 			input:    `Time>'invalid-time'`,
 			resolver: testObject,
