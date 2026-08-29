@@ -279,8 +279,19 @@ func (l *lexer) lexEOF() state {
 // lexSpace scans a run of space characters.
 // One space has already been seen.
 func (l *lexer) lexSpace() state {
-	for isSpace(l.peek()) {
-		l.next()
+	for int(l.pos) < len(l.input) {
+		switch l.input[l.pos] {
+		case ' ', '\t', '\r':
+			l.pos++
+			l.col++
+		case '\n':
+			l.pos++
+			l.line++
+			l.col = 1
+		default:
+			l.ignore()
+			return stateStmt
+		}
 	}
 	l.ignore()
 	return stateStmt
@@ -464,6 +475,18 @@ func (l *lexer) lexNumber() state {
 // lexKeywordOrIdent scans an identifier and emits it as a boolean literal
 // when it spells true or false. The leading character has already been seen.
 func (l *lexer) lexKeywordOrIdent() state {
+	// ASCII bytes advance without decoding; anything else takes the rune path.
+	for int(l.pos) < len(l.input) {
+		b := l.input[l.pos]
+		if b >= utf8.RuneSelf {
+			break
+		}
+		if !('a' <= b && b <= 'z' || 'A' <= b && b <= 'Z' || '0' <= b && b <= '9' || b == '_') {
+			goto emit
+		}
+		l.pos++
+		l.col++
+	}
 	for {
 		r := l.next()
 		if !isAlphaNumeric(r) && r != '_' {
@@ -471,6 +494,7 @@ func (l *lexer) lexKeywordOrIdent() state {
 			break
 		}
 	}
+emit:
 	if isBoolLiteral(l.input[l.startPos:l.pos]) {
 		l.emit(tokenBool)
 		return stateStmt
@@ -681,15 +705,20 @@ func (l *lexer) next() rune {
 	if int(l.pos) >= len(l.input) {
 		return eof
 	}
+	if b := l.input[l.pos]; b < utf8.RuneSelf {
+		l.pos++
+		if b == '\n' {
+			l.line++
+			l.col = 1
+		} else {
+			l.col++
+		}
+		return rune(b)
+	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	//nolint:gosec // a rune is at most utf8.UTFMax bytes
 	l.pos += int32(w)
-	if r == '\n' {
-		l.line++
-		l.col = 1
-	} else {
-		l.col += width(r)
-	}
+	l.col += width(r)
 	return r
 }
 
@@ -747,22 +776,25 @@ func (l *lexer) ignore() {
 	l.startCol = l.col
 }
 
-// accept consumes the next rune if it is in valid and reports whether it did.
+// accept consumes the next byte if it is in valid and reports whether it did.
 func (l *lexer) accept(valid string) bool {
-	if strings.ContainsRune(valid, l.next()) {
+	if int(l.pos) < len(l.input) && strings.IndexByte(valid, l.input[l.pos]) >= 0 {
+		l.prev = l.mark()
+		l.pos++
+		l.col++
 		return true
 	}
-	l.backup()
 	return false
 }
 
-// acceptRun consumes a run of runes from valid and returns how many it consumed.
+// acceptRun consumes a run of bytes from valid and returns how many it consumed.
 func (l *lexer) acceptRun(valid string) int {
 	n := 0
-	for strings.ContainsRune(valid, l.next()) {
+	for int(l.pos) < len(l.input) && strings.IndexByte(valid, l.input[l.pos]) >= 0 {
+		l.pos++
+		l.col++
 		n++
 	}
-	l.backup()
 	return n
 }
 
@@ -770,9 +802,11 @@ func (l *lexer) acceptRun(valid string) int {
 // them were present.
 func (l *lexer) acceptDigits(n int) bool {
 	for range n {
-		if !unicode.IsDigit(l.next()) {
+		if int(l.pos) >= len(l.input) || l.input[l.pos] < '0' || l.input[l.pos] > '9' {
 			return false
 		}
+		l.pos++
+		l.col++
 	}
 	return true
 }
@@ -792,12 +826,8 @@ func (l *lexer) errorf(format string, args ...any) state {
 	return stateDone
 }
 
-// width returns the display width of the rune used for column tracking.
-// ASCII is resolved without consulting the runewidth tables.
+// width returns the display width of a non-ASCII rune used for column tracking.
 func width(r rune) int32 {
-	if r < utf8.RuneSelf {
-		return 1
-	}
 	//nolint:gosec // display width is 1 or 2
 	return int32(max(runewidth.RuneWidth(r), 1))
 }
