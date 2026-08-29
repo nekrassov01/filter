@@ -461,6 +461,33 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			name:     "string of a lone sign stays a string",
+			input:    `String!="-"`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "duration string converted at eval",
+			input:    `Duration>'0'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
+			name:     "number string converted at eval",
+			input:    `Float64<'Inf'`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
 			name:     "duration invalid at eval",
 			input:    `Duration>bad`,
 			resolver: testObject,

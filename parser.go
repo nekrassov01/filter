@@ -5,8 +5,10 @@ import (
 	"math"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 // Epsilon is the tolerance within which two numbers compare as equal.
@@ -217,39 +219,32 @@ func (p *parser) parseComparison() (int32, error) {
 	}
 	i := newNodeComparison(p, ident, op, val)
 	if op.typ.isRegexOperatorType() {
-		if err := p.handleRegex(val, i); err != nil {
+		if err := p.cacheRegex(i, val); err != nil {
 			return 0, err
 		}
 	}
 	switch val.typ {
+	case tokenString, tokenRawString:
+		p.cacheValues(i, val.v)
 	case tokenTime:
-		t, err := parseTime(val.v)
-		if err != nil {
+		if !p.cacheTime(i, val.v) {
 			return 0, newError(KindParse, val, "invalid time %q", val.v)
 		}
-		p.node(i).time = t
-		p.node(i).hasTime = true
 	case tokenDuration:
-		d, err := time.ParseDuration(val.v)
-		if err != nil {
+		if !p.cacheDuration(i, val.v) {
 			return 0, newError(KindParse, val, "invalid duration %q", val.v)
 		}
-		p.node(i).dur = d
-		p.node(i).hasDur = true
 	case tokenNumber:
-		f, err := strconv.ParseFloat(val.v, 64)
-		if err != nil {
+		if !p.cacheNumber(i, val.v) {
 			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
-		p.node(i).num = f
-		p.node(i).hasNum = true
+		p.cacheTime(i, val.v)
 	}
 	return i, nil
 }
 
-// handleRegex compiles the regex pattern in t and stores it on node i.
-// Compiled patterns are cached in regexMap to reduce allocations on repeated parses.
-func (p *parser) handleRegex(t token, i int32) error {
+// cacheRegex compiles the pattern in t through regexMap and stores it on node i.
+func (p *parser) cacheRegex(i int32, t token) error {
 	if t.v == "" {
 		return newError(KindParse, t, "invalid regex %q: empty pattern", t.v)
 	}
@@ -264,6 +259,70 @@ func (p *parser) handleRegex(t token, i int32) error {
 		p.node(i).re = re
 	}
 	return nil
+}
+
+// cacheValues stores on node i every time, duration, or number that the
+// string literal s also spells.
+func (p *parser) cacheValues(i int32, s string) {
+	r, _ := utf8.DecodeRuneInString(s)
+	switch {
+	case isNumberStart(r):
+		l := newLexer(s)
+		tok := l.nextToken()
+		if l.nextToken().typ != tokenEOF {
+			// A time whose layout contains spaces.
+			p.cacheTime(i, s)
+			return
+		}
+		switch tok.typ {
+		case tokenTime:
+			p.cacheTime(i, s)
+		case tokenDuration:
+			p.cacheDuration(i, s)
+		case tokenNumber:
+			if !strings.ContainsAny(s, "0123456789") {
+				return
+			}
+			p.cacheNumber(i, s)
+			p.cacheTime(i, s)
+		}
+	case strings.Contains(s, ", "):
+		// A time whose layout starts with a weekday name.
+		p.cacheTime(i, s)
+	}
+}
+
+// cacheTime stores the time that s spells on node i and reports whether it did.
+func (p *parser) cacheTime(i int32, s string) bool {
+	t, err := parseTime(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).time = t
+	p.node(i).hasTime = true
+	return true
+}
+
+// cacheDuration stores the duration that s spells on node i and reports whether it did.
+func (p *parser) cacheDuration(i int32, s string) bool {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).dur = d
+	p.node(i).hasDur = true
+	return true
+}
+
+// cacheNumber stores the number that s spells on node i and reports whether it did.
+func (p *parser) cacheNumber(i int32, s string) bool {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return false
+	}
+	p.node(i).num = f
+	p.node(i).hasNum = true
+	return true
 }
 
 // identIndex returns the index of the identifier, registering it on first use.

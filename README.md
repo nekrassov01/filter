@@ -30,7 +30,7 @@
 `filter` intentionally does a small amount of work once, so that evaluating an expression many times stays flat:
 
 - Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
-- Number, time, and duration RHS literals: validated and converted once during parsing, so malformed literals are reported as parse errors with their position; eval just compares pre‑parsed values. Quoted forms like `"42"` or `"1500ms"` are string literals and are converted at evaluation time when compared against a numeric, time, or duration value.
+- Number, time, and duration RHS literals: validated and converted once during parsing, so malformed literals are reported as parse errors with their position; eval just compares pre‑parsed values. Quoted forms like `"42"`, `"1500ms"`, or `"2023-01-01 09:00:00"` are converted during parsing too when their text reads as a literal, and otherwise at evaluation time when compared against a numeric, time, or duration value.
 - Resolved value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 8 distinct identifiers); referencing the same identifier dozens of times does not add proportional `Resolve` overhead. Expressions where every identifier appears once skip the cache entirely.
 
 ## Benchmarks
