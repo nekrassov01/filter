@@ -81,8 +81,8 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:     "string eqi true",
-			input:    `String==*"helloworld"`,
+			name:     "regex ignoring case",
+			input:    `String=~"(?i)^helloworld$"`,
 			resolver: testObject,
 			expected: expected{
 				ok:  true,
@@ -90,8 +90,8 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:     "string eqi false",
-			input:    `String==*"hellox"`,
+			name:     "regex ignoring case false",
+			input:    `String=~"(?i)^hellox$"`,
 			resolver: testObject,
 			expected: expected{
 				ok:  true,
@@ -99,8 +99,8 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:     "string neqi true",
-			input:    `String!=*"hellox"`,
+			name:     "negative regex ignoring case",
+			input:    `String!~"(?i)^hellox$"`,
 			resolver: testObject,
 			expected: expected{
 				ok:  true,
@@ -108,8 +108,8 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
-			name:     "string neqi false",
-			input:    `String!=*"helloworld"`,
+			name:     "negative regex ignoring case false",
+			input:    `String!~"(?i)^helloworld$"`,
 			resolver: testObject,
 			expected: expected{
 				ok:  true,

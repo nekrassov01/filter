@@ -52,19 +52,9 @@ func Test_tokenType_String(t *testing.T) {
 			expected: "\"equal to\" operator",
 		},
 		{
-			name:     "eqi",
-			typ:      tokenEQI,
-			expected: "\"case-insensitive equal to\" operator",
-		},
-		{
 			name:     "neq",
 			typ:      tokenNEQ,
 			expected: "\"not equal to\" operator",
-		},
-		{
-			name:     "neqi",
-			typ:      tokenNEQI,
-			expected: "\"case-insensitive not equal to\" operator",
 		},
 		{
 			name:     "req",
@@ -72,19 +62,9 @@ func Test_tokenType_String(t *testing.T) {
 			expected: "regex matching operator",
 		},
 		{
-			name:     "reqi",
-			typ:      tokenREQI,
-			expected: "case-insensitive regex matching operator",
-		},
-		{
 			name:     "nreq",
 			typ:      tokenNREQ,
 			expected: "negative regex matching operator",
-		},
-		{
-			name:     "nreqi",
-			typ:      tokenNREQI,
-			expected: "case-insensitive negative regex matching operator",
 		},
 		{
 			name:     "and",
@@ -203,19 +183,9 @@ func Test_tokenType_literal(t *testing.T) {
 			expected: "==",
 		},
 		{
-			name:     "eqi",
-			typ:      tokenEQI,
-			expected: "==*",
-		},
-		{
 			name:     "neq",
 			typ:      tokenNEQ,
 			expected: "!=",
-		},
-		{
-			name:     "neqi",
-			typ:      tokenNEQI,
-			expected: "!=*",
 		},
 		{
 			name:     "req",
@@ -223,19 +193,9 @@ func Test_tokenType_literal(t *testing.T) {
 			expected: "=~",
 		},
 		{
-			name:     "reqi",
-			typ:      tokenREQI,
-			expected: "=~*",
-		},
-		{
 			name:     "nreq",
 			typ:      tokenNREQ,
 			expected: "!~",
-		},
-		{
-			name:     "nreqi",
-			typ:      tokenNREQI,
-			expected: "!~*",
 		},
 		{
 			name:     "and",
@@ -562,7 +522,7 @@ func Test_lex(t *testing.T) {
 		},
 		{
 			name:  "comparison operators 2",
-			input: "== ==* != !=*",
+			input: "== !=",
 			expected: []token{
 				{
 					typ:  tokenEQ,
@@ -572,32 +532,17 @@ func Test_lex(t *testing.T) {
 					col:  1,
 				},
 				{
-					typ:  tokenEQI,
-					v:    "==*",
+					typ:  tokenNEQ,
+					v:    "!=",
 					pos:  3,
 					line: 1,
 					col:  4,
 				},
 				{
-					typ:  tokenNEQ,
-					v:    "!=",
-					pos:  7,
-					line: 1,
-					col:  8,
-				},
-				{
-					typ:  tokenNEQI,
-					v:    "!=*",
-					pos:  10,
-					line: 1,
-					col:  11,
-				},
-				{
 					typ:  tokenEOF,
-					v:    "",
-					pos:  13,
+					pos:  5,
 					line: 1,
-					col:  14,
+					col:  6,
 				},
 			},
 		},
@@ -2224,28 +2169,22 @@ test2
 			},
 		},
 		{
-			name:  "case-insensitive regex operators",
-			input: "=~* !~*",
+			name:  "asterisk after an operator is not an operator",
+			input: "==*",
 			expected: []token{
 				{
-					typ:  tokenREQI,
-					v:    "=~*",
+					typ:  tokenEQ,
+					v:    "==",
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
 				{
-					typ:  tokenNREQI,
-					v:    "!~*",
-					pos:  4,
+					typ:  tokenError,
+					v:    "unexpected character U+002A '*'",
+					pos:  2,
 					line: 1,
-					col:  5,
-				},
-				{
-					typ:  tokenEOF,
-					pos:  7,
-					line: 1,
-					col:  8,
+					col:  3,
 				},
 			},
 		},

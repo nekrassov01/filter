@@ -214,9 +214,6 @@ func (p *parser) parseComparison() (int32, error) {
 	if val.typ == tokenString || val.typ == tokenRawString {
 		val.v = unquote(val)
 	}
-	if op.typ.isCaseInsensitiveRegexOperatorType() {
-		val.v = "(?i)" + val.v
-	}
 	i := newNodeComparison(p, ident, op, val)
 	if op.typ.isRegexOperatorType() {
 		if err := p.cacheRegex(i, val); err != nil {

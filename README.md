@@ -12,7 +12,7 @@
 
 ## Overview
 
-`filter` focuses on one task: evaluating small boolean filter expressions in Go without the weight of a general expression engine. The motivation is to avoid large, reflection-heavy or feature-rich DSLs when you only need predictable value filtering. Core traits: minimal syntax (comparisons, basic logical operators, regex, case-insensitive equality), no reflection (caller supplies values via a tiny interface), deterministic errors with positions, and cached regex compilation. This keeps the surface area small while remaining fast and explicit.
+`filter` focuses on one task: evaluating small boolean filter expressions in Go without the weight of a general expression engine. The motivation is to avoid large, reflection-heavy or feature-rich DSLs when you only need predictable value filtering. Core traits: minimal syntax (comparisons, basic logical operators, regex), no reflection (caller supplies values via a tiny interface), deterministic errors with positions, and cached regex compilation. This keeps the surface area small while remaining fast and explicit.
 
 ## Features
 
@@ -20,8 +20,7 @@
 - Values via a one-method `Resolver` interface: `Resolve(name string) (any, bool)`
 - Errors are `*filter.Error` with `Kind`, `Line`, and `Col`
 - Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
-- Case-insensitive equality: `==*` / `!=*`
-- Regex: `=~` / `!~`, case-insensitive: `=~*` / `!~*`
+- Regex: `=~` / `!~`
 - Time literals: RFC 3339, RFC 1123, RFC 850, RFC 822, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, Unix seconds; zone-less forms are UTC
 - Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
 
@@ -218,12 +217,11 @@ Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `20
 
 ### Operators
 
-| Category                  | Operators                   | Description                                          |
-| ------------------------- | --------------------------- | ---------------------------------------------------- |
-| Comparison                | `>` `>=` `<` `<=` `==` `!=` | Strings, integers, times, and durations              |
-| Case-insensitive (string) | `==*` `!=*`                 | Unicode case folding                                 |
-| Regex                     | `=~` `!~` `=~*` `!~*`       | Cached per pattern string; `*` adds case-insensitive |
-| Logical                   | `&&` `\|\|` `!`             | Short-circuit                                        |
+| Category   | Operators                   | Description                             |
+| ---------- | --------------------------- | --------------------------------------- |
+| Comparison | `>` `>=` `<` `<=` `==` `!=` | Strings, integers, times, and durations |
+| Regex      | `=~` `!~`                   | Cached per pattern string               |
+| Logical    | `&&` `\|\|` `!`             | Short-circuit                           |
 
 ## Author
 
