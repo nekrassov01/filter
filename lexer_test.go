@@ -2648,29 +2648,114 @@ test2
 			},
 		},
 		{
-			name:  "date only is not a time",
-			input: "2023-01-02",
+			name:  "date only in comparison",
+			input: "T>=2023-01-02&&x",
 			expected: []token{
 				{
-					typ:  tokenNumber,
-					v:    "2023",
+					typ:  tokenIdent,
+					v:    "T",
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
 				{
-					typ:  tokenNumber,
-					v:    "-01",
-					pos:  4,
+					typ:  tokenGTE,
+					v:    ">=",
+					pos:  1,
 					line: 1,
-					col:  5,
+					col:  2,
 				},
 				{
-					typ:  tokenNumber,
-					v:    "-02",
-					pos:  7,
+					typ:  tokenTime,
+					v:    "2023-01-02",
+					pos:  3,
 					line: 1,
-					col:  8,
+					col:  4,
+				},
+				{
+					typ:  tokenAND,
+					v:    "&&",
+					pos:  13,
+					line: 1,
+					col:  14,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "x",
+					pos:  15,
+					line: 1,
+					col:  16,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  16,
+					line: 1,
+					col:  17,
+				},
+			},
+		},
+		{
+			name:  "date followed by T alone",
+			input: "2023-01-02T",
+			expected: []token{
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "T",
+					pos:  10,
+					line: 1,
+					col:  11,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  11,
+					line: 1,
+					col:  12,
+				},
+			},
+		},
+		{
+			name:  "lowercase zone letter is not part of the time",
+			input: "2023-01-02T15:04:05z",
+			expected: []token{
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02T15:04:05",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+				{
+					typ:  tokenIdent,
+					v:    "z",
+					pos:  19,
+					line: 1,
+					col:  20,
+				},
+				{
+					typ:  tokenEOF,
+					pos:  20,
+					line: 1,
+					col:  21,
+				},
+			},
+		},
+		{
+			name:  "date only",
+			input: "2023-01-02",
+			expected: []token{
+				{
+					typ:  tokenTime,
+					v:    "2023-01-02",
+					pos:  0,
+					line: 1,
+					col:  1,
 				},
 				{
 					typ:  tokenEOF,
@@ -2681,29 +2766,15 @@ test2
 			},
 		},
 		{
-			name:  "lowercase time separator is not a time",
+			name:  "lowercase time separator stops the time at the date",
 			input: "2023-01-02t15:04:05Z",
 			expected: []token{
 				{
-					typ:  tokenNumber,
-					v:    "2023",
+					typ:  tokenTime,
+					v:    "2023-01-02",
 					pos:  0,
 					line: 1,
 					col:  1,
-				},
-				{
-					typ:  tokenNumber,
-					v:    "-01",
-					pos:  4,
-					line: 1,
-					col:  5,
-				},
-				{
-					typ:  tokenNumber,
-					v:    "-02",
-					pos:  7,
-					line: 1,
-					col:  8,
 				},
 				{
 					typ:  tokenIdent,
@@ -2915,90 +2986,158 @@ func Test_lexer_scanEscape(t *testing.T) {
 }
 
 func Test_lexer_scanTime(t *testing.T) {
+	type expected struct {
+		valid   bool
+		matched string
+	}
 	tests := []struct {
 		name     string
 		input    string
-		expected bool
+		expected expected
 	}{
 		{
-			name:     "utc",
-			input:    "2023-01-02T15:04:05Z",
-			expected: true,
+			name:  "utc",
+			input: "2023-01-02T15:04:05Z",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05Z",
+			},
 		},
 		{
-			name:     "utc lower",
-			input:    "2023-01-02T15:04:05z",
-			expected: true,
+			name:  "fraction",
+			input: "2023-01-02T15:04:05.123Z",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05.123Z",
+			},
 		},
 		{
-			name:     "fraction",
-			input:    "2023-01-02T15:04:05.123Z",
-			expected: true,
+			name:  "offset plus",
+			input: "2023-01-02T15:04:05+09:00",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05+09:00",
+			},
 		},
 		{
-			name:     "offset plus",
-			input:    "2023-01-02T15:04:05+09:00",
-			expected: true,
+			name:  "offset minus",
+			input: "2023-01-02T15:04:05-05:00",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05-05:00",
+			},
 		},
 		{
-			name:     "offset minus",
-			input:    "2023-01-02T15:04:05-05:00",
-			expected: true,
+			name:  "no timezone",
+			input: "2023-01-02T15:04:05",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05",
+			},
 		},
 		{
-			name:     "no timezone",
-			input:    "2023-01-02T15:04:05",
-			expected: true,
+			name:  "fraction no timezone",
+			input: "2023-01-02T15:04:05.5",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05.5",
+			},
 		},
 		{
-			name:     "fraction no timezone",
-			input:    "2023-01-02T15:04:05.5",
-			expected: true,
+			name:  "date only",
+			input: "2023-01-02",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02",
+			},
 		},
 		{
-			name:     "date only",
-			input:    "2023-01-02",
-			expected: false,
+			name:  "date followed by space",
+			input: "2023-01-02 15:04:05",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02",
+			},
 		},
 		{
-			name:     "bad date",
-			input:    "2023/01/02T15:04:05Z",
-			expected: false,
+			name:  "date followed by T alone",
+			input: "2023-01-02T",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02",
+			},
 		},
 		{
-			name:     "missing separator",
-			input:    "2023-01-02 15:04:05Z",
-			expected: false,
+			name:  "date followed by T and letters",
+			input: "2023-01-02Tx",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02",
+			},
 		},
 		{
-			name:     "missing seconds",
-			input:    "2023-01-02T15:04",
-			expected: false,
+			name:  "missing seconds stops at the date",
+			input: "2023-01-02T15:04",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02",
+			},
 		},
 		{
-			name:     "bad time",
-			input:    "2023-01-02T15-04-05Z",
-			expected: false,
+			name:  "bad clock stops at the date",
+			input: "2023-01-02T15-04-05Z",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02",
+			},
 		},
 		{
-			name:     "empty fraction",
-			input:    "2023-01-02T15:04:05.Z",
-			expected: false,
+			name:  "lowercase z stops before it",
+			input: "2023-01-02T15:04:05z",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05",
+			},
 		},
 		{
-			name:     "bad offset",
-			input:    "2023-01-02T15:04:05+0900",
-			expected: false,
+			name:  "empty fraction stops before the dot",
+			input: "2023-01-02T15:04:05.Z",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05",
+			},
 		},
 		{
-			name:     "short offset",
-			input:    "2023-01-02T15:04:05+09",
-			expected: false,
+			name:  "bad offset stops before the sign",
+			input: "2023-01-02T15:04:05+0900",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05",
+			},
 		},
 		{
-			name:     "empty",
-			input:    "",
-			expected: false,
+			name:  "short offset stops before the sign",
+			input: "2023-01-02T15:04:05+09",
+			expected: expected{
+				valid:   true,
+				matched: "2023-01-02T15:04:05",
+			},
+		},
+		{
+			name:  "bad date",
+			input: "2023/01/02T15:04:05Z",
+			expected: expected{
+				valid:   false,
+				matched: "",
+			},
+		},
+		{
+			name:  "empty",
+			input: "",
+			expected: expected{
+				valid:   false,
+				matched: "",
+			},
 		},
 	}
 	for _, test := range tests {
@@ -3008,8 +3147,11 @@ func Test_lexer_scanTime(t *testing.T) {
 				pos:   0,
 			}
 			actual := l.scanTime()
-			if actual != test.expected {
-				t.Errorf(testTemplate, test.input, test.expected, actual)
+			if actual != test.expected.valid {
+				t.Errorf(testTemplate, test.input, test.expected.valid, actual)
+			}
+			if actual && test.input[l.startPos:l.pos] != test.expected.matched {
+				t.Errorf(testTemplate, test.input, test.expected.matched, test.input[l.startPos:l.pos])
 			}
 		})
 	}

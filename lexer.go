@@ -283,7 +283,7 @@ func (l *lexer) lexStmt() state {
 		return l.lexAND()
 	case r == '|':
 		return l.lexOR()
-	case unicode.IsDigit(r) || r == '.' || r == '+' || r == '-':
+	case isNumberStart(r):
 		return l.lexNumber()
 	case unicode.IsLetter(r) || r == '_':
 		return l.lexKeywordOrIdent()
@@ -491,7 +491,8 @@ Loop:
 }
 
 // lexNumber scans a time, duration, or number literal, trying them in that
-// order. The leading digit, sign, or dot has already been seen.
+// order, so that 2023-01-02 is a date rather than three numbers.
+// The leading digit, sign, or dot has already been seen.
 func (l *lexer) lexNumber() state {
 	l.backup() // rescan the leading character consumed by lexStmt
 	start := l.mark()
@@ -569,40 +570,44 @@ func (l *lexer) scanHexEscape(digits int) bool {
 	return true
 }
 
-// scanTime scans an RFC 3339 time literal, allowing the time zone to be
-// omitted, and reports whether one was found.
+// scanTime scans a time literal and reports whether one was found: a date
+// (YYYY-MM-DD) optionally followed by 'T' and an RFC 3339 clock time whose
+// zone may be omitted.
 func (l *lexer) scanTime() bool {
 	// Date: YYYY-MM-DD
 	if !l.acceptDigits(4) || !l.accept("-") || !l.acceptDigits(2) || !l.accept("-") || !l.acceptDigits(2) {
 		return false
 	}
-	// 'T' separator
+	// A date alone is a complete literal. Each further part is taken only
+	// when it is complete; otherwise the literal ends before it.
+	date := l.mark()
 	if !l.accept("T") {
-		return false
+		return true
 	}
 	// Time: HH:MM:SS
 	if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
-		return false
+		l.reset(date)
+		return true
 	}
 	// Optional fractional seconds: '.' 1+DIGIT
+	clock := l.mark()
 	if l.accept(".") {
-		r := l.next()
-		if !unicode.IsDigit(r) {
-			return false
+		if !unicode.IsDigit(l.next()) {
+			l.reset(clock)
+			return true
 		}
 		l.acceptRun("0123456789")
 	}
-	// Optional timezone: 'Z'/'z' or (+|-)HH:MM
-	if l.accept("Zz") {
+	// Optional zone: 'Z' or (+|-)HH:MM
+	if l.accept("Z") {
 		return true
 	}
+	zone := l.mark()
 	if l.accept("+-") {
 		if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
-			return false
+			l.reset(zone)
 		}
-		return true
 	}
-	// No timezone provided (allowed by our extension)
 	return true
 }
 
@@ -845,6 +850,11 @@ func width(r rune) int32 {
 	}
 	//nolint:gosec // display width is 1 or 2
 	return int32(max(runewidth.RuneWidth(r), 1))
+}
+
+// isNumberStart reports whether the rune can begin a number, duration, or time literal.
+func isNumberStart(r rune) bool {
+	return unicode.IsDigit(r) || r == '.' || r == '+' || r == '-'
 }
 
 // isSpace reports whether the rune is a space, tab, carriage return, or newline.

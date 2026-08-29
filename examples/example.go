@@ -54,3 +54,16 @@ func (o *Stats) Resolve(name string) (any, bool) {
 		return nil, false
 	}
 }
+
+// Event has a single time value for the time literal examples.
+type Event struct {
+	At time.Time
+}
+
+// Resolve returns the value bound to the identifier.
+func (o *Event) Resolve(name string) (any, bool) {
+	if name == "At" {
+		return o.At, true
+	}
+	return nil, false
+}
