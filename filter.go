@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -139,15 +138,11 @@ func evalString(n *node, v string) (bool, error) {
 	switch n.op.typ {
 	case tokenEQ:
 		return v == n.val.v, nil
-	case tokenEQI:
-		return strings.EqualFold(v, n.val.v), nil
 	case tokenNEQ:
 		return v != n.val.v, nil
-	case tokenNEQI:
-		return !strings.EqualFold(v, n.val.v), nil
-	case tokenREQ, tokenREQI:
+	case tokenREQ:
 		return n.re.MatchString(v), nil
-	case tokenNREQ, tokenNREQI:
+	case tokenNREQ:
 		return !n.re.MatchString(v), nil
 	default:
 		return false, newError(KindEval, n.op, "invalid operator for string value %q", n.op.typ.literal())

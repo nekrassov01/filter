@@ -39,8 +39,8 @@ func TestParse(t *testing.T) {
 			name:  "eqi string",
 			input: `Tag==*"Admin"`,
 			expected: expected{
-				ok:   true,
-				repr: `(Tag ==* "Admin")`,
+				ok:  false,
+				err: `unexpected character U+002A '*'`,
 			},
 		},
 		{
@@ -68,19 +68,19 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name:  "regex case insensitive",
-			input: "Name=~*`A`",
+			name:  "regex with inline flag",
+			input: "Name=~`(?i)A`",
 			expected: expected{
 				ok:   true,
-				repr: `(Name =~* "(?i)A")`,
+				repr: `(Name =~ "(?i)A")`,
 			},
 		},
 		{
-			name:  "regex case insensitive not",
-			input: "Name!~*`A`",
+			name:  "negative regex with inline flag",
+			input: "Name!~`(?i)A`",
 			expected: expected{
 				ok:   true,
-				repr: `(Name !~* "(?i)A")`,
+				repr: `(Name !~ "(?i)A")`,
 			},
 		},
 		// Numbers

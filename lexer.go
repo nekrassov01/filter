@@ -35,13 +35,9 @@ const (
 	tokenLT                         // less than
 	tokenLTE                        // less than or equal to
 	tokenEQ                         // equal to
-	tokenEQI                        // equal to (case insensitive)
 	tokenNEQ                        // not equal to
-	tokenNEQI                       // not equal to (case insensitive)
 	tokenREQ                        // matches regular expression
-	tokenREQI                       // matches regular expression (case insensitive)
 	tokenNREQ                       // does not match regular expression
-	tokenNREQI                      // does not match regular expression (case insensitive)
 	tokenAND                        // logical AND
 	tokenOR                         // logical OR
 	tokenNOT                        // logical NOT
@@ -74,20 +70,12 @@ func (t tokenType) String() string {
 		return "\"less than or equal to\" operator"
 	case tokenEQ:
 		return "\"equal to\" operator"
-	case tokenEQI:
-		return "\"case-insensitive equal to\" operator"
 	case tokenNEQ:
 		return "\"not equal to\" operator"
-	case tokenNEQI:
-		return "\"case-insensitive not equal to\" operator"
 	case tokenREQ:
 		return "regex matching operator"
-	case tokenREQI:
-		return "case-insensitive regex matching operator"
 	case tokenNREQ:
 		return "negative regex matching operator"
-	case tokenNREQI:
-		return "case-insensitive negative regex matching operator"
 	case tokenAND:
 		return "logical AND operator"
 	case tokenOR:
@@ -129,20 +117,12 @@ func (t tokenType) literal() string {
 		return "<="
 	case tokenEQ:
 		return "=="
-	case tokenEQI:
-		return "==*"
 	case tokenNEQ:
 		return "!="
-	case tokenNEQI:
-		return "!=*"
 	case tokenREQ:
 		return "=~"
-	case tokenREQI:
-		return "=~*"
 	case tokenNREQ:
 		return "!~"
-	case tokenNREQI:
-		return "!~*"
 	case tokenAND:
 		return "&&"
 	case tokenOR:
@@ -161,7 +141,7 @@ func (t tokenType) literal() string {
 // isComparisonOperatorType reports whether the token is a comparison operator.
 func (t tokenType) isComparisonOperatorType() bool {
 	switch t {
-	case tokenEQ, tokenEQI, tokenNEQ, tokenNEQI, tokenGT, tokenGTE, tokenLT, tokenLTE, tokenREQ, tokenREQI, tokenNREQ, tokenNREQI:
+	case tokenEQ, tokenNEQ, tokenGT, tokenGTE, tokenLT, tokenLTE, tokenREQ, tokenNREQ:
 		return true
 	default:
 		return false
@@ -171,17 +151,7 @@ func (t tokenType) isComparisonOperatorType() bool {
 // isRegexOperatorType reports whether the token is a regex operator.
 func (t tokenType) isRegexOperatorType() bool {
 	switch t {
-	case tokenREQ, tokenREQI, tokenNREQ, tokenNREQI:
-		return true
-	default:
-		return false
-	}
-}
-
-// isCaseInsensitiveRegexOperatorType reports whether the token is a case-insensitive regex operator.
-func (t tokenType) isCaseInsensitiveRegexOperatorType() bool {
-	switch t {
-	case tokenREQI, tokenNREQI:
+	case tokenREQ, tokenNREQ:
 		return true
 	default:
 		return false
@@ -330,26 +300,16 @@ func (l *lexer) lexRparen() state {
 	return stateStmt
 }
 
-// lexEQ scans the operators starting with '=': ==, ==*, =~, and =~*.
+// lexEQ scans the operators starting with '=': == and =~.
 // The leading '=' has already been seen.
 func (l *lexer) lexEQ() state {
 	switch r := l.peek(); r {
 	case '=':
 		l.next()
-		if r := l.peek(); r == '*' {
-			l.next()
-			l.emit(tokenEQI)
-		} else {
-			l.emit(tokenEQ)
-		}
+		l.emit(tokenEQ)
 	case '~':
 		l.next()
-		if r := l.peek(); r == '*' {
-			l.next()
-			l.emit(tokenREQI)
-		} else {
-			l.emit(tokenREQ)
-		}
+		l.emit(tokenREQ)
 	case eof:
 		return l.errorf("unexpected end of input after '='")
 	default:
@@ -358,26 +318,16 @@ func (l *lexer) lexEQ() state {
 	return stateStmt
 }
 
-// lexNOT scans the operators starting with '!': !=, !=*, !~, !~*, and the
-// unary NOT when no operator character follows. The leading '!' has already been seen.
+// lexNOT scans the operators starting with '!': !=, !~, and the unary NOT
+// when no operator character follows. The leading '!' has already been seen.
 func (l *lexer) lexNOT() state {
 	switch l.peek() {
 	case '=':
 		l.next()
-		if r := l.peek(); r == '*' {
-			l.next()
-			l.emit(tokenNEQI)
-		} else {
-			l.emit(tokenNEQ)
-		}
+		l.emit(tokenNEQ)
 	case '~':
 		l.next()
-		if r := l.peek(); r == '*' {
-			l.next()
-			l.emit(tokenNREQI)
-		} else {
-			l.emit(tokenNREQ)
-		}
+		l.emit(tokenNREQ)
 	default:
 		l.emit(tokenNOT)
 	}
