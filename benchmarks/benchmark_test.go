@@ -25,17 +25,19 @@ var stats = examples.Stats{
 	Speed:      25,
 }
 
-var simple = `Class == "軍師"`
+var (
+	simple = `Class == "軍師"`
 
-var heavy = `
-	Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (
+	heavy = `Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (
 		BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s'
 	) && (
 		HitPoint > "50" && MagicPoint > 100 && LifePoint != 0
 	) && (
 		Magic >= 20 || !(Speed < 20)
-	)
-`
+	)`
+
+	repeated = repeatInput(heavy, 30)
+)
 
 func BenchmarkParseSimple(b *testing.B) {
 	for b.Loop() {
@@ -78,17 +80,15 @@ func BenchmarkEvalHeavy(b *testing.B) {
 }
 
 func BenchmarkParseRepeated(b *testing.B) {
-	input := repeatInput(heavy, 30)
 	for b.Loop() {
-		if _, err := filter.Parse(input); err != nil {
+		if _, err := filter.Parse(repeated); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
 func BenchmarkEvalRepeated(b *testing.B) {
-	input := repeatInput(heavy, 30)
-	expr, err := filter.Parse(input)
+	expr, err := filter.Parse(repeated)
 	if err != nil {
 		b.Fatal(err)
 	}
