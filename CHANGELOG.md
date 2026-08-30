@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.3.0](https://github.com/nekrassov01/filter/compare/v0.2.0...v0.3.0) - 2026-08-30
+
+- Tidy up the lexer by @nekrassov01 in https://github.com/nekrassov01/filter/pull/20
+- Replace Target.Value with Resolver.Resolve by @nekrassov01 in https://github.com/nekrassov01/filter/pull/22
+- Carry error positions in Error by @nekrassov01 in https://github.com/nekrassov01/filter/pull/23
+- Accept more time layouts by @nekrassov01 in https://github.com/nekrassov01/filter/pull/24
+- Drop the case-insensitive operators by @nekrassov01 in https://github.com/nekrassov01/filter/pull/25
+- Scan ASCII bytes directly in the lexer by @nekrassov01 in https://github.com/nekrassov01/filter/pull/26
+- Resolve values as filter.Value by @nekrassov01 in https://github.com/nekrassov01/filter/pull/27
+- Organize files by responsibility by @nekrassov01 in https://github.com/nekrassov01/filter/pull/28
+- Fix literal handling found in the README review by @nekrassov01 in https://github.com/nekrassov01/filter/pull/29
+- Compare against expr and CEL in the benchmarks and README by @nekrassov01 in https://github.com/nekrassov01/filter/pull/30
+
 ## [v0.2.0](https://github.com/nekrassov01/filter/compare/v0.1.1...v0.2.0) - 2026-08-27
 
 - Rename Target.GetField to Value by @nekrassov01 in https://github.com/nekrassov01/filter/pull/14
