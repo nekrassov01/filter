@@ -153,10 +153,14 @@ func evalNumber(n *node, v float64) (bool, error) {
 
 // evalTime evaluates a comparison against a time value.
 func evalTime(n *node, v time.Time) (bool, error) {
-	if !n.hasTime {
-		return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
-	}
 	t := n.time
+	if !n.hasTime {
+		parsed, err := parseTime(n.val.v)
+		if err != nil {
+			return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
+		}
+		t = parsed
+	}
 	switch n.op.typ {
 	case tokenGT:
 		return v.After(t), nil
