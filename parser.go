@@ -121,7 +121,7 @@ func (p *parser) parseExpr() (int32, error) {
 			if err != nil {
 				return 0, err
 			}
-			left = newNodeBinary(p, left, t, right)
+			left = p.addNode(newNodeBinary(left, t, right))
 			continue
 		}
 		break
@@ -145,7 +145,7 @@ func (p *parser) parseAND() (int32, error) {
 			if err != nil {
 				return 0, err
 			}
-			left = newNodeBinary(p, left, t, right)
+			left = p.addNode(newNodeBinary(left, t, right))
 			continue
 		}
 		break
@@ -164,7 +164,7 @@ func (p *parser) parseNOT() (int32, error) {
 		if err != nil {
 			return 0, err
 		}
-		return newNodeNOT(p, child, t), nil
+		return p.addNode(newNodeNOT(child, t)), nil
 	}
 	return p.parsePrimary()
 }
@@ -220,7 +220,7 @@ func (p *parser) parseComparison() (int32, error) {
 	if val.typ == tokenString || val.typ == tokenRawString {
 		val.v = unquote(val)
 	}
-	i := newNodeComparison(p, ident, op, val)
+	i := p.addNode(newNodeComparison(ident, op, val))
 	if op.typ.isRegexOperatorType() {
 		if err := p.cacheRegex(i, val); err != nil {
 			return 0, err
