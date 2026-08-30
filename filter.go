@@ -31,6 +31,7 @@ func MustParse(input string) *Expr {
 }
 
 // Eval evaluates the expression against the values provided by r.
+// An Expr can be evaluated by multiple goroutines at the same time.
 func (e *Expr) Eval(r Resolver) (bool, error) {
 	return eval(&e.expr, r)
 }
