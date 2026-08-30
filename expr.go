@@ -145,7 +145,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 	case tokenEQ:
 		return math.Abs(v-f) <= Epsilon, nil
 	case tokenNEQ:
-		return math.Abs(v-f) > Epsilon, nil
+		return !(math.Abs(v-f) <= Epsilon), nil
 	default:
 		return false, newError(KindEval, n.op, "invalid operator for number value %q", n.op.typ.literal())
 	}
@@ -153,10 +153,14 @@ func evalNumber(n *node, v float64) (bool, error) {
 
 // evalTime evaluates a comparison against a time value.
 func evalTime(n *node, v time.Time) (bool, error) {
-	if !n.hasTime {
-		return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
-	}
 	t := n.time
+	if !n.hasTime {
+		parsed, err := parseTime(n.val.v)
+		if err != nil {
+			return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
+		}
+		t = parsed
+	}
 	switch n.op.typ {
 	case tokenGT:
 		return v.After(t), nil

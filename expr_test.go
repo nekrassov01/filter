@@ -1034,7 +1034,7 @@ func Test_evalNumber(t *testing.T) {
 			},
 		},
 		{
-			name: "nan neq is also false",
+			name: "nan neq is true",
 			args: args{
 				n: &node{
 					op: token{
@@ -1046,7 +1046,7 @@ func Test_evalNumber(t *testing.T) {
 				v: math.NaN(),
 			},
 			want: want{
-				val: false,
+				val: true,
 			},
 		},
 		{
@@ -1187,7 +1187,25 @@ func Test_evalTime(t *testing.T) {
 		want want
 	}{
 		{
-			name: "not cached",
+			name: "not cached is parsed at evaluation",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ: tokenString,
+						v:   "2025-01-01T00:00:00Z",
+					},
+				},
+				v: epoch,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "not cached and invalid",
 			args: args{
 				n: &node{
 					op: token{

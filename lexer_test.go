@@ -3671,6 +3671,16 @@ func Test_lexer_scanDuration(t *testing.T) {
 			},
 		},
 		{
+			name: "microsecond 3",
+			fields: fields{
+				input: "1µs",
+			},
+			want: want{
+				ok:      true,
+				matched: "1µs",
+			},
+		},
+		{
 			name: "nanosecond",
 			fields: fields{
 				input: "1ns",

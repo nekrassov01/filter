@@ -40,7 +40,7 @@ func (e *Error) Error() string {
 	case KindParse:
 		prefix = "parse error"
 	case KindLex:
-		prefix = "token error"
+		prefix = "lex error"
 	default:
 		prefix = "unknown error"
 	}

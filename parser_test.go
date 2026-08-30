@@ -682,7 +682,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:6: unclosed left parenthesis`,
+				err:   `lex error at 1:6: unclosed left parenthesis`,
 			},
 		},
 		{
@@ -910,15 +910,13 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 		},
 		{
-			name: "regex against a number literal is compiled from its text",
+			name: "regex against a number literal",
 			fields: fields{
 				input: `A=~1`,
 			},
 			want: want{
-				val:     `(A =~ 1)`,
-				hasNum:  true,
-				hasTime: true,
-				regex:   true,
+				isErr: true,
+				err:   `parse error at 1:4: expected string pattern, got number: "1"`,
 			},
 		},
 		{
@@ -1039,7 +1037,7 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:3: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:3: unexpected character U+0024 '$'`,
 			},
 		},
 		{
@@ -1049,7 +1047,7 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:4: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:4: unexpected character U+0024 '$'`,
 			},
 		},
 	}
@@ -2232,7 +2230,7 @@ func Test_parser_expect(t *testing.T) {
 					col:  1,
 				},
 				isErr: true,
-				err:   `token error at 1:1: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 	}
@@ -2328,7 +2326,7 @@ func Test_parser_next(t *testing.T) {
 					col:  1,
 				},
 				isErr: true,
-				err:   `token error at 1:1: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 		{
@@ -2345,7 +2343,7 @@ func Test_parser_next(t *testing.T) {
 					col:  1,
 				},
 				isErr: true,
-				err:   `token error at 1:1: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 	}

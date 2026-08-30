@@ -46,7 +46,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:6: unexpected character U+002A '*'`,
+				err:   `lex error at 1:6: unexpected character U+002A '*'`,
 			},
 		},
 		{
@@ -194,7 +194,7 @@ func TestParse(t *testing.T) {
 				input: `Flag!=False`,
 			},
 			want: want{
-				val: `(Flag != False)`,
+				val: `(Flag != false)`,
 			},
 		},
 		// Logic and precedence
@@ -235,6 +235,16 @@ func TestParse(t *testing.T) {
 			},
 		},
 		// Errors
+		{
+			name: "regex with a number pattern",
+			args: args{
+				input: `Name=~1`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:7: expected string pattern, got number: "1"`,
+			},
+		},
 		{
 			name: "regex empty pattern",
 			args: args{
@@ -312,7 +322,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:6: unclosed left parenthesis`,
+				err:   `lex error at 1:6: unclosed left parenthesis`,
 			},
 		},
 		{
@@ -352,7 +362,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:11: unterminated quoted string`,
+				err:   `lex error at 1:11: unterminated quoted string`,
 			},
 		},
 		{
@@ -644,7 +654,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:2: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:2: unexpected character U+0024 '$'`,
 			},
 		},
 		{
@@ -654,7 +664,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:4: unexpected character U+0023 '#'`,
+				err:   `lex error at 1:4: unexpected character U+0023 '#'`,
 			},
 		},
 		// Parenthesis limit
@@ -1646,6 +1656,42 @@ func TestExpr_Eval(t *testing.T) {
 			},
 			want: want{
 				val: true,
+			},
+		},
+		{
+			name: "bool eq uppercase literal",
+			fields: fields{
+				expr: MustParse(`Bool==TRUE`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bool neq capitalized literal",
+			fields: fields{
+				expr: MustParse(`Bool!=False`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "duration with micro sign",
+			fields: fields{
+				expr: MustParse(`Duration>1500000µs`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
 			},
 		},
 		{
