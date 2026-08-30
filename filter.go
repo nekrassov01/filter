@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -9,13 +8,13 @@ import (
 
 // cacheSize is the number of resolved values cached on the stack per evaluation.
 // Expressions with more distinct identifiers fall back to a heap-allocated cache.
-const cacheSize = 8
+const cacheSize = 16
 
-// Resolver resolves an identifier in an expression to its value.
+// Resolver resolves an identifier in an expression to its Value.
 // The second result reports whether the identifier is known; unknown
 // identifiers are reported by Eval as an error with the position.
 type Resolver interface {
-	Resolve(name string) (any, bool)
+	Resolve(name string) (Value, bool)
 }
 
 // Expr represents a parsed expression.
@@ -41,7 +40,7 @@ func (e *Expr) Eval(r Resolver) (bool, error) {
 
 // cached holds a resolved value for reuse within one evaluation.
 type cached struct {
-	v  any
+	v  Value
 	ok bool
 }
 
@@ -96,40 +95,19 @@ func eval(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 }
 
 // evalComparison evaluates a comparison expression against a resolved value.
-func evalComparison(n *node, v any) (bool, error) {
-	switch v := v.(type) {
-	case string:
-		return evalString(n, v)
-	case int:
-		return evalNumber(n, float64(v))
-	case int8:
-		return evalNumber(n, float64(v))
-	case int16:
-		return evalNumber(n, float64(v))
-	case int32:
-		return evalNumber(n, float64(v))
-	case int64:
-		return evalNumber(n, float64(v))
-	case uint:
-		return evalNumber(n, float64(v))
-	case uint8:
-		return evalNumber(n, float64(v))
-	case uint16:
-		return evalNumber(n, float64(v))
-	case uint32:
-		return evalNumber(n, float64(v))
-	case uint64:
-		return evalNumber(n, float64(v))
-	case float32:
-		return evalNumber(n, float64(v))
-	case float64:
-		return evalNumber(n, v)
-	case time.Time:
-		return evalTime(n, v)
-	case time.Duration:
-		return evalDuration(n, v)
+func evalComparison(n *node, v Value) (bool, error) {
+	switch v.kind {
+	case kindString:
+		return evalString(n, v.s)
+	case kindNumber:
+		//nolint:gosec // bit pattern conversion
+		return evalNumber(n, math.Float64frombits(uint64(v.a)))
+	case kindTime:
+		return evalTime(n, time.Unix(v.a, v.b))
+	case kindDuration:
+		return evalDuration(n, time.Duration(v.a))
 	default:
-		return evalString(n, fmt.Sprint(v))
+		return false, newError(KindEval, n.ident, "unknown identifier %q", n.ident.v)
 	}
 }
 

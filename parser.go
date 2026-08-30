@@ -17,7 +17,8 @@ const Epsilon = 1e-9
 // MaxParen is the maximum number of opening parentheses in one expression.
 const MaxParen = 256
 
-// MaxInput is the maximum input length in bytes accepted by Parse.
+// MaxInput is the maximum input length in bytes accepted by Parse. Positions,
+// columns, and node indices are int32; this bound keeps them in range.
 const MaxInput = 1 << 20
 
 // nodeBufSize is the number of nodes a parser holds inline.

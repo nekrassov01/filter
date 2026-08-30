@@ -31,13 +31,24 @@ var testObject = testResolver{
 	"Time":         time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 	"Duration":     1500 * time.Millisecond,
 	"Bool":         true,
+	"Struct":       struct{ X int }{X: 1},
+}
+
+// zeroResolver reports every identifier as known but resolves it to nothing.
+type zeroResolver struct{}
+
+func (zeroResolver) Resolve(string) (Value, bool) {
+	return Value{}, true
 }
 
 type testResolver map[string]any
 
-func (t testResolver) Resolve(name string) (any, bool) {
+func (t testResolver) Resolve(name string) (Value, bool) {
 	v, ok := t[name]
-	return v, ok
+	if !ok {
+		return Value{}, false
+	}
+	return ValueOf(v), true
 }
 
 func TestEval(t *testing.T) {
@@ -461,6 +472,15 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			name:     "other types compare by their formatted text",
+			input:    `Struct=="{1}"`,
+			resolver: testObject,
+			expected: expected{
+				ok:  true,
+				val: true,
+			},
+		},
+		{
 			name:     "string of a lone sign stays a string",
 			input:    `String!="-"`,
 			resolver: testObject,
@@ -719,7 +739,7 @@ func TestEval(t *testing.T) {
 			name: "more identifiers than the inline cache",
 			input: func() string {
 				var b strings.Builder
-				for i := range 10 {
+				for i := range 17 {
 					if i > 0 {
 						b.WriteString(" && ")
 					}
@@ -729,7 +749,7 @@ func TestEval(t *testing.T) {
 			}(),
 			resolver: func() testResolver {
 				t := testResolver{}
-				for i := range 10 {
+				for i := range 17 {
 					t[fmt.Sprintf("F%d", i)] = i
 				}
 				return t
@@ -1151,5 +1171,16 @@ func Test_eval(t *testing.T) {
 				t.Errorf(testTemplate, test.nodes, test.expected, err)
 			}
 		})
+	}
+}
+
+func TestEval_zeroValue(t *testing.T) {
+	expr, err := Parse(`Int==1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = expr.Eval(zeroResolver{})
+	if err == nil || !strings.Contains(err.Error(), `unknown identifier "Int"`) {
+		t.Errorf(testTemplate, `Int==1`, `unknown identifier "Int"`, err)
 	}
 }
