@@ -1683,6 +1683,18 @@ func TestExpr_Eval(t *testing.T) {
 			},
 		},
 		{
+			name: "duration with micro sign",
+			fields: fields{
+				expr: MustParse(`Duration>1500000µs`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
 			name: "bool neq",
 			fields: fields{
 				expr: MustParse(`Bool!=false`).expr,

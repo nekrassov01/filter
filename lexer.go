@@ -439,7 +439,7 @@ func (l *lexer) scanDuration() bool {
 			if l.accept("s") {
 				found = true
 			}
-		case 'μ':
+		case 'µ', 'μ':
 			if l.accept("s") {
 				found = true
 			}
