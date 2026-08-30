@@ -46,7 +46,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:6: unexpected character U+002A '*'`,
+				err:   `lex error at 1:6: unexpected character U+002A '*'`,
 			},
 		},
 		{
@@ -322,7 +322,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:6: unclosed left parenthesis`,
+				err:   `lex error at 1:6: unclosed left parenthesis`,
 			},
 		},
 		{
@@ -362,7 +362,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:11: unterminated quoted string`,
+				err:   `lex error at 1:11: unterminated quoted string`,
 			},
 		},
 		{
@@ -654,7 +654,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:2: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:2: unexpected character U+0024 '$'`,
 			},
 		},
 		{
@@ -664,7 +664,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:4: unexpected character U+0023 '#'`,
+				err:   `lex error at 1:4: unexpected character U+0023 '#'`,
 			},
 		},
 		// Parenthesis limit

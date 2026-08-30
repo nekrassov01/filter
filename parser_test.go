@@ -682,7 +682,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:6: unclosed left parenthesis`,
+				err:   `lex error at 1:6: unclosed left parenthesis`,
 			},
 		},
 		{
@@ -1037,7 +1037,7 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:3: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:3: unexpected character U+0024 '$'`,
 			},
 		},
 		{
@@ -1047,7 +1047,7 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `token error at 1:4: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:4: unexpected character U+0024 '$'`,
 			},
 		},
 	}
@@ -2230,7 +2230,7 @@ func Test_parser_expect(t *testing.T) {
 					col:  1,
 				},
 				isErr: true,
-				err:   `token error at 1:1: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 	}
@@ -2326,7 +2326,7 @@ func Test_parser_next(t *testing.T) {
 					col:  1,
 				},
 				isErr: true,
-				err:   `token error at 1:1: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 		{
@@ -2343,7 +2343,7 @@ func Test_parser_next(t *testing.T) {
 					col:  1,
 				},
 				isErr: true,
-				err:   `token error at 1:1: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 	}

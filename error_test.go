@@ -53,7 +53,7 @@ func TestError_Error(t *testing.T) {
 				Err:  errors.New("unexpected end of input after '='"),
 			},
 			want: want{
-				val: "token error at 1:2: unexpected end of input after '='",
+				val: "lex error at 1:2: unexpected end of input after '='",
 			},
 		},
 		{
@@ -83,7 +83,7 @@ func TestError_Error(t *testing.T) {
 				Err:  errors.New("some lex error"),
 			},
 			want: want{
-				val: "token error: some lex error",
+				val: "lex error: some lex error",
 			},
 		},
 		{
@@ -229,7 +229,7 @@ func Test_newError(t *testing.T) {
 				format: "unclosed left parenthesis",
 			},
 			want: want{
-				val:  "token error at 1:6: unclosed left parenthesis",
+				val:  "lex error at 1:6: unclosed left parenthesis",
 				kind: KindLex,
 				line: 1,
 				col:  6,
