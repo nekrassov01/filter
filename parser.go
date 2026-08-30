@@ -214,6 +214,9 @@ func (p *parser) parseComparison() (int32, error) {
 	if !val.typ.isValueType() {
 		return 0, newError(KindParse, val, "expected value, got %s: %q", val.typ, val.v)
 	}
+	if op.typ.isRegexOperatorType() && !val.typ.isStringType() {
+		return 0, newError(KindParse, val, "expected string pattern, got %s: %q", val.typ, val.v)
+	}
 	switch val.typ {
 	case tokenString, tokenRawString:
 		val.v = unquote(val)

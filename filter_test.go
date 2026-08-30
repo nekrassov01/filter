@@ -236,6 +236,16 @@ func TestParse(t *testing.T) {
 		},
 		// Errors
 		{
+			name: "regex with a number pattern",
+			args: args{
+				input: `Name=~1`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:7: expected string pattern, got number: "1"`,
+			},
+		},
+		{
 			name: "regex empty pattern",
 			args: args{
 				input: `Name=~''`,

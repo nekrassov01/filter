@@ -910,15 +910,13 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 		},
 		{
-			name: "regex against a number literal is compiled from its text",
+			name: "regex against a number literal",
 			fields: fields{
 				input: `A=~1`,
 			},
 			want: want{
-				val:     `(A =~ 1)`,
-				hasNum:  true,
-				hasTime: true,
-				regex:   true,
+				isErr: true,
+				err:   `parse error at 1:4: expected string pattern, got number: "1"`,
 			},
 		},
 		{
