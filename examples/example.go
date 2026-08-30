@@ -1,6 +1,8 @@
 package examples
 
 import (
+	"github.com/nekrassov01/filter"
+
 	"time"
 )
 
@@ -22,36 +24,36 @@ type Stats struct {
 }
 
 // Resolve returns the value bound to the identifier.
-func (o *Stats) Resolve(name string) (any, bool) {
+func (o *Stats) Resolve(name string) (filter.Value, bool) {
 	switch name {
 	case "CLASS", "Class":
-		return o.Class, true
+		return filter.String(o.Class), true
 	case "NAME", "Name":
-		return o.Name, true
+		return filter.String(o.Name), true
 	case "BIRTH", "Birth", "BirthDate":
-		return o.Birth, true
+		return filter.Time(o.Birth), true
 	case "ATB", "Atb", "ActiveTimeBattleGauge":
-		return o.ATBGauge, true
+		return filter.Duration(o.ATBGauge), true
 	case "HP", "Hp", "HitPoint":
-		return o.HitPoint, true
+		return filter.Number(o.HitPoint), true
 	case "SP", "Sp", "SkillPoint":
-		return o.SkillPoint, true
+		return filter.Number(o.SkillPoint), true
 	case "MP", "Mp", "MagicPoint", "SpellPoint":
-		return o.SpellPoint, true
+		return filter.Number(o.SpellPoint), true
 	case "LP", "Lp", "LifePoint":
-		return o.LifePoint, true
+		return filter.Number(float64(o.LifePoint)), true
 	case "STR", "Str", "Strength":
-		return o.Strength, true
+		return filter.Number(float64(o.Strength)), true
 	case "STA", "Sta", "Stamina":
-		return o.Stamina, true
+		return filter.Number(float64(o.Stamina)), true
 	case "DEX", "Dex", "Dexterity":
-		return o.Dexterity, true
+		return filter.Number(float64(o.Dexterity)), true
 	case "MAG", "Mag", "Magic":
-		return o.Magic, true
+		return filter.Number(float64(o.Magic)), true
 	case "SPD", "Spd", "Speed":
-		return o.Speed, true
+		return filter.Number(float64(o.Speed)), true
 	default:
-		return nil, false
+		return filter.Value{}, false
 	}
 }
 
@@ -61,9 +63,9 @@ type Event struct {
 }
 
 // Resolve returns the value bound to the identifier.
-func (o *Event) Resolve(name string) (any, bool) {
+func (o *Event) Resolve(name string) (filter.Value, bool) {
 	if name == "At" {
-		return o.At, true
+		return filter.Time(o.At), true
 	}
-	return nil, false
+	return filter.Value{}, false
 }

@@ -17,7 +17,7 @@
 ## Features
 
 - Comparisons, regex, logical AND / OR / NOT
-- Values via a one-method `Resolver` interface: `Resolve(name string) (any, bool)`
+- Values via a one-method `Resolver` interface: `Resolve(name string) (filter.Value, bool)`
 - Errors are `*filter.Error` with `Kind`, `Line`, and `Col`
 - Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
 - Regex: `=~` / `!~`
@@ -30,7 +30,7 @@
 
 - Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
 - Number, time, and duration RHS literals: validated and converted once during parsing, so malformed literals are reported as parse errors with their position; eval just compares pre‑parsed values. Quoted forms like `"42"`, `"1500ms"`, or `"2023-01-01 09:00:00"` are converted during parsing too when their text reads as a literal, and otherwise at evaluation time when compared against a numeric, time, or duration value.
-- Resolved value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 8 distinct identifiers); referencing the same identifier dozens of times does not add proportional `Resolve` overhead. Expressions where every identifier appears once skip the cache entirely.
+- Resolved value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 16 distinct identifiers); referencing the same identifier dozens of times does not add proportional `Resolve` overhead. Expressions where every identifier appears once skip the cache entirely.
 
 ## Benchmarks
 
@@ -187,18 +187,18 @@ type Record struct {
 }
 
 // Resolve maps an identifier to its value.
-func (r *Record) Resolve(name string) (any, bool) {
+func (r *Record) Resolve(name string) (filter.Value, bool) {
     switch name {
     case "Name":
-        return r.Name, true
+        return filter.String(r.Name), true
     case "Latency":
-        return r.Latency, true
+        return filter.Duration(r.Latency), true
     case "Retries", "RetryCount":
-        return r.Retries, true
+        return filter.Number(float64(r.Retries)), true
     case "Enabled":
-        return r.Enabled, true
+        return filter.Bool(r.Enabled), true
     default:
-        return nil, false
+        return filter.Value{}, false
     }
 }
 
