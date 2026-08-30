@@ -4,7 +4,6 @@
   <p align="center">
     <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
     <a href="https://pkg.go.dev/github.com/nekrassov01/filter"><img src="https://pkg.go.dev/badge/github.com/nekrassov01/filter.svg" alt="Go Reference" /></a>
-    <a href="https://goreportcard.com/report/github.com/nekrassov01/filter"><img src="https://goreportcard.com/badge/github.com/nekrassov01/filter" alt="Go Report Card" /></a>
     <img src="https://img.shields.io/github/license/nekrassov01/filter" alt="LICENSE" />
     <a href="https://deepwiki.com/nekrassov01/filter"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
   </p>
@@ -12,153 +11,14 @@
 
 ## Overview
 
-`filter` focuses on one task: evaluating small boolean filter expressions in Go without the weight of a general expression engine. The motivation is to avoid large, reflection-heavy or feature-rich DSLs when you only need predictable value filtering. Core traits: minimal syntax (comparisons, basic logical operators, regex), no reflection (caller supplies values via a tiny interface), deterministic errors with positions, and cached regex compilation. This keeps the surface area small while remaining fast and explicit.
+`filter` evaluates small boolean filter expressions in Go, faster than expr and CEL on the boolean subset they share \([Benchmarks]\(#benchmarks\)\). It is for the case where one predicate is applied to a stream of values and the check itself must stay cheap: dropping log records that do not match `level == "error" && latency > 500ms` as they arrive, selecting rows from a query result, or deciding which events a subscriber receives. The expression is parsed once, and every evaluation after that only compares.
 
 ## Features
 
-- Comparisons, regex, logical AND / OR / NOT
-- Values via a one-method `Resolver` interface: `Resolve(name string) (filter.Value, bool)`
-- Errors are `*filter.Error` with `Kind`, `Line`, and `Col`
-- Supported types: string, all integer types, float32/64, time.Time, time.Duration, bool
-- Regex: `=~` / `!~`
-- Time literals: RFC 3339, RFC 1123, RFC 850, RFC 822, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, Unix seconds; zone-less forms are UTC
-- Duration literals: `1500ms`, `2s`, `1h30m`, `4000μs`
-
-## Performance
-
-`filter` intentionally does a small amount of work once, so that evaluating an expression many times stays flat:
-
-- Regex literals: compiled exactly once per distinct pattern (process-wide sync cache). Writing the same "foo.*" pattern many times does not multiply compile cost.
-- Number, time, and duration RHS literals: validated and converted once during parsing, so malformed literals are reported as parse errors with their position; eval just compares pre‑parsed values. Quoted forms like `"42"`, `"1500ms"`, or `"2023-01-01 09:00:00"` are converted during parsing too when their text reads as a literal, and otherwise at evaluation time when compared against a numeric, time, or duration value.
-- Resolved value reuse: when an identifier appears more than once, each evaluation caches its value on first use in a small stack buffer (a heap slice only beyond 16 distinct identifiers); referencing the same identifier dozens of times does not add proportional `Resolve` overhead. Expressions where every identifier appears once skip the cache entirely.
-
-## Benchmarks
-
-`filter` is designed to be memory efficient. See [benchmark_test.go](./benchmarks/benchmark_test.go)
-
-### Case 1
-
-Input:
-
-```text
-Class == "軍師"
-```
-
-Result:
-
-```bash
-$ go test -bench Simple$ -benchmem -count 5 -benchtime 10000x ./benchmarks/
-goos: darwin
-goarch: arm64
-pkg: github.com/nekrassov01/filter/benchmarks
-cpu: Apple M2
-BenchmarkParseASCIISimple-8                10000               491.0 ns/op           240 B/op          2 allocs/op
-BenchmarkParseASCIISimple-8                10000               325.8 ns/op           240 B/op          2 allocs/op
-BenchmarkParseASCIISimple-8                10000               321.5 ns/op           240 B/op          2 allocs/op
-BenchmarkParseASCIISimple-8                10000               339.7 ns/op           240 B/op          2 allocs/op
-BenchmarkParseASCIISimple-8                10000               318.7 ns/op           240 B/op          2 allocs/op
-BenchmarkEvalASCIISimple-8                 10000                18.78 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalASCIISimple-8                 10000                19.23 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalASCIISimple-8                 10000                18.33 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalASCIISimple-8                 10000                17.57 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalASCIISimple-8                 10000                18.72 ns/op           16 B/op          1 allocs/op
-BenchmarkParseUnicodeSimple-8              10000               375.7 ns/op           241 B/op          2 allocs/op
-BenchmarkParseUnicodeSimple-8              10000               350.9 ns/op           240 B/op          2 allocs/op
-BenchmarkParseUnicodeSimple-8              10000               328.4 ns/op           240 B/op          2 allocs/op
-BenchmarkParseUnicodeSimple-8              10000               300.8 ns/op           240 B/op          2 allocs/op
-BenchmarkParseUnicodeSimple-8              10000               302.2 ns/op           240 B/op          2 allocs/op
-BenchmarkEvalUnicodeSimple-8               10000                17.00 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalUnicodeSimple-8               10000                17.55 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalUnicodeSimple-8               10000                17.86 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalUnicodeSimple-8               10000                17.26 ns/op           16 B/op          1 allocs/op
-BenchmarkEvalUnicodeSimple-8               10000                17.54 ns/op           16 B/op          1 allocs/op
-PASS
-ok      github.com/nekrassov01/filter/benchmarks        0.397s
-```
-
-### Case 2
-
-Input:
-
-```text
-Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (
-    BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s'
-) && (
-    HitPoint > "50" && MagicPoint > 100 && LifePoint != 0
-) && (
-    Magic >= 20 || !(Speed < 20)
-)
-```
-
-Result:
-
-```bash
-$ go test -bench Heavy$ -benchmem -count 5 -benchtime 10000x ./benchmarks/
-goos: darwin
-goarch: arm64
-pkg: github.com/nekrassov01/filter/benchmarks
-cpu: Apple M2
-BenchmarkParseASCIIHeavy-8         10000              3737 ns/op            6833 B/op          3 allocs/op
-BenchmarkParseASCIIHeavy-8         10000              3642 ns/op            6832 B/op          3 allocs/op
-BenchmarkParseASCIIHeavy-8         10000              3274 ns/op            6832 B/op          3 allocs/op
-BenchmarkParseASCIIHeavy-8         10000              3126 ns/op            6832 B/op          3 allocs/op
-BenchmarkParseASCIIHeavy-8         10000              3104 ns/op            6832 B/op          3 allocs/op
-BenchmarkEvalASCIIHeavy-8          10000               233.6 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalASCIIHeavy-8          10000               237.1 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalASCIIHeavy-8          10000               238.4 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalASCIIHeavy-8          10000               241.7 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalASCIIHeavy-8          10000               230.4 ns/op           307 B/op          7 allocs/op
-BenchmarkParseUnicodeHeavy-8       10000              3189 ns/op            6833 B/op          3 allocs/op
-BenchmarkParseUnicodeHeavy-8       10000              3103 ns/op            6832 B/op          3 allocs/op
-BenchmarkParseUnicodeHeavy-8       10000              3115 ns/op            6832 B/op          3 allocs/op
-BenchmarkParseUnicodeHeavy-8       10000              7892 ns/op            6832 B/op          3 allocs/op
-BenchmarkParseUnicodeHeavy-8       10000              3150 ns/op            6832 B/op          3 allocs/op
-BenchmarkEvalUnicodeHeavy-8        10000               241.4 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalUnicodeHeavy-8        10000               235.1 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalUnicodeHeavy-8        10000               242.2 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalUnicodeHeavy-8        10000               231.4 ns/op           307 B/op          7 allocs/op
-BenchmarkEvalUnicodeHeavy-8        10000               237.6 ns/op           307 B/op          7 allocs/op
-PASS
-ok      github.com/nekrassov01/filter/benchmarks        0.719s
-```
-
-### Case 3
-
-Input:
-
-Concatenate Case 2 with `&&` 30 times
-
-Result:
-
-```bash
-$ go test -bench Repeated$ -benchmem -count 5 -benchtime 10000x ./benchmarks/
-goos: darwin
-goarch: arm64
-pkg: github.com/nekrassov01/filter/benchmarks
-cpu: Apple M2
-BenchmarkParseASCIIRepeated-8              10000             89408 ns/op          180529 B/op          3 allocs/op
-BenchmarkParseASCIIRepeated-8              10000             86024 ns/op          180529 B/op          3 allocs/op
-BenchmarkParseASCIIRepeated-8              10000             87320 ns/op          180528 B/op          3 allocs/op
-BenchmarkParseASCIIRepeated-8              10000             86209 ns/op          180528 B/op          3 allocs/op
-BenchmarkParseASCIIRepeated-8              10000             87820 ns/op          180528 B/op          3 allocs/op
-BenchmarkEvalASCIIRepeated-8               10000              5614 ns/op             304 B/op          7 allocs/op
-BenchmarkEvalASCIIRepeated-8               10000              6135 ns/op             307 B/op          7 allocs/op
-BenchmarkEvalASCIIRepeated-8               10000              5861 ns/op             307 B/op          7 allocs/op
-BenchmarkEvalASCIIRepeated-8               10000              6843 ns/op             307 B/op          7 allocs/op
-BenchmarkEvalASCIIRepeated-8               10000              7280 ns/op             307 B/op          7 allocs/op
-BenchmarkParseUnicodeRepeated-8            10000            110986 ns/op          180531 B/op          3 allocs/op
-BenchmarkParseUnicodeRepeated-8            10000             99490 ns/op          180528 B/op          3 allocs/op
-BenchmarkParseUnicodeRepeated-8            10000             86554 ns/op          180528 B/op          3 allocs/op
-BenchmarkParseUnicodeRepeated-8            10000             93112 ns/op          180528 B/op          3 allocs/op
-BenchmarkParseUnicodeRepeated-8            10000             87269 ns/op          180528 B/op          3 allocs/op
-BenchmarkEvalUnicodeRepeated-8             10000              5316 ns/op             304 B/op          7 allocs/op
-BenchmarkEvalUnicodeRepeated-8             10000              5187 ns/op             307 B/op          7 allocs/op
-BenchmarkEvalUnicodeRepeated-8             10000              5321 ns/op             307 B/op          7 allocs/op
-BenchmarkEvalUnicodeRepeated-8             10000              5626 ns/op             307 B/op          7 allocs/op
-BenchmarkEvalUnicodeRepeated-8             10000              5219 ns/op             307 B/op          7 allocs/op
-PASS
-ok      github.com/nekrassov01/filter/benchmarks        10.079s
-```
+- Evaluation allocates nothing: a heavy predicate takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same predicate is about 10× and 75–90× faster ([Benchmarks](#benchmarks)).
+- Values are supplied through a one-method interface, `Resolve(name string) (filter.Value, bool)`, so nothing is reflected on or copied into maps.
+- Comparison, regular-expression, and logical operators over strings, numbers, times, durations, and booleans; the grammar is listed under [Syntax](#syntax).
+- Errors are `*filter.Error` values that carry the stage (lex, parse, or eval) and the line and column of the offending token.
 
 ## Installation
 
@@ -178,54 +38,153 @@ import (
     "github.com/nekrassov01/filter"
 )
 
-// Record is the example value to filter.
+// Record is one log line.
 type Record struct {
-    Name    string
+    Time    time.Time
+    Level   string
+    Status  int
     Latency time.Duration
-    Retries int
-    Enabled bool
+    Path    string
 }
 
-// Resolve maps an identifier to its value.
+// Resolve maps an identifier to a field of the record.
 func (r *Record) Resolve(name string) (filter.Value, bool) {
     switch name {
-    case "Name":
-        return filter.String(r.Name), true
-    case "Latency":
+    case "time":
+        return filter.Time(r.Time), true
+    case "level":
+        return filter.String(r.Level), true
+    case "status":
+        return filter.Number(float64(r.Status)), true
+    case "latency":
         return filter.Duration(r.Latency), true
-    case "Retries", "RetryCount":
-        return filter.Number(float64(r.Retries)), true
-    case "Enabled":
-        return filter.Bool(r.Enabled), true
+    case "path":
+        return filter.String(r.Path), true
     default:
         return filter.Value{}, false
     }
 }
 
 func main() {
-    input := `Name =~ '^foo' && (Latency < 1500ms || Retries != 0) && Enabled == true`
-
-    expr, err := filter.Parse(input)
+    // Parse once; the expression is reused for every record.
+    expr, err := filter.Parse(`level == "error" || (status >= 500 && latency > 500ms && path !~ '^/health')`)
     if err != nil {
         panic(err)
     }
 
-    record := &Record{
-        Name:    "foobar",
-        Latency: 100 * time.Millisecond,
-        Retries: 3,
-        Enabled: true,
+    records := []Record{
+        {Time: time.Now(), Level: "info", Status: 200, Latency: 12 * time.Millisecond, Path: "/api/users"},
+        {Time: time.Now(), Level: "error", Status: 200, Latency: 8 * time.Millisecond, Path: "/api/orders"},
+        {Time: time.Now(), Level: "warn", Status: 503, Latency: 900 * time.Millisecond, Path: "/api/search"},
+        {Time: time.Now(), Level: "warn", Status: 503, Latency: 900 * time.Millisecond, Path: "/health"},
     }
-
-    ok, err := expr.Eval(record)
-    if err != nil {
-        panic(err)
+    for i := range records {
+        ok, err := expr.Eval(&records[i])
+        if err != nil {
+            panic(err)
+        }
+        if ok {
+            fmt.Println(records[i].Level, records[i].Status, records[i].Path)
+        }
     }
-    fmt.Println("matched:", ok)
+    // Output:
+    // error 200 /api/orders
+    // warn 503 /api/search
 }
 ```
 
+Notes on the API:
+
+- `Parse` returns `*Expr`; `MustParse` panics instead of returning an error, for expressions fixed at build time.
+- An `*Expr` is safe to share: `Eval` can run on it from many goroutines at once.
+- Build values with `filter.String`, `Number`, `Duration`, `Time`, and `Bool`, or `filter.ValueOf(any)` when the value is already dynamically typed.
+- A `Resolve` that returns `false` makes `Eval` fail with `unknown identifier "name"` at the identifier's position.
+- Errors from `Parse` and `Eval` are `*filter.Error`; use `errors.As` to read `Kind`, `Line`, and `Col`.
+
+## Performance
+
+Three choices keep the cost of an evaluation flat as the same expression runs again and again:
+
+- Regex literals are compiled once per distinct pattern in a process-wide cache, so the same pattern in many expressions is compiled once.
+- Number, time, and duration literals are validated and converted during parsing, so a malformed literal is a parse error with a position and evaluation compares ready values. Quoted forms such as `"42"`, `"1500ms"`, or `"2023-01-01 09:00:00"` are converted at parse time too when their text reads as a literal, and otherwise at evaluation time against a number, time, or duration value.
+- Resolved values are reused within an evaluation: when an identifier appears more than once, its value is cached on first use in a small stack buffer (a heap slice only beyond 16 distinct identifiers), so repeating an identifier does not repeat `Resolve`. Expressions where every identifier appears once skip the cache.
+
+## Benchmarks
+
+The same predicates run through `filter`, [expr](https://github.com/expr-lang/expr), and [CEL](https://github.com/google/cel-go). See [benchmark_test.go](./benchmarks/benchmark_test.go) for the inputs and the environments.
+
+> [!NOTE]
+> The three libraries differ in scale and purpose: expr and CEL are general expression languages with type checking, functions, and macros; `filter` covers only the boolean subset they are compared on. Each library is given the cheapest equivalent of the same predicate over the same struct fields (expr reads the time and duration bounds from variables because it has no time or duration literals and its `date()` and `duration()` calls run on every evaluation; CEL folds constants and precompiles regular expressions with `OptOptimize`). Treat the numbers as the cost of that subset, not as a ranking of the libraries.
+
+Two inputs are used, each with an ASCII and a Unicode variant:
+
+| Input  | Expression                                                                                                                                                                                                                            |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Simple | `Class == "軍師"`                                                                                                                                                                                                                     |
+| Heavy  | `Class == "軍師" && Name =~ '^(諸葛亮\|龐統\|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ActiveTimeBattleGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 \|\| !(Speed < 20))` |
+
+Run them from the `benchmarks` module:
+
+```bash
+make bench target=filter      # filter only
+make bench target=comparison  # filter, expr, and CEL
+```
+
+Results on Apple M2, benchstat center of 5 runs at `-benchtime 100000x` (longer than the Makefile default so that start-up effects average out):
+
+| Benchmark            | filter                     | expr                          | CEL                           |
+| -------------------- | -------------------------- | ----------------------------- | ----------------------------- |
+| Parse ASCII Simple   | 314 ns, 192 B, 1 alloc     | 6.9 µs, 11.7 KiB, 81 allocs   | 15.3 µs, 16.4 KiB, 331 allocs |
+| Eval ASCII Simple    | 9.9 ns, 0 B, 0 allocs      | 70.5 ns, 176 B, 1 alloc       | 61.3 ns, 16 B, 1 alloc        |
+| Parse ASCII Heavy    | 3.11 µs, 6.6 KiB, 2 allocs | 31.7 µs, 36.1 KiB, 416 allocs | 240 µs, 215 KiB, 3406 allocs  |
+| Eval ASCII Heavy     | 202 ns, 0 B, 0 allocs      | 358 ns, 177 B, 1 alloc        | 523 ns, 147 B, 9 allocs       |
+| Parse Unicode Simple | 291 ns, 192 B, 1 alloc     | 6.8 µs, 11.7 KiB, 81 allocs   | 22.4 µs, 25.8 KiB, 452 allocs |
+| Eval Unicode Simple  | 10.3 ns, 0 B, 0 allocs     | 72.8 ns, 176 B, 1 alloc       | 64.3 ns, 16 B, 1 alloc        |
+| Parse Unicode Heavy  | 3.08 µs, 6.6 KiB, 2 allocs | 30.5 µs, 33.1 KiB, 404 allocs | 270 µs, 257 KiB, 3955 allocs  |
+| Eval Unicode Heavy   | 192 ns, 0 B, 0 allocs      | 343 ns, 178 B, 1 alloc        | 531 ns, 147 B, 9 allocs       |
+
+<details>
+<summary>Raw output of one run</summary>
+
+```powershell
+$ go test -bench '(Simple|Heavy)(Filter|Expr|CEL)$' -benchmem -count 1 -benchtime 100000x .
+goos: darwin
+goarch: arm64
+pkg: benchmarks
+cpu: Apple M2
+BenchmarkParseASCIISimpleFilter-8         100000               398.6 ns/op           192 B/op          1 allocs/op
+BenchmarkEvalASCIISimpleFilter-8          100000                13.21 ns/op            0 B/op          0 allocs/op
+BenchmarkParseASCIIHeavyFilter-8          100000              3061 ns/op            6784 B/op          2 allocs/op
+BenchmarkEvalASCIIHeavyFilter-8           100000               203.4 ns/op             0 B/op          0 allocs/op
+BenchmarkParseUnicodeSimpleFilter-8       100000               293.5 ns/op           192 B/op          1 allocs/op
+BenchmarkEvalUnicodeSimpleFilter-8        100000                10.09 ns/op            0 B/op          0 allocs/op
+BenchmarkParseUnicodeHeavyFilter-8        100000              3034 ns/op            6784 B/op          2 allocs/op
+BenchmarkEvalUnicodeHeavyFilter-8         100000               192.0 ns/op             0 B/op          0 allocs/op
+BenchmarkParseASCIISimpleExpr-8           100000              6792 ns/op           11982 B/op         81 allocs/op
+BenchmarkEvalASCIISimpleExpr-8            100000                87.51 ns/op          176 B/op          1 allocs/op
+BenchmarkParseASCIIHeavyExpr-8            100000             31863 ns/op           36949 B/op        416 allocs/op
+BenchmarkEvalASCIIHeavyExpr-8             100000               357.1 ns/op           178 B/op          1 allocs/op
+BenchmarkParseUnicodeSimpleExpr-8         100000              6901 ns/op           11982 B/op         81 allocs/op
+BenchmarkEvalUnicodeSimpleExpr-8          100000                75.48 ns/op          176 B/op          1 allocs/op
+BenchmarkParseUnicodeHeavyExpr-8          100000             30428 ns/op           33875 B/op        404 allocs/op
+BenchmarkEvalUnicodeHeavyExpr-8           100000               343.5 ns/op           179 B/op          1 allocs/op
+BenchmarkParseASCIISimpleCEL-8            100000             15382 ns/op           16792 B/op        331 allocs/op
+BenchmarkEvalASCIISimpleCEL-8             100000                62.36 ns/op           16 B/op          1 allocs/op
+BenchmarkParseASCIIHeavyCEL-8             100000            238808 ns/op          219710 B/op       3405 allocs/op
+BenchmarkEvalASCIIHeavyCEL-8              100000               514.3 ns/op           147 B/op          9 allocs/op
+BenchmarkParseUnicodeSimpleCEL-8          100000             22494 ns/op           26461 B/op        452 allocs/op
+BenchmarkEvalUnicodeSimpleCEL-8           100000                62.04 ns/op           16 B/op          1 allocs/op
+BenchmarkParseUnicodeHeavyCEL-8           100000            268782 ns/op          262794 B/op       3955 allocs/op
+BenchmarkEvalUnicodeHeavyCEL-8            100000               504.3 ns/op           146 B/op          9 allocs/op
+PASS
+ok  	benchmarks	63.524s
+```
+
+</details>
+
 ## Syntax
+
+Identifiers are made of Unicode letters, digits, and `_`, with no dots; `true` and `false` in any letter case are literals, not identifiers.
 
 ### Literals
 
@@ -235,9 +194,9 @@ func main() {
 | Number   | `42`, `3.14`, `0x1.fp3`                                                                                                 | Subset of Go numeric literals                           |
 | Time     | `2023-01-01T00:00:00Z`, `2023-01-01T09:00:00`, `2023-01-01`, `'2023-01-01 09:00:00'`, `'Sun, 01 Jan 2023 09:00:00 GMT'` | Zone-less forms are UTC; quote when it contains a space |
 | Duration | `1500ms`, `2s`, `1h30m`, `4000μs`                                                                                       | Go `time.ParseDuration` compatible                      |
-| Boolean  | `true`, `false`, `True`, `FALSE`                                                                                        | Case-insensitive variants accepted                      |
+| Boolean  | `true`, `false`, `True`, `FALSE`                                                                                        | Any letter case; compared as `true` / `false`           |
 
-Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, RFC 1123, RFC 850, RFC 822 (each with a named or numeric zone), and integer Unix seconds. Rules that follow from Go's `time.Parse`:
+Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, RFC 1123 and RFC 822 (each with a named or numeric zone), RFC 850 (named zone), and integer Unix seconds. Rules that follow from Go's `time.Parse`:
 
 - Forms without a zone are read as UTC. A zone abbreviation is accepted only when it is `UTC` or `GMT`; use a numeric offset such as `+0900` for anything else
 - Fractional seconds are accepted after any clock time
@@ -247,11 +206,11 @@ Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `20
 
 ### Operators
 
-| Category   | Operators                   | Description                             |
-| ---------- | --------------------------- | --------------------------------------- |
-| Comparison | `>` `>=` `<` `<=` `==` `!=` | Strings, integers, times, and durations |
-| Regex      | `=~` `!~`                   | Cached per pattern string               |
-| Logical    | `&&` `\|\|` `!`             | Short-circuit                           |
+| Category   | Operators                   | Description                                                                                                    |
+| ---------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Comparison | `>` `>=` `<` `<=` `==` `!=` | Ordering for numbers, times, and durations; equality for all types, within `filter.Epsilon` (1e-9) for numbers |
+| Regex      | `=~` `!~`                   | Go regular-expression syntax; the pattern must be a string literal, the value a string                         |
+| Logical    | `&&` `\|\|` `!`             | Short-circuit                                                                                                  |
 
 ## Author
 
