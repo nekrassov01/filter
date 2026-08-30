@@ -1034,7 +1034,7 @@ func Test_evalNumber(t *testing.T) {
 			},
 		},
 		{
-			name: "nan neq is also false",
+			name: "nan neq is true",
 			args: args{
 				n: &node{
 					op: token{
@@ -1046,7 +1046,7 @@ func Test_evalNumber(t *testing.T) {
 				v: math.NaN(),
 			},
 			want: want{
-				val: false,
+				val: true,
 			},
 		},
 		{

@@ -145,7 +145,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 	case tokenEQ:
 		return math.Abs(v-f) <= Epsilon, nil
 	case tokenNEQ:
-		return math.Abs(v-f) > Epsilon, nil
+		return !(math.Abs(v-f) <= Epsilon), nil
 	default:
 		return false, newError(KindEval, n.op, "invalid operator for number value %q", n.op.typ.literal())
 	}
