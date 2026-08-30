@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// Epsilon is the tolerance within which two numbers compare as equal.
+const Epsilon = 1e-9
+
 // cacheSize is the number of resolved values cached on the stack per evaluation.
 // Expressions with more distinct identifiers fall back to a heap-allocated cache.
 const cacheSize = 16

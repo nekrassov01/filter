@@ -11,9 +11,6 @@ import (
 	"unicode/utf8"
 )
 
-// Epsilon is the tolerance within which two numbers compare as equal.
-const Epsilon = 1e-9
-
 // MaxParen is the maximum number of opening parentheses in one expression.
 const MaxParen = 256
 
