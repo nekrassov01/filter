@@ -21,6 +21,15 @@ func Parse(input string) (*Expr, error) {
 	return &Expr{expr: e}, nil
 }
 
+// MustParse is like Parse but panics if the input cannot be parsed.
+func MustParse(input string) *Expr {
+	e, err := parse(input)
+	if err != nil {
+		panic(err)
+	}
+	return &Expr{expr: e}
+}
+
 // Eval evaluates the expression against the values provided by r.
 func (e *Expr) Eval(r Resolver) (bool, error) {
 	return eval(&e.expr, r)

@@ -663,6 +663,38 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestMustParse(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		panics   bool
+	}{
+		{
+			name:     "valid input",
+			input:    `Name == "a"`,
+			expected: `(Name == "a")`,
+		},
+		{
+			name:   "invalid input",
+			input:  `Name ==`,
+			panics: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); (r != nil) != test.panics {
+					t.Errorf(testTemplate, test.input, test.panics, r)
+				}
+			}()
+			if actual := repr(MustParse(test.input)); actual != test.expected {
+				t.Errorf(testTemplate, test.input, test.expected, actual)
+			}
+		})
+	}
+}
+
 func TestEval(t *testing.T) {
 	type expected struct {
 		ok  bool
