@@ -1,16 +1,23 @@
+// The same predicates run through filter, expr, and CEL, each in its fastest
+// form over the examples.Stats fields: expr reads the time and duration
+// bounds from variables, since its date and duration calls are evaluated on
+// every run; CEL folds constants and precompiles regular expressions.
+
 package benchmarks
 
 import (
-	"strings"
 	"testing"
 	"time"
 
+	"cel.dev/cel-go/cel"
+	"github.com/expr-lang/expr"
+	"github.com/expr-lang/expr/vm"
 	"github.com/nekrassov01/filter"
 	"github.com/nekrassov01/filter/examples"
 )
 
 var (
-	statsASCII = examples.Stats{
+	filterASCII = examples.Stats{
 		Class:      "Knight",
 		Name:       "William Marshal",
 		Birth:      time.Date(1146, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -25,7 +32,7 @@ var (
 		Magic:      2,
 		Speed:      15,
 	}
-	statsUnicode = examples.Stats{
+	filterUnicode = examples.Stats{
 		Class:      "軍師",
 		Name:       "諸葛亮 孔明",
 		Birth:      time.Date(181, 7, 23, 0, 0, 0, 0, time.UTC),
@@ -40,66 +47,156 @@ var (
 		Magic:      25,
 		Speed:      25,
 	}
+	exprASCII = exprEnv{
+		Stats:      filterASCII,
+		BirthLimit: time.Date(1200, 1, 1, 0, 0, 0, 0, time.UTC),
+		MinGauge:   20 * time.Second,
+	}
+	exprUnicode = exprEnv{
+		Stats:      filterUnicode,
+		BirthLimit: time.Date(190, 1, 1, 0, 0, 0, 0, time.UTC),
+		MinGauge:   20 * time.Second,
+	}
+	celASCII = map[string]any{
+		"Class":                 filterASCII.Class,
+		"Name":                  filterASCII.Name,
+		"BirthDate":             filterASCII.Birth,
+		"ActiveTimeBattleGauge": filterASCII.ATBGauge,
+		"HitPoint":              filterASCII.HitPoint,
+		"SkillPoint":            filterASCII.SkillPoint,
+		"MagicPoint":            filterASCII.SpellPoint,
+		"LifePoint":             filterASCII.LifePoint,
+		"Strength":              filterASCII.Strength,
+		"Magic":                 filterASCII.Magic,
+		"Speed":                 filterASCII.Speed,
+	}
+	celUnicode = map[string]any{
+		"Class":                 filterUnicode.Class,
+		"Name":                  filterUnicode.Name,
+		"BirthDate":             filterUnicode.Birth,
+		"ActiveTimeBattleGauge": filterUnicode.ATBGauge,
+		"HitPoint":              filterUnicode.HitPoint,
+		"SkillPoint":            filterUnicode.SkillPoint,
+		"MagicPoint":            filterUnicode.SpellPoint,
+		"LifePoint":             filterUnicode.LifePoint,
+		"Strength":              filterUnicode.Strength,
+		"Magic":                 filterUnicode.Magic,
+		"Speed":                 filterUnicode.Speed,
+	}
 )
 
 var (
-	simpleASCII     = `Class == "Knight"`
-	heavyASCII      = `Class == "Knight" && Name =~ '^(William|Richard|Geoffrey)' && Name != "" && (BirthDate < '1200-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s') && (HitPoint > "50" && SkillPoint > 30 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
-	repeatedASCII   = repeatInput(heavyASCII, 30)
-	simpleUnicode   = `Class == "軍師"`
-	heavyUnicode    = `Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
-	repeatedUnicode = repeatInput(heavyUnicode, 30)
+	filterSimpleASCII   = `Class == "Knight"`
+	filterHeavyASCII    = `Class == "Knight" && Name =~ '^(William|Richard|Geoffrey)' && Name != "" && (BirthDate < 1200-01-01T00:00:00Z && ActiveTimeBattleGauge >= 20s) && (HitPoint > 50 && SkillPoint > 30 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
+	filterSimpleUnicode = `Class == "軍師"`
+	filterHeavyUnicode  = `Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ActiveTimeBattleGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
+	exprSimpleASCII     = `Class == "Knight"`
+	exprHeavyASCII      = `Class == "Knight" && Name matches '^(William|Richard|Geoffrey)' && Name != "" && (Birth < BirthLimit && ATBGauge >= MinGauge) && (HitPoint > 50 && SkillPoint > 30 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
+	exprSimpleUnicode   = `Class == "軍師"`
+	exprHeavyUnicode    = `Class == "軍師" && Name matches '^(諸葛亮|龐統|法正)' && Name != "" && (Birth < BirthLimit && ATBGauge >= MinGauge) && (HitPoint > 50 && SpellPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
+	celSimpleASCII      = `Class == "Knight"`
+	celHeavyASCII       = `Class == "Knight" && Name.matches('^(William|Richard|Geoffrey)') && Name != "" && (BirthDate < timestamp("1200-01-01T00:00:00Z") && ActiveTimeBattleGauge >= duration("20s")) && (HitPoint > 50.0 && SkillPoint > 30.0 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
+	celSimpleUnicode    = `Class == "軍師"`
+	celHeavyUnicode     = `Class == "軍師" && Name.matches('^(諸葛亮|龐統|法正)') && Name != "" && (BirthDate < timestamp("0190-01-01T00:00:00Z") && ActiveTimeBattleGauge >= duration("20s")) && (HitPoint > 50.0 && MagicPoint > 100.0 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
 )
 
-func BenchmarkParseASCIISimple(b *testing.B) {
-	benchmarkParse(b, simpleASCII)
+func BenchmarkParseASCIISimpleFilter(b *testing.B) {
+	benchmarkParseFilter(b, filterSimpleASCII)
 }
 
-func BenchmarkEvalASCIISimple(b *testing.B) {
-	benchmarkEval(b, simpleASCII, &statsASCII)
+func BenchmarkEvalASCIISimpleFilter(b *testing.B) {
+	benchmarkEvalFilter(b, filterSimpleASCII, &filterASCII)
 }
 
-func BenchmarkParseASCIIHeavy(b *testing.B) {
-	benchmarkParse(b, heavyASCII)
+func BenchmarkParseASCIIHeavyFilter(b *testing.B) {
+	benchmarkParseFilter(b, filterHeavyASCII)
 }
 
-func BenchmarkEvalASCIIHeavy(b *testing.B) {
-	benchmarkEval(b, heavyASCII, &statsASCII)
+func BenchmarkEvalASCIIHeavyFilter(b *testing.B) {
+	benchmarkEvalFilter(b, filterHeavyASCII, &filterASCII)
 }
 
-func BenchmarkParseASCIIRepeated(b *testing.B) {
-	benchmarkParse(b, repeatedASCII)
+func BenchmarkParseUnicodeSimpleFilter(b *testing.B) {
+	benchmarkParseFilter(b, filterSimpleUnicode)
 }
 
-func BenchmarkEvalASCIIRepeated(b *testing.B) {
-	benchmarkEval(b, repeatedASCII, &statsASCII)
+func BenchmarkEvalUnicodeSimpleFilter(b *testing.B) {
+	benchmarkEvalFilter(b, filterSimpleUnicode, &filterUnicode)
 }
 
-func BenchmarkParseUnicodeSimple(b *testing.B) {
-	benchmarkParse(b, simpleUnicode)
+func BenchmarkParseUnicodeHeavyFilter(b *testing.B) {
+	benchmarkParseFilter(b, filterHeavyUnicode)
 }
 
-func BenchmarkEvalUnicodeSimple(b *testing.B) {
-	benchmarkEval(b, simpleUnicode, &statsUnicode)
+func BenchmarkEvalUnicodeHeavyFilter(b *testing.B) {
+	benchmarkEvalFilter(b, filterHeavyUnicode, &filterUnicode)
 }
 
-func BenchmarkParseUnicodeHeavy(b *testing.B) {
-	benchmarkParse(b, heavyUnicode)
+func BenchmarkParseASCIISimpleExpr(b *testing.B) {
+	benchmarkParseExpr(b, exprSimpleASCII)
 }
 
-func BenchmarkEvalUnicodeHeavy(b *testing.B) {
-	benchmarkEval(b, heavyUnicode, &statsUnicode)
+func BenchmarkEvalASCIISimpleExpr(b *testing.B) {
+	benchmarkEvalExpr(b, exprSimpleASCII, exprASCII)
 }
 
-func BenchmarkParseUnicodeRepeated(b *testing.B) {
-	benchmarkParse(b, repeatedUnicode)
+func BenchmarkParseASCIIHeavyExpr(b *testing.B) {
+	benchmarkParseExpr(b, exprHeavyASCII)
 }
 
-func BenchmarkEvalUnicodeRepeated(b *testing.B) {
-	benchmarkEval(b, repeatedUnicode, &statsUnicode)
+func BenchmarkEvalASCIIHeavyExpr(b *testing.B) {
+	benchmarkEvalExpr(b, exprHeavyASCII, exprASCII)
 }
 
-func benchmarkParse(b *testing.B, input string) {
+func BenchmarkParseUnicodeSimpleExpr(b *testing.B) {
+	benchmarkParseExpr(b, exprSimpleUnicode)
+}
+
+func BenchmarkEvalUnicodeSimpleExpr(b *testing.B) {
+	benchmarkEvalExpr(b, exprSimpleUnicode, exprUnicode)
+}
+
+func BenchmarkParseUnicodeHeavyExpr(b *testing.B) {
+	benchmarkParseExpr(b, exprHeavyUnicode)
+}
+
+func BenchmarkEvalUnicodeHeavyExpr(b *testing.B) {
+	benchmarkEvalExpr(b, exprHeavyUnicode, exprUnicode)
+}
+
+func BenchmarkParseASCIISimpleCEL(b *testing.B) {
+	benchmarkParseCEL(b, celSimpleASCII)
+}
+
+func BenchmarkEvalASCIISimpleCEL(b *testing.B) {
+	benchmarkEvalCEL(b, celSimpleASCII, celASCII)
+}
+
+func BenchmarkParseASCIIHeavyCEL(b *testing.B) {
+	benchmarkParseCEL(b, celHeavyASCII)
+}
+
+func BenchmarkEvalASCIIHeavyCEL(b *testing.B) {
+	benchmarkEvalCEL(b, celHeavyASCII, celASCII)
+}
+
+func BenchmarkParseUnicodeSimpleCEL(b *testing.B) {
+	benchmarkParseCEL(b, celSimpleUnicode)
+}
+
+func BenchmarkEvalUnicodeSimpleCEL(b *testing.B) {
+	benchmarkEvalCEL(b, celSimpleUnicode, celUnicode)
+}
+
+func BenchmarkParseUnicodeHeavyCEL(b *testing.B) {
+	benchmarkParseCEL(b, celHeavyUnicode)
+}
+
+func BenchmarkEvalUnicodeHeavyCEL(b *testing.B) {
+	benchmarkEvalCEL(b, celHeavyUnicode, celUnicode)
+}
+
+func benchmarkParseFilter(b *testing.B, input string) {
 	for b.Loop() {
 		if _, err := filter.Parse(input); err != nil {
 			b.Fatal(err)
@@ -107,7 +204,7 @@ func benchmarkParse(b *testing.B, input string) {
 	}
 }
 
-func benchmarkEval(b *testing.B, input string, r filter.Resolver) {
+func benchmarkEvalFilter(b *testing.B, input string, r filter.Resolver) {
 	expr, err := filter.Parse(input)
 	if err != nil {
 		b.Fatal(err)
@@ -119,16 +216,92 @@ func benchmarkEval(b *testing.B, input string, r filter.Resolver) {
 	}
 }
 
-func repeatInput(input string, n int) string {
-	if n <= 0 {
-		return input
+func benchmarkParseExpr(b *testing.B, input string) {
+	for b.Loop() {
+		if _, err := expr.Compile(input, expr.Env(exprEnv{}), expr.AsBool()); err != nil {
+			b.Fatal(err)
+		}
 	}
-	var sb strings.Builder
-	sb.Grow(len(input) + n*(len(input)+2))
-	sb.WriteString(input)
-	for range n {
-		sb.WriteString("&&")
-		sb.WriteString(input)
+}
+
+func benchmarkEvalExpr(b *testing.B, input string, e exprEnv) {
+	program, err := expr.Compile(input, expr.Env(exprEnv{}), expr.AsBool())
+	if err != nil {
+		b.Fatal(err)
 	}
-	return sb.String()
+	var v vm.VM
+	for b.Loop() {
+		if out, err := v.Run(program, e); err != nil || out != true {
+			b.Fatal(out, err)
+		}
+	}
+}
+
+func benchmarkParseCEL(b *testing.B, input string) {
+	e := celEnv(b)
+	for b.Loop() {
+		celProgram(b, e, input)
+	}
+}
+
+func benchmarkEvalCEL(b *testing.B, input string, activation map[string]any) {
+	program := celProgram(b, celEnv(b), input)
+	for b.Loop() {
+		if out, _, err := program.Eval(activation); err != nil || out.Value() != true {
+			b.Fatal(out, err)
+		}
+	}
+}
+
+// exprEnv adds the time and duration bounds to Stats as variables, the
+// cheapest form expr offers for values it has no literal for.
+type exprEnv struct {
+	examples.Stats
+
+	BirthLimit time.Time
+	MinGauge   time.Duration
+}
+
+func celEnv(b *testing.B) *cel.Env {
+	e, err := cel.NewEnv(
+		cel.Variable("Class", cel.StringType),
+		cel.Variable("Name", cel.StringType),
+		cel.Variable("BirthDate", cel.TimestampType),
+		cel.Variable("ActiveTimeBattleGauge", cel.DurationType),
+		cel.Variable("HitPoint", cel.DoubleType),
+		cel.Variable("SkillPoint", cel.DoubleType),
+		cel.Variable("MagicPoint", cel.DoubleType),
+		cel.Variable("LifePoint", cel.IntType),
+		cel.Variable("Strength", cel.IntType),
+		cel.Variable("Magic", cel.IntType),
+		cel.Variable("Speed", cel.IntType),
+	)
+	if err != nil {
+		b.Fatal(err)
+	}
+	return e
+}
+
+func celProgram(b *testing.B, e *cel.Env, input string) cel.Program {
+	ast, iss := e.Compile(input)
+	if iss.Err() != nil {
+		b.Fatal(iss.Err())
+	}
+	folding, err := cel.NewConstantFoldingOptimizer()
+	if err != nil {
+		b.Fatal(err)
+	}
+	optimizer, err := cel.NewStaticOptimizer(folding)
+	if err != nil {
+		b.Fatal(err)
+	}
+	ast, iss = optimizer.Optimize(e, ast)
+	if iss.Err() != nil {
+		b.Fatal(iss.Err())
+	}
+	program, err := e.Program(ast, cel.EvalOptions(cel.OptOptimize))
+	if err != nil {
+		b.Fatal(err)
+	}
+	return program
 }

@@ -4,11 +4,13 @@ coverage:
     - coverage-macos-latest
     - coverage-windows-latest
   exclude:
+    - "benchmarks/**"
     - "examples/**"
 codeToTestRatio:
   code:
     - "**/*.go"
     - "!**/*_test.go"
+    - "!benchmarks/**"
     - "!examples/**"
   test:
     - "**/*_test.go"
