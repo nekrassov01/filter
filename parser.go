@@ -11,9 +11,6 @@ import (
 	"unicode/utf8"
 )
 
-// Epsilon is the tolerance within which two numbers compare as equal.
-const Epsilon = 1e-9
-
 // MaxParen is the maximum number of opening parentheses in one expression.
 const MaxParen = 256
 
@@ -46,36 +43,34 @@ var timeLayouts = [...]string{
 // regexMap holds compiled regular expressions keyed by pattern.
 var regexMap sync.Map
 
-// Parse parses input into an Expr that can be evaluated repeatedly.
-func Parse(input string) (*Expr, error) {
+// parse parses input into an expression tree.
+func parse(input string) (expr, error) {
 	if input == "" {
-		return nil, &Error{
+		return expr{}, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("empty input"),
 		}
 	}
 	if len(input) > MaxInput {
-		return nil, &Error{
+		return expr{}, &Error{
 			Kind: KindParse,
 			Err:  fmt.Errorf("input too long: %d bytes exceeds limit %d", len(input), MaxInput),
 		}
 	}
-	p := parser{
-		lexer: newLexer(input),
-	}
+	p := newParser(input)
 	n, err := p.parseExpr()
 	if err != nil {
-		return nil, err
+		return expr{}, err
 	}
 	if t := p.peek(); t.typ != tokenEOF {
-		return nil, newError(KindParse, t, "unexpected token after parsing: %s", t.v)
+		return expr{}, newError(KindParse, t, "unexpected token after parsing: %s", t.v)
 	}
 	nodes := p.nodes
 	if nodes == nil {
 		nodes = make([]node, p.nnode)
 		copy(nodes, p.nodeBuf[:p.nnode])
 	}
-	return &Expr{
+	return expr{
 		nodes:  nodes,
 		root:   n,
 		nident: int(p.nident),
@@ -85,7 +80,7 @@ func Parse(input string) (*Expr, error) {
 
 // parser builds the expression tree for one input. Nodes and identifiers
 // are written into inline buffers by index so that the parser stays on the
-// stack of Parse.
+// stack of parse.
 type parser struct {
 	lexer      lexer                // lexer for tokenizing input
 	current    token                // current token
@@ -98,6 +93,13 @@ type parser struct {
 	idents     []string             // all distinct identifiers once identBuf overflowed
 	nident     int32                // number of distinct identifiers
 	shared     bool                 // some identifier is referenced more than once
+}
+
+// newParser creates a new parser for the input string.
+func newParser(input string) parser {
+	return parser{
+		lexer: newLexer(input),
+	}
 }
 
 // parseExpr parses OR expressions, the lowest precedence level.
@@ -116,7 +118,7 @@ func (p *parser) parseExpr() (int32, error) {
 			if err != nil {
 				return 0, err
 			}
-			left = newNodeBinary(p, left, t, right)
+			left = p.addNode(newNodeBinary(left, t, right))
 			continue
 		}
 		break
@@ -140,7 +142,7 @@ func (p *parser) parseAND() (int32, error) {
 			if err != nil {
 				return 0, err
 			}
-			left = newNodeBinary(p, left, t, right)
+			left = p.addNode(newNodeBinary(left, t, right))
 			continue
 		}
 		break
@@ -159,7 +161,7 @@ func (p *parser) parseNOT() (int32, error) {
 		if err != nil {
 			return 0, err
 		}
-		return newNodeNOT(p, child, t), nil
+		return p.addNode(newNodeNOT(child, t)), nil
 	}
 	return p.parsePrimary()
 }
@@ -215,7 +217,7 @@ func (p *parser) parseComparison() (int32, error) {
 	if val.typ == tokenString || val.typ == tokenRawString {
 		val.v = unquote(val)
 	}
-	i := newNodeComparison(p, ident, op, val)
+	i := p.addNode(newNodeComparison(ident, op, val))
 	if op.typ.isRegexOperatorType() {
 		if err := p.cacheRegex(i, val); err != nil {
 			return 0, err
