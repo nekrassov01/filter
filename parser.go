@@ -214,8 +214,15 @@ func (p *parser) parseComparison() (int32, error) {
 	if !val.typ.isValueType() {
 		return 0, newError(KindParse, val, "expected value, got %s: %q", val.typ, val.v)
 	}
-	if val.typ == tokenString || val.typ == tokenRawString {
+	switch val.typ {
+	case tokenString, tokenRawString:
 		val.v = unquote(val)
+	case tokenBool:
+		if val.v[0] == 't' || val.v[0] == 'T' {
+			val.v = "true"
+		} else {
+			val.v = "false"
+		}
 	}
 	i := p.addNode(newNodeComparison(ident, op, val))
 	if op.typ.isRegexOperatorType() {

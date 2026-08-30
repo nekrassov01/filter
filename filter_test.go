@@ -194,7 +194,7 @@ func TestParse(t *testing.T) {
 				input: `Flag!=False`,
 			},
 			want: want{
-				val: `(Flag != False)`,
+				val: `(Flag != false)`,
 			},
 		},
 		// Logic and precedence
@@ -1640,6 +1640,30 @@ func TestExpr_Eval(t *testing.T) {
 			name: "bool eq",
 			fields: fields{
 				expr: MustParse(`Bool==true`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bool eq uppercase literal",
+			fields: fields{
+				expr: MustParse(`Bool==TRUE`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bool neq capitalized literal",
+			fields: fields{
+				expr: MustParse(`Bool!=False`).expr,
 			},
 			args: args{
 				r: testObject,
