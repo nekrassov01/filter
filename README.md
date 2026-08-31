@@ -1,12 +1,14 @@
 <p align="center">
-  <h2 align="center">FILTER</h2>
+  <img src="./assets/logo.png" alt="filter logo" width="120">
+</p>
+<h1 align="center">FILTER</h1>
+
   <p align="center">The minimal filter expressions for Go</p>
-  <p align="center">
+<p align="center">
     <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
     <a href="https://pkg.go.dev/github.com/nekrassov01/filter"><img src="https://pkg.go.dev/badge/github.com/nekrassov01/filter.svg" alt="Go Reference" /></a>
     <img src="https://img.shields.io/github/license/nekrassov01/filter" alt="LICENSE" />
     <a href="https://deepwiki.com/nekrassov01/filter"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
-  </p>
 </p>
 
 ## Overview
@@ -15,7 +17,7 @@
 
 ## Features
 
-- Evaluation allocates nothing: a heavy predicate takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same predicate is about 10× and 75–90× faster ([Benchmarks](#benchmarks)).
+- Evaluation allocates nothing: a heavy predicate takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same predicate is about 10x and 75–90x faster ([Benchmarks](#benchmarks)).
 - Values are supplied through a one-method interface, `Resolve(name string) (filter.Value, bool)`, so nothing is reflected on or copied into maps.
 - Comparison, regular-expression, and logical operators over strings, numbers, times, durations, and booleans; the grammar is listed under [Syntax](#syntax).
 - Errors are `*filter.Error` values that carry the stage (lex, parse, or eval) and the line and column of the offending token.
