@@ -248,7 +248,6 @@ func (l *lexer) lexSingleQuotedString() state {
 // lexString scans a quoted string up to the matching closing quote,
 // validating escape sequences. The opening quote has already been seen.
 func (l *lexer) lexString(quote rune) state {
-Loop:
 	for {
 		switch l.next() {
 		case utf8.RuneError:
@@ -260,17 +259,15 @@ Loop:
 				return l.errorf("invalid escape sequence in string")
 			}
 		case quote:
-			break Loop
+			l.emit(tokenString)
+			return stateStmt
 		}
 	}
-	l.emit(tokenString)
-	return stateStmt
 }
 
 // lexRawString scans a backtick quoted string.
 // One backtick has already been seen.
 func (l *lexer) lexRawString() state {
-Loop:
 	for {
 		switch l.next() {
 		case utf8.RuneError:
@@ -278,11 +275,10 @@ Loop:
 		case eof:
 			return l.errorf("unterminated raw string")
 		case '`':
-			break Loop
+			l.emit(tokenRawString)
+			return stateStmt
 		}
 	}
-	l.emit(tokenRawString)
-	return stateStmt
 }
 
 // lexNumber scans a time, duration, or number literal, trying them in that
@@ -311,24 +307,23 @@ func (l *lexer) lexNumber() state {
 func (l *lexer) lexKeywordOrIdent() state {
 	// ASCII bytes advance without decoding; anything else takes the rune path.
 	for int(l.pos) < len(l.input) {
-		b := l.input[l.pos]
-		if b >= utf8.RuneSelf {
+		c := l.input[l.pos]
+		if c >= utf8.RuneSelf {
+			for {
+				r := l.next()
+				if !isAlphaNumeric(r) && r != '_' {
+					l.backup()
+					break
+				}
+			}
 			break
 		}
-		if !('a' <= b && b <= 'z' || 'A' <= b && b <= 'Z' || '0' <= b && b <= '9' || b == '_') {
-			goto emit
+		if !('a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '_') {
+			break
 		}
 		l.pos++
 		l.col++
 	}
-	for {
-		r := l.next()
-		if !isAlphaNumeric(r) && r != '_' {
-			l.backup()
-			break
-		}
-	}
-emit:
 	if isBoolLiteral(l.input[l.startPos:l.pos]) {
 		l.emit(tokenBool)
 		return stateStmt
