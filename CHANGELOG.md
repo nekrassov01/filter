@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.3.1](https://github.com/nekrassov01/filter/compare/v0.3.0...v0.3.1) - 2026-08-31
+
+- Remove gotos and labeled breaks from the lexer by @nekrassov01 in https://github.com/nekrassov01/filter/pull/31
+- Add a logo by @nekrassov01 in https://github.com/nekrassov01/filter/pull/33
+
 ## [v0.3.0](https://github.com/nekrassov01/filter/compare/v0.2.0...v0.3.0) - 2026-08-30
 
 - Tidy up the lexer by @nekrassov01 in https://github.com/nekrassov01/filter/pull/20
