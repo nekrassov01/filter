@@ -35,7 +35,7 @@
 
 ## Features
 
-- Evaluation allocates nothing: a heavy predicate takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same predicate is about 10x and 78–88x faster ([Benchmarks](#benchmarks)).
+- Evaluation allocates nothing: a heavy expression takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same expression is about 10x and 78–88x faster ([Benchmarks](#benchmarks)).
 - Values are supplied through a one-method interface, `Resolve(name string) (filter.Value, bool)`, so nothing is reflected on or copied into maps.
 - Comparison, regular-expression, and logical operators over strings, numbers, times, durations, and booleans; the grammar is listed under [Syntax](#syntax).
 - Errors are `*filter.Error` values that carry the stage (lex, parse, or eval) and the line and column of the offending token.
@@ -143,12 +143,12 @@ Three choices keep the cost of an evaluation flat as the same expression runs ag
 
 ## Benchmarks
 
-The same predicates run through `filter`, [expr](https://github.com/expr-lang/expr), and [CEL](https://github.com/google/cel-go). See [benchmark_test.go](./benchmarks/benchmark_test.go) for the inputs and the environments.
+The same expressions run through `filter`, [expr](https://github.com/expr-lang/expr), and [CEL](https://github.com/google/cel-go). See [benchmark_test.go](./benchmarks/benchmark_test.go) for the inputs and the environments.
 
 ### Setup
 
 > [!NOTE]
-> The three libraries differ in scale and purpose: expr and CEL are general expression languages with type checking, functions, and macros; `filter` covers only the boolean subset they are compared on. Each library is given the cheapest equivalent of the same predicate over the same struct fields (expr reads the time and duration bounds from variables because it has no time or duration literals and its `date()` and `duration()` calls run on every evaluation; CEL folds constants and precompiles regular expressions with `OptOptimize`). Treat the numbers as the cost of that subset, not as a ranking of the libraries.
+> The three libraries differ in scale and purpose: expr and CEL are general expression languages with type checking, functions, and macros; `filter` covers only the boolean subset they are compared on. Each library is given the cheapest equivalent of the same expression over the same struct fields (expr reads the time and duration bounds from variables because it has no time or duration literals and its `date()` and `duration()` calls run on every evaluation; CEL folds constants and precompiles regular expressions with `OptOptimize`). Treat the numbers as the cost of that subset, not as a ranking of the libraries.
 
 Two inputs are used, each with an ASCII and a Unicode variant:
 
