@@ -58,46 +58,46 @@ var (
 		MinGauge:   20 * time.Second,
 	}
 	celASCII = map[string]any{
-		"Class":                 filterASCII.Class,
-		"Name":                  filterASCII.Name,
-		"BirthDate":             filterASCII.Birth,
-		"ActiveTimeBattleGauge": filterASCII.ATBGauge,
-		"HitPoint":              filterASCII.HitPoint,
-		"SkillPoint":            filterASCII.SkillPoint,
-		"MagicPoint":            filterASCII.SpellPoint,
-		"LifePoint":             filterASCII.LifePoint,
-		"Strength":              filterASCII.Strength,
-		"Magic":                 filterASCII.Magic,
-		"Speed":                 filterASCII.Speed,
+		"Class":      filterASCII.Class,
+		"Name":       filterASCII.Name,
+		"BirthDate":  filterASCII.Birth,
+		"ATBGauge":   filterASCII.ATBGauge,
+		"HitPoint":   filterASCII.HitPoint,
+		"SkillPoint": filterASCII.SkillPoint,
+		"MagicPoint": filterASCII.SpellPoint,
+		"LifePoint":  filterASCII.LifePoint,
+		"Strength":   filterASCII.Strength,
+		"Magic":      filterASCII.Magic,
+		"Speed":      filterASCII.Speed,
 	}
 	celUnicode = map[string]any{
-		"Class":                 filterUnicode.Class,
-		"Name":                  filterUnicode.Name,
-		"BirthDate":             filterUnicode.Birth,
-		"ActiveTimeBattleGauge": filterUnicode.ATBGauge,
-		"HitPoint":              filterUnicode.HitPoint,
-		"SkillPoint":            filterUnicode.SkillPoint,
-		"MagicPoint":            filterUnicode.SpellPoint,
-		"LifePoint":             filterUnicode.LifePoint,
-		"Strength":              filterUnicode.Strength,
-		"Magic":                 filterUnicode.Magic,
-		"Speed":                 filterUnicode.Speed,
+		"Class":      filterUnicode.Class,
+		"Name":       filterUnicode.Name,
+		"BirthDate":  filterUnicode.Birth,
+		"ATBGauge":   filterUnicode.ATBGauge,
+		"HitPoint":   filterUnicode.HitPoint,
+		"SkillPoint": filterUnicode.SkillPoint,
+		"MagicPoint": filterUnicode.SpellPoint,
+		"LifePoint":  filterUnicode.LifePoint,
+		"Strength":   filterUnicode.Strength,
+		"Magic":      filterUnicode.Magic,
+		"Speed":      filterUnicode.Speed,
 	}
 )
 
 var (
 	filterSimpleASCII   = `Class == "Knight"`
-	filterHeavyASCII    = `Class == "Knight" && Name =~ '^(William|Richard|Geoffrey)' && Name != "" && (BirthDate < 1200-01-01T00:00:00Z && ActiveTimeBattleGauge >= 20s) && (HitPoint > 50 && SkillPoint > 30 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
+	filterHeavyASCII    = `Class == "Knight" && Name =~ '^(William|Richard|Geoffrey)' && Name != "" && (BirthDate < 1200-01-01T00:00:00Z && ATBGauge >= 20s) && (HitPoint > 50 && SkillPoint > 30 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
 	filterSimpleUnicode = `Class == "軍師"`
-	filterHeavyUnicode  = `Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ActiveTimeBattleGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
+	filterHeavyUnicode  = `Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
 	exprSimpleASCII     = `Class == "Knight"`
 	exprHeavyASCII      = `Class == "Knight" && Name matches '^(William|Richard|Geoffrey)' && Name != "" && (Birth < BirthLimit && ATBGauge >= MinGauge) && (HitPoint > 50 && SkillPoint > 30 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
 	exprSimpleUnicode   = `Class == "軍師"`
 	exprHeavyUnicode    = `Class == "軍師" && Name matches '^(諸葛亮|龐統|法正)' && Name != "" && (Birth < BirthLimit && ATBGauge >= MinGauge) && (HitPoint > 50 && SpellPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
 	celSimpleASCII      = `Class == "Knight"`
-	celHeavyASCII       = `Class == "Knight" && Name.matches('^(William|Richard|Geoffrey)') && Name != "" && (BirthDate < timestamp("1200-01-01T00:00:00Z") && ActiveTimeBattleGauge >= duration("20s")) && (HitPoint > 50.0 && SkillPoint > 30.0 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
+	celHeavyASCII       = `Class == "Knight" && Name.matches('^(William|Richard|Geoffrey)') && Name != "" && (BirthDate < timestamp("1200-01-01T00:00:00Z") && ATBGauge >= duration("20s")) && (HitPoint > 50.0 && SkillPoint > 30.0 && LifePoint != 0) && (Strength >= 20 || !(Speed < 20))`
 	celSimpleUnicode    = `Class == "軍師"`
-	celHeavyUnicode     = `Class == "軍師" && Name.matches('^(諸葛亮|龐統|法正)') && Name != "" && (BirthDate < timestamp("0190-01-01T00:00:00Z") && ActiveTimeBattleGauge >= duration("20s")) && (HitPoint > 50.0 && MagicPoint > 100.0 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
+	celHeavyUnicode     = `Class == "軍師" && Name.matches('^(諸葛亮|龐統|法正)') && Name != "" && (BirthDate < timestamp("0190-01-01T00:00:00Z") && ATBGauge >= duration("20s")) && (HitPoint > 50.0 && MagicPoint > 100.0 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`
 )
 
 func BenchmarkParseASCIISimpleFilter(b *testing.B) {
@@ -267,7 +267,7 @@ func celEnv(b *testing.B) *cel.Env {
 		cel.Variable("Class", cel.StringType),
 		cel.Variable("Name", cel.StringType),
 		cel.Variable("BirthDate", cel.TimestampType),
-		cel.Variable("ActiveTimeBattleGauge", cel.DurationType),
+		cel.Variable("ATBGauge", cel.DurationType),
 		cel.Variable("HitPoint", cel.DoubleType),
 		cel.Variable("SkillPoint", cel.DoubleType),
 		cel.Variable("MagicPoint", cel.DoubleType),

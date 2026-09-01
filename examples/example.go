@@ -32,7 +32,7 @@ func (o *Stats) Resolve(name string) (filter.Value, bool) {
 		return filter.String(o.Name), true
 	case "BIRTH", "Birth", "BirthDate":
 		return filter.Time(o.Birth), true
-	case "ATB", "Atb", "ActiveTimeBattleGauge":
+	case "ATB", "Atb", "ATBGauge":
 		return filter.Duration(o.ATBGauge), true
 	case "HP", "Hp", "HitPoint":
 		return filter.Number(o.HitPoint), true
