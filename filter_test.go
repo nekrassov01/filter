@@ -272,7 +272,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:4: expected comparison operator, got number: "50"`,
+				err:   `parse error at 1:4: expected predicate operator, got number: "50"`,
 			},
 		},
 		{
@@ -372,7 +372,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:5: expected comparison operator, got EOF: ""`,
+				err:   `parse error at 1:5: expected predicate operator, got EOF: ""`,
 			},
 		},
 		{
@@ -638,7 +638,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "parseComparison expect ident failure",
+			name: "parsePredicate expect ident failure",
 			args: args{
 				input: `==1`,
 			},
@@ -648,7 +648,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "parseComparison operator next failure",
+			name: "parsePredicate operator next failure",
 			args: args{
 				input: `A$1`,
 			},
@@ -658,7 +658,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "parseComparison value next failure",
+			name: "parsePredicate value next failure",
 			args: args{
 				input: `A==#`,
 			},

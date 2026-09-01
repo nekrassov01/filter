@@ -68,15 +68,15 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		default:
 			return false, newError(KindEval, n.op, "invalid logical operator %q", n.op.typ.literal())
 		}
-	case nodeNOT:
+	case nodeUnary:
 		v, err := evalNode(nodes, n.left, r, cache)
 		if err != nil {
 			return false, err
 		}
 		return !v, nil
-	case nodeComparison:
+	case nodePredicate:
 		if cache != nil && cache[n.ident.idx].ok {
-			return evalComparison(n, cache[n.ident.idx].v)
+			return evalPredicate(n, cache[n.ident.idx].v)
 		}
 		v, ok := r.Resolve(n.ident.v)
 		if !ok {
@@ -85,13 +85,13 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		if cache != nil {
 			cache[n.ident.idx] = cached{v: v, ok: true}
 		}
-		return evalComparison(n, v)
+		return evalPredicate(n, v)
 	}
 	return false, newError(KindEval, n.op, "invalid node type %q", n.op.typ)
 }
 
-// evalComparison evaluates a comparison expression against a resolved value.
-func evalComparison(n *node, v Value) (bool, error) {
+// evalPredicate evaluates a predicate against a resolved value.
+func evalPredicate(n *node, v Value) (bool, error) {
 	switch v.kind {
 	case kindString:
 		return evalString(n, v.s)
@@ -107,7 +107,7 @@ func evalComparison(n *node, v Value) (bool, error) {
 	}
 }
 
-// evalString evaluates a comparison against a string value.
+// evalString evaluates the predicate against a string value.
 func evalString(n *node, v string) (bool, error) {
 	switch n.op.typ {
 	case tokenEQ:
@@ -123,7 +123,7 @@ func evalString(n *node, v string) (bool, error) {
 	}
 }
 
-// evalNumber evaluates a comparison against a numeric value.
+// evalNumber evaluates the predicate against a numeric value.
 func evalNumber(n *node, v float64) (bool, error) {
 	f := n.num
 	if !n.hasNum {
@@ -151,7 +151,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 	}
 }
 
-// evalTime evaluates a comparison against a time value.
+// evalTime evaluates the predicate against a time value.
 func evalTime(n *node, v time.Time) (bool, error) {
 	t := n.time
 	if !n.hasTime {
@@ -179,7 +179,7 @@ func evalTime(n *node, v time.Time) (bool, error) {
 	}
 }
 
-// evalDuration evaluates a comparison against a duration value.
+// evalDuration evaluates the predicate against a duration value.
 func evalDuration(n *node, v time.Duration) (bool, error) {
 	d := n.dur
 	if !n.hasDur {

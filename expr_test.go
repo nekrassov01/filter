@@ -257,7 +257,7 @@ func Test_evalNode(t *testing.T) {
 	}
 }
 
-func Test_evalComparison(t *testing.T) {
+func Test_evalPredicate(t *testing.T) {
 	type args struct {
 		n *node
 		v Value
@@ -276,7 +276,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "string",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					op: token{
 						typ: tokenEQ,
 					},
@@ -295,7 +295,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "number",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					op: token{
 						typ: tokenGT,
 					},
@@ -312,7 +312,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "time",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					op: token{
 						typ: tokenLT,
 					},
@@ -329,7 +329,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "duration",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					op: token{
 						typ: tokenNEQ,
 					},
@@ -346,7 +346,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "bool compares as string",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					op: token{
 						typ: tokenEQ,
 					},
@@ -365,7 +365,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "zero value",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					ident: token{
 						typ:  tokenIdent,
 						v:    "HP",
@@ -387,7 +387,7 @@ func Test_evalComparison(t *testing.T) {
 			name: "unexpected kind",
 			args: args{
 				n: &node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					ident: token{
 						typ:  tokenIdent,
 						v:    "HP",
@@ -410,7 +410,7 @@ func Test_evalComparison(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := evalComparison(test.args.n, test.args.v)
+			got, err := evalPredicate(test.args.n, test.args.v)
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)

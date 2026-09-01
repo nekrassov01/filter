@@ -357,7 +357,7 @@ func Test_tokenType_literal(t *testing.T) {
 	}
 }
 
-func Test_tokenType_isComparisonOperatorType(t *testing.T) {
+func Test_tokenType_isPredicateOperatorType(t *testing.T) {
 	type want struct {
 		val bool
 	}
@@ -530,7 +530,7 @@ func Test_tokenType_isComparisonOperatorType(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := test.tr.isComparisonOperatorType()
+			got := test.tr.isPredicateOperatorType()
 			if got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}

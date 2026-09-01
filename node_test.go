@@ -23,16 +23,16 @@ func Test_nodeType_String(t *testing.T) {
 		},
 		{
 			name: "not",
-			tr:   nodeNOT,
+			tr:   nodeUnary,
 			want: want{
-				val: "not node",
+				val: "unary node",
 			},
 		},
 		{
-			name: "comparison",
-			tr:   nodeComparison,
+			name: "predicate",
+			tr:   nodePredicate,
 			want: want{
-				val: "comparison node",
+				val: "predicate node",
 			},
 		},
 		{
@@ -141,7 +141,7 @@ func Test_newNodeBinary(t *testing.T) {
 	}
 }
 
-func Test_newNodeNOT(t *testing.T) {
+func Test_newNodeUnary(t *testing.T) {
 	type args struct {
 		child int32
 		op    token
@@ -168,7 +168,7 @@ func Test_newNodeNOT(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ:  nodeNOT,
+					typ:  nodeUnary,
 					left: 2,
 					op: token{
 						typ:  tokenNOT,
@@ -190,7 +190,7 @@ func Test_newNodeNOT(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeNOT,
+					typ: nodeUnary,
 					op: token{
 						typ: tokenNOT,
 					},
@@ -200,7 +200,7 @@ func Test_newNodeNOT(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := newNodeNOT(test.args.child, test.args.op)
+			got := newNodeUnary(test.args.child, test.args.op)
 			if !reflect.DeepEqual(got, test.want.val) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
@@ -208,7 +208,7 @@ func Test_newNodeNOT(t *testing.T) {
 	}
 }
 
-func Test_newNodeComparison(t *testing.T) {
+func Test_newNodePredicate(t *testing.T) {
 	type args struct {
 		ident token
 		op    token
@@ -223,7 +223,7 @@ func Test_newNodeComparison(t *testing.T) {
 		want want
 	}{
 		{
-			name: "string comparison",
+			name: "string predicate",
 			args: args{
 				ident: token{
 					typ:  tokenIdent,
@@ -248,7 +248,7 @@ func Test_newNodeComparison(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					ident: token{
 						typ:  tokenIdent,
 						v:    "Name",
@@ -291,7 +291,7 @@ func Test_newNodeComparison(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 					ident: token{
 						typ: tokenIdent,
 						v:   "HP",
@@ -317,14 +317,14 @@ func Test_newNodeComparison(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 				},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := newNodeComparison(test.args.ident, test.args.op, test.args.val)
+			got := newNodePredicate(test.args.ident, test.args.op, test.args.val)
 			if !reflect.DeepEqual(got, test.want.val) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
