@@ -68,7 +68,7 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		default:
 			return false, newError(KindEval, n.op, "invalid logical operator %q", n.op.typ.literal())
 		}
-	case nodeNOT:
+	case nodeUnary:
 		v, err := evalNode(nodes, n.left, r, cache)
 		if err != nil {
 			return false, err

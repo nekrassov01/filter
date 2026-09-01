@@ -11,7 +11,7 @@ type nodeType uint8
 // Node types of the expression tree.
 const (
 	nodeBinary    nodeType = iota // binary operator node type
-	nodeNOT                       // logical NOT node type
+	nodeUnary                     // unary NOT node type
 	nodePredicate                 // predicate node type
 )
 
@@ -20,8 +20,8 @@ func (t nodeType) String() string {
 	switch t {
 	case nodeBinary:
 		return "binary node"
-	case nodeNOT:
-		return "not node"
+	case nodeUnary:
+		return "unary node"
 	case nodePredicate:
 		return "predicate node"
 	}
@@ -60,10 +60,10 @@ func newNodeBinary(left int32, op token, right int32) node {
 	}
 }
 
-// newNodeNOT creates a new NOT expression node.
-func newNodeNOT(child int32, op token) node {
+// newNodeUnary creates a new unary NOT node.
+func newNodeUnary(child int32, op token) node {
 	return node{
-		typ:  nodeNOT,
+		typ:  nodeUnary,
 		left: child,
 		op:   op,
 	}

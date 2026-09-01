@@ -61,7 +61,7 @@ func repr(e *Expr) string {
 		switch n.typ {
 		case nodeBinary:
 			return "(" + walk(n.left) + " " + n.op.typ.literal() + " " + walk(n.right) + ")"
-		case nodeNOT:
+		case nodeUnary:
 			return "(! " + walk(n.left) + ")"
 		case nodePredicate:
 			return "(" + n.ident.v + " " + n.op.typ.literal() + " " + val(n.val) + ")"

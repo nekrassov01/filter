@@ -2103,7 +2103,7 @@ func Test_parser_node(t *testing.T) {
 						typ: nodePredicate,
 					},
 					{
-						typ: nodeNOT,
+						typ: nodeUnary,
 					},
 				},
 			},
@@ -2146,7 +2146,7 @@ func Test_parser_node(t *testing.T) {
 				},
 				nodes: []node{
 					{
-						typ: nodeNOT,
+						typ: nodeUnary,
 					},
 				},
 			},
@@ -2155,7 +2155,7 @@ func Test_parser_node(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeNOT,
+					typ: nodeUnary,
 				},
 			},
 		},

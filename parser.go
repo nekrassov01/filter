@@ -166,7 +166,7 @@ func (p *parser) parseUnary() (int32, error) {
 		if err != nil {
 			return 0, err
 		}
-		return p.addNode(newNodeNOT(child, t)), nil
+		return p.addNode(newNodeUnary(child, t)), nil
 	}
 	return p.parsePrimary()
 }
