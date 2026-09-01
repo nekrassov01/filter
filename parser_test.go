@@ -241,6 +241,62 @@ func Test_parser_parseExpr(t *testing.T) {
 		want   want
 	}{
 		{
+			name: "delegates to the or level",
+			fields: fields{
+				input: `A==1 || B==2 && C==3`,
+			},
+			want: want{
+				val: `((A == 1) || ((B == 2) && (C == 3)))`,
+			},
+		},
+		{
+			name: "propagates errors",
+			fields: fields{
+				input: `A==`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:4: expected value, got EOF: ""`,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := newParser(test.fields.input)
+			got, err := p.parseExpr()
+			isErr := err != nil
+			if isErr != test.want.isErr {
+				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
+				return
+			}
+			if isErr {
+				if err.Error() != test.want.err {
+					t.Errorf("error mismatch\ngot=%v\nwant=%v\n", err, test.want.err)
+				}
+				return
+			}
+			if actual := reprAt(&p, got); actual != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", actual, test.want.val)
+			}
+		})
+	}
+}
+
+func Test_parser_parseLogicalOr(t *testing.T) {
+	type fields struct {
+		input string
+	}
+	type want struct {
+		val   string
+		isErr bool
+		err   string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
 			name: "single comparison",
 			fields: fields{
 				input: `A==1`,
@@ -338,7 +394,7 @@ func Test_parser_parseExpr(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := newParser(test.fields.input)
-			got, err := p.parseExpr()
+			got, err := p.parseLogicalOr()
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
@@ -357,7 +413,7 @@ func Test_parser_parseExpr(t *testing.T) {
 	}
 }
 
-func Test_parser_parseAND(t *testing.T) {
+func Test_parser_parseLogicalAnd(t *testing.T) {
 	type fields struct {
 		input string
 	}
@@ -450,7 +506,7 @@ func Test_parser_parseAND(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := newParser(test.fields.input)
-			got, err := p.parseAND()
+			got, err := p.parseLogicalAnd()
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
@@ -469,7 +525,7 @@ func Test_parser_parseAND(t *testing.T) {
 	}
 }
 
-func Test_parser_parseNOT(t *testing.T) {
+func Test_parser_parseUnary(t *testing.T) {
 	type fields struct {
 		input string
 	}
@@ -572,7 +628,7 @@ func Test_parser_parseNOT(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := newParser(test.fields.input)
-			got, err := p.parseNOT()
+			got, err := p.parseUnary()
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
