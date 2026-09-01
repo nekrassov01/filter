@@ -35,7 +35,7 @@
 
 ## Features
 
-- Evaluation allocates nothing: a heavy predicate takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same predicate is about 10x and 75–90x faster ([Benchmarks](#benchmarks)).
+- Evaluation allocates nothing: a heavy predicate takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same predicate is about 10x and 78–88x faster ([Benchmarks](#benchmarks)).
 - Values are supplied through a one-method interface, `Resolve(name string) (filter.Value, bool)`, so nothing is reflected on or copied into maps.
 - Comparison, regular-expression, and logical operators over strings, numbers, times, durations, and booleans; the grammar is listed under [Syntax](#syntax).
 - Errors are `*filter.Error` values that carry the stage (lex, parse, or eval) and the line and column of the offending token.
@@ -170,14 +170,14 @@ Results on Apple M2, benchstat center of 5 runs at `-benchtime 100000x` (longer 
 
 | Benchmark            | filter                     | expr                          | CEL                           |
 | -------------------- | -------------------------- | ----------------------------- | ----------------------------- |
-| Parse ASCII Simple   | 314 ns, 192 B, 1 alloc     | 6.9 µs, 11.7 KiB, 81 allocs   | 15.3 µs, 16.4 KiB, 331 allocs |
-| Eval ASCII Simple    | 9.9 ns, 0 B, 0 allocs      | 70.5 ns, 176 B, 1 alloc       | 61.3 ns, 16 B, 1 alloc        |
-| Parse ASCII Heavy    | 3.11 µs, 6.6 KiB, 2 allocs | 31.7 µs, 36.1 KiB, 416 allocs | 240 µs, 215 KiB, 3406 allocs  |
-| Eval ASCII Heavy     | 202 ns, 0 B, 0 allocs      | 358 ns, 177 B, 1 alloc        | 523 ns, 147 B, 9 allocs       |
-| Parse Unicode Simple | 291 ns, 192 B, 1 alloc     | 6.8 µs, 11.7 KiB, 81 allocs   | 22.4 µs, 25.8 KiB, 452 allocs |
-| Eval Unicode Simple  | 10.3 ns, 0 B, 0 allocs     | 72.8 ns, 176 B, 1 alloc       | 64.3 ns, 16 B, 1 alloc        |
-| Parse Unicode Heavy  | 3.08 µs, 6.6 KiB, 2 allocs | 30.5 µs, 33.1 KiB, 404 allocs | 270 µs, 257 KiB, 3955 allocs  |
-| Eval Unicode Heavy   | 192 ns, 0 B, 0 allocs      | 343 ns, 178 B, 1 alloc        | 531 ns, 147 B, 9 allocs       |
+| Parse ASCII Simple   | 298 ns, 192 B, 1 alloc     | 6.8 µs, 11.7 KiB, 81 allocs   | 15.1 µs, 16.4 KiB, 331 allocs |
+| Eval ASCII Simple    | 9.8 ns, 0 B, 0 allocs      | 72.7 ns, 176 B, 1 alloc       | 63.4 ns, 16 B, 1 alloc        |
+| Parse ASCII Heavy    | 3.05 µs, 6.6 KiB, 2 allocs | 32.8 µs, 36.1 KiB, 416 allocs | 238 µs, 215 KiB, 3406 allocs  |
+| Eval ASCII Heavy     | 203 ns, 0 B, 0 allocs      | 351 ns, 177 B, 1 alloc        | 540 ns, 147 B, 9 allocs       |
+| Parse Unicode Simple | 295 ns, 192 B, 1 alloc     | 7.1 µs, 11.7 KiB, 81 allocs   | 22.2 µs, 25.8 KiB, 452 allocs |
+| Eval Unicode Simple  | 10.0 ns, 0 B, 0 allocs     | 70.4 ns, 176 B, 1 alloc       | 61.6 ns, 16 B, 1 alloc        |
+| Parse Unicode Heavy  | 3.03 µs, 6.6 KiB, 2 allocs | 30.8 µs, 33.1 KiB, 404 allocs | 267 µs, 257 KiB, 3955 allocs  |
+| Eval Unicode Heavy   | 191 ns, 0 B, 0 allocs      | 355 ns, 178 B, 1 alloc        | 503 ns, 147 B, 9 allocs       |
 
 <details>
 <summary>Raw output of one run</summary>
@@ -188,32 +188,32 @@ goos: darwin
 goarch: arm64
 pkg: benchmarks
 cpu: Apple M2
-BenchmarkParseASCIISimpleFilter-8         100000               398.6 ns/op           192 B/op          1 allocs/op
-BenchmarkEvalASCIISimpleFilter-8          100000                13.21 ns/op            0 B/op          0 allocs/op
-BenchmarkParseASCIIHeavyFilter-8          100000              3061 ns/op            6784 B/op          2 allocs/op
-BenchmarkEvalASCIIHeavyFilter-8           100000               203.4 ns/op             0 B/op          0 allocs/op
-BenchmarkParseUnicodeSimpleFilter-8       100000               293.5 ns/op           192 B/op          1 allocs/op
-BenchmarkEvalUnicodeSimpleFilter-8        100000                10.09 ns/op            0 B/op          0 allocs/op
-BenchmarkParseUnicodeHeavyFilter-8        100000              3034 ns/op            6784 B/op          2 allocs/op
-BenchmarkEvalUnicodeHeavyFilter-8         100000               192.0 ns/op             0 B/op          0 allocs/op
-BenchmarkParseASCIISimpleExpr-8           100000              6792 ns/op           11982 B/op         81 allocs/op
-BenchmarkEvalASCIISimpleExpr-8            100000                87.51 ns/op          176 B/op          1 allocs/op
-BenchmarkParseASCIIHeavyExpr-8            100000             31863 ns/op           36949 B/op        416 allocs/op
-BenchmarkEvalASCIIHeavyExpr-8             100000               357.1 ns/op           178 B/op          1 allocs/op
-BenchmarkParseUnicodeSimpleExpr-8         100000              6901 ns/op           11982 B/op         81 allocs/op
-BenchmarkEvalUnicodeSimpleExpr-8          100000                75.48 ns/op          176 B/op          1 allocs/op
-BenchmarkParseUnicodeHeavyExpr-8          100000             30428 ns/op           33875 B/op        404 allocs/op
-BenchmarkEvalUnicodeHeavyExpr-8           100000               343.5 ns/op           179 B/op          1 allocs/op
-BenchmarkParseASCIISimpleCEL-8            100000             15382 ns/op           16792 B/op        331 allocs/op
-BenchmarkEvalASCIISimpleCEL-8             100000                62.36 ns/op           16 B/op          1 allocs/op
-BenchmarkParseASCIIHeavyCEL-8             100000            238808 ns/op          219710 B/op       3405 allocs/op
-BenchmarkEvalASCIIHeavyCEL-8              100000               514.3 ns/op           147 B/op          9 allocs/op
-BenchmarkParseUnicodeSimpleCEL-8          100000             22494 ns/op           26461 B/op        452 allocs/op
-BenchmarkEvalUnicodeSimpleCEL-8           100000                62.04 ns/op           16 B/op          1 allocs/op
-BenchmarkParseUnicodeHeavyCEL-8           100000            268782 ns/op          262794 B/op       3955 allocs/op
-BenchmarkEvalUnicodeHeavyCEL-8            100000               504.3 ns/op           146 B/op          9 allocs/op
+BenchmarkParseASCIISimpleFilter-8     	  100000	       538.9 ns/op	     192 B/op	       1 allocs/op
+BenchmarkEvalASCIISimpleFilter-8      	  100000	        13.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParseASCIIHeavyFilter-8      	  100000	      3171 ns/op	    6784 B/op	       2 allocs/op
+BenchmarkEvalASCIIHeavyFilter-8       	  100000	       216.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParseUnicodeSimpleFilter-8   	  100000	       298.4 ns/op	     192 B/op	       1 allocs/op
+BenchmarkEvalUnicodeSimpleFilter-8    	  100000	         9.889 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParseUnicodeHeavyFilter-8    	  100000	      3160 ns/op	    6784 B/op	       2 allocs/op
+BenchmarkEvalUnicodeHeavyFilter-8     	  100000	       192.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParseASCIISimpleExpr-8       	  100000	      6765 ns/op	   11982 B/op	      81 allocs/op
+BenchmarkEvalASCIISimpleExpr-8        	  100000	        75.45 ns/op	     176 B/op	       1 allocs/op
+BenchmarkParseASCIIHeavyExpr-8        	  100000	     34228 ns/op	   36950 B/op	     416 allocs/op
+BenchmarkEvalASCIIHeavyExpr-8         	  100000	       354.3 ns/op	     179 B/op	       1 allocs/op
+BenchmarkParseUnicodeSimpleExpr-8     	  100000	      6842 ns/op	   11982 B/op	      81 allocs/op
+BenchmarkEvalUnicodeSimpleExpr-8      	  100000	        74.67 ns/op	     176 B/op	       1 allocs/op
+BenchmarkParseUnicodeHeavyExpr-8      	  100000	     30444 ns/op	   33876 B/op	     404 allocs/op
+BenchmarkEvalUnicodeHeavyExpr-8       	  100000	       383.1 ns/op	     178 B/op	       1 allocs/op
+BenchmarkParseASCIISimpleCEL-8        	  100000	     15315 ns/op	   16792 B/op	     331 allocs/op
+BenchmarkEvalASCIISimpleCEL-8         	  100000	        61.46 ns/op	      16 B/op	       1 allocs/op
+BenchmarkParseASCIIHeavyCEL-8         	  100000	    236474 ns/op	  219695 B/op	    3406 allocs/op
+BenchmarkEvalASCIIHeavyCEL-8          	  100000	       654.8 ns/op	     146 B/op	       9 allocs/op
+BenchmarkParseUnicodeSimpleCEL-8      	  100000	     22737 ns/op	   26460 B/op	     452 allocs/op
+BenchmarkEvalUnicodeSimpleCEL-8       	  100000	        71.07 ns/op	      16 B/op	       1 allocs/op
+BenchmarkParseUnicodeHeavyCEL-8       	  100000	    264542 ns/op	  262625 B/op	    3955 allocs/op
+BenchmarkEvalUnicodeHeavyCEL-8        	  100000	       517.1 ns/op	     146 B/op	       9 allocs/op
 PASS
-ok  	benchmarks	63.524s
+ok  	benchmarks	63.138s
 ```
 
 </details>
