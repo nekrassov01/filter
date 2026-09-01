@@ -26,7 +26,7 @@ func Test_parse(t *testing.T) {
 		want want
 	}{
 		{
-			name: "single comparison",
+			name: "single predicate",
 			args: args{
 				input: `A==1`,
 			},
@@ -297,7 +297,7 @@ func Test_parser_parseLogicalOr(t *testing.T) {
 		want   want
 	}{
 		{
-			name: "single comparison",
+			name: "single predicate",
 			fields: fields{
 				input: `A==1`,
 			},
@@ -428,7 +428,7 @@ func Test_parser_parseLogicalAnd(t *testing.T) {
 		want   want
 	}{
 		{
-			name: "single comparison",
+			name: "single predicate",
 			fields: fields{
 				input: `A==1`,
 			},
@@ -576,7 +576,7 @@ func Test_parser_parseUnary(t *testing.T) {
 			},
 		},
 		{
-			name: "not applies to one comparison only",
+			name: "not applies to one predicate only",
 			fields: fields{
 				input: `!A==1 && B==2`,
 			},
@@ -663,7 +663,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 		want   want
 	}{
 		{
-			name: "comparison",
+			name: "predicate",
 			fields: fields{
 				input: `A==1`,
 			},
@@ -672,7 +672,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 			},
 		},
 		{
-			name: "parenthesized comparison",
+			name: "parenthesized predicate",
 			fields: fields{
 				input: `(A==1)`,
 			},
@@ -817,7 +817,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 	}
 }
 
-func Test_parser_parseComparison(t *testing.T) {
+func Test_parser_parsePredicate(t *testing.T) {
 	type fields struct {
 		input string
 	}
@@ -857,7 +857,7 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 		},
 		{
-			name: "every comparison operator",
+			name: "every predicate operator",
 			fields: fields{
 				input: `A<=1`,
 			},
@@ -1053,17 +1053,17 @@ func Test_parser_parseComparison(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:3: expected comparison operator, got number: "1"`,
+				err:   `parse error at 1:3: expected predicate operator, got number: "1"`,
 			},
 		},
 		{
-			name: "logical operator instead of comparison operator",
+			name: "logical operator instead of predicate operator",
 			fields: fields{
 				input: `A && B`,
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:3: expected comparison operator, got logical AND operator: "&&"`,
+				err:   `parse error at 1:3: expected predicate operator, got logical AND operator: "&&"`,
 			},
 		},
 		{
@@ -1110,7 +1110,7 @@ func Test_parser_parseComparison(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := newParser(test.fields.input)
-			got, err := p.parseComparison()
+			got, err := p.parsePredicate()
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
@@ -1998,7 +1998,7 @@ func Test_parser_addNode(t *testing.T) {
 			name: "first node",
 			args: args{
 				n: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 				},
 			},
 			want: want{
@@ -2013,7 +2013,7 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			args: args{
 				n: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 				},
 			},
 			want: want{
@@ -2028,7 +2028,7 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			args: args{
 				n: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 				},
 			},
 			want: want{
@@ -2045,7 +2045,7 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			args: args{
 				n: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 				},
 			},
 			want: want{
@@ -2100,7 +2100,7 @@ func Test_parser_node(t *testing.T) {
 			fields: fields{
 				nodeBuf: [nodeBufSize]node{
 					{
-						typ: nodeComparison,
+						typ: nodePredicate,
 					},
 					{
 						typ: nodeNOT,
@@ -2112,7 +2112,7 @@ func Test_parser_node(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeComparison,
+					typ: nodePredicate,
 				},
 			},
 		},
@@ -2141,7 +2141,7 @@ func Test_parser_node(t *testing.T) {
 			fields: fields{
 				nodeBuf: [nodeBufSize]node{
 					{
-						typ: nodeComparison,
+						typ: nodePredicate,
 					},
 				},
 				nodes: []node{

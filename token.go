@@ -126,8 +126,8 @@ func (t tokenType) literal() string {
 	}
 }
 
-// isComparisonOperatorType reports whether the token is a comparison operator.
-func (t tokenType) isComparisonOperatorType() bool {
+// isPredicateOperatorType reports whether the token is a predicate operator.
+func (t tokenType) isPredicateOperatorType() bool {
 	switch t {
 	case tokenEQ, tokenNEQ, tokenGT, tokenGTE, tokenLT, tokenLTE, tokenREQ, tokenNREQ:
 		return true
@@ -146,7 +146,7 @@ func (t tokenType) isRegexOperatorType() bool {
 	}
 }
 
-// isValueType reports whether the token can be the right-hand side of a comparison.
+// isValueType reports whether the token can be the right-hand side of a predicate.
 func (t tokenType) isValueType() bool {
 	switch t {
 	case tokenString, tokenRawString, tokenNumber, tokenTime, tokenDuration, tokenBool:

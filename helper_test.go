@@ -63,7 +63,7 @@ func repr(e *Expr) string {
 			return "(" + walk(n.left) + " " + n.op.typ.literal() + " " + walk(n.right) + ")"
 		case nodeNOT:
 			return "(! " + walk(n.left) + ")"
-		case nodeComparison:
+		case nodePredicate:
 			return "(" + n.ident.v + " " + n.op.typ.literal() + " " + val(n.val) + ")"
 		default:
 			return "<unknown>"
@@ -85,7 +85,7 @@ func Test_repr(t *testing.T) {
 		want want
 	}{
 		{
-			name: "comparison with quoted string",
+			name: "predicate with quoted string",
 			args: args{
 				e: MustParse(`Name == "a"`),
 			},
@@ -94,7 +94,7 @@ func Test_repr(t *testing.T) {
 			},
 		},
 		{
-			name: "comparison with number",
+			name: "predicate with number",
 			args: args{
 				e: MustParse(`HP > 50`),
 			},
@@ -103,7 +103,7 @@ func Test_repr(t *testing.T) {
 			},
 		},
 		{
-			name: "comparison with duration",
+			name: "predicate with duration",
 			args: args{
 				e: MustParse(`Latency <= 1.5s`),
 			},
@@ -112,7 +112,7 @@ func Test_repr(t *testing.T) {
 			},
 		},
 		{
-			name: "comparison with bool",
+			name: "predicate with bool",
 			args: args{
 				e: MustParse(`Enabled != true`),
 			},
@@ -121,7 +121,7 @@ func Test_repr(t *testing.T) {
 			},
 		},
 		{
-			name: "comparison with time is quoted",
+			name: "predicate with time is quoted",
 			args: args{
 				e: MustParse(`Birth < 2025-01-01`),
 			},

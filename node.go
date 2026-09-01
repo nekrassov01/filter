@@ -10,9 +10,9 @@ type nodeType uint8
 
 // Node types of the expression tree.
 const (
-	nodeBinary     nodeType = iota // binary operator node type
-	nodeNOT                        // logical NOT node type
-	nodeComparison                 // comparison node type
+	nodeBinary    nodeType = iota // binary operator node type
+	nodeNOT                       // logical NOT node type
+	nodePredicate                 // predicate node type
 )
 
 // String returns a human-readable name for the node type.
@@ -22,8 +22,8 @@ func (t nodeType) String() string {
 		return "binary node"
 	case nodeNOT:
 		return "not node"
-	case nodeComparison:
-		return "comparison node"
+	case nodePredicate:
+		return "predicate node"
 	}
 	return ""
 }
@@ -35,7 +35,7 @@ type node struct {
 	left  int32          // left child index
 	right int32          // right child index
 	ident token          // identifier token for variable nodes
-	op    token          // operator token for binary and comparison nodes
+	op    token          // operator token for binary and predicate nodes
 	val   token          // value token for literal nodes
 	re    *regexp.Regexp // regular expression for pattern matching
 
@@ -69,10 +69,10 @@ func newNodeNOT(child int32, op token) node {
 	}
 }
 
-// newNodeComparison creates a new comparison expression node.
-func newNodeComparison(ident token, op token, val token) node {
+// newNodePredicate creates a new predicate node.
+func newNodePredicate(ident token, op token, val token) node {
 	return node{
-		typ:   nodeComparison,
+		typ:   nodePredicate,
 		ident: ident,
 		op:    op,
 		val:   val,

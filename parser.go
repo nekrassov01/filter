@@ -171,7 +171,7 @@ func (p *parser) parseUnary() (int32, error) {
 	return p.parsePrimary()
 }
 
-// parsePrimary parses a parenthesized expression or a comparison.
+// parsePrimary parses a parenthesized expression or a predicate.
 func (p *parser) parsePrimary() (int32, error) {
 	t := p.peek()
 	switch t.typ {
@@ -192,14 +192,14 @@ func (p *parser) parsePrimary() (int32, error) {
 		}
 		return expr, nil
 	case tokenIdent:
-		return p.parseComparison()
+		return p.parsePredicate()
 	default:
 		return 0, newError(KindParse, t, "expected left parenthesis or identifier, got %s: %q", t.typ, t.v)
 	}
 }
 
-// parseComparison parses an identifier, a comparison operator, and a literal.
-func (p *parser) parseComparison() (int32, error) {
+// parsePredicate parses an identifier, a predicate operator, and a literal.
+func (p *parser) parsePredicate() (int32, error) {
 	ident, err := p.expect(tokenIdent)
 	if err != nil {
 		return 0, err
@@ -209,8 +209,8 @@ func (p *parser) parseComparison() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if !op.typ.isComparisonOperatorType() {
-		return 0, newError(KindParse, op, "expected comparison operator, got %s: %q", op.typ, op.v)
+	if !op.typ.isPredicateOperatorType() {
+		return 0, newError(KindParse, op, "expected predicate operator, got %s: %q", op.typ, op.v)
 	}
 	val, err := p.next()
 	if err != nil {
@@ -232,7 +232,7 @@ func (p *parser) parseComparison() (int32, error) {
 			val.v = "false"
 		}
 	}
-	i := p.addNode(newNodeComparison(ident, op, val))
+	i := p.addNode(newNodePredicate(ident, op, val))
 	if op.typ.isRegexOperatorType() {
 		if err := p.cacheRegex(i, val); err != nil {
 			return 0, err
