@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">FILTER</h1>
 
-  <p align="center">The minimal filter expressions for Go</p>
+<p align="center">The minimal filter expressions for Go</p>
 <p align="center">
     <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
     <a href="https://pkg.go.dev/github.com/nekrassov01/filter"><img src="https://pkg.go.dev/badge/github.com/nekrassov01/filter.svg" alt="Go Reference" /></a>
@@ -11,9 +11,27 @@
     <a href="https://deepwiki.com/nekrassov01/filter"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
 </p>
 
+## Table of contents
+
+- [Table of contents](#table-of-contents)
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Examples](#examples)
+- [Performance](#performance)
+- [Benchmarks](#benchmarks)
+  - [Setup](#setup)
+  - [Results](#results)
+- [Syntax](#syntax)
+  - [Literals](#literals)
+  - [Operators](#operators)
+- [Author](#author)
+- [License](#license)
+
 ## Overview
 
-`filter` evaluates small boolean filter expressions in Go, faster than expr and CEL on the boolean subset they share \([Benchmarks]\(#benchmarks\)\). It is for the case where one predicate is applied to a stream of values and the check itself must stay cheap: dropping log records that do not match `level == "error" && latency > 500ms` as they arrive, selecting rows from a query result, or deciding which events a subscriber receives. The expression is parsed once, and every evaluation after that only compares.
+`filter` evaluates small boolean filter expressions in Go, faster than expr and CEL on the boolean subset they share.
 
 ## Features
 
@@ -24,11 +42,15 @@
 
 ## Installation
 
+Install with:
+
 ```sh
 go get github.com/nekrassov01/filter@latest
 ```
 
-## Example
+## Quick start
+
+The target structs must implement a small interface that resolves identifiers to `Value`s. Pass the expression as a string to `Parse`, and use the resulting `Expr` to evaluate the structs one by one.
 
 ```go
 package main
@@ -103,6 +125,14 @@ Notes on the API:
 - A `Resolve` that returns `false` makes `Eval` fail with `unknown identifier "name"` at the identifier's position.
 - Errors from `Parse` and `Eval` are `*filter.Error`; use `errors.As` to read `Kind`, `Line`, and `Col`.
 
+## Examples
+
+A sample test is provided for a quick functional check:
+
+```sh
+go test ./examples/
+```
+
 ## Performance
 
 Three choices keep the cost of an evaluation flat as the same expression runs again and again:
@@ -115,15 +145,17 @@ Three choices keep the cost of an evaluation flat as the same expression runs ag
 
 The same predicates run through `filter`, [expr](https://github.com/expr-lang/expr), and [CEL](https://github.com/google/cel-go). See [benchmark_test.go](./benchmarks/benchmark_test.go) for the inputs and the environments.
 
+### Setup
+
 > [!NOTE]
 > The three libraries differ in scale and purpose: expr and CEL are general expression languages with type checking, functions, and macros; `filter` covers only the boolean subset they are compared on. Each library is given the cheapest equivalent of the same predicate over the same struct fields (expr reads the time and duration bounds from variables because it has no time or duration literals and its `date()` and `duration()` calls run on every evaluation; CEL folds constants and precompiles regular expressions with `OptOptimize`). Treat the numbers as the cost of that subset, not as a ranking of the libraries.
 
 Two inputs are used, each with an ASCII and a Unicode variant:
 
-| Input  | Expression                                                                                                                                                                                                                            |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Simple | `Class == "軍師"`                                                                                                                                                                                                                     |
-| Heavy  | `Class == "軍師" && Name =~ '^(諸葛亮\|龐統\|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ActiveTimeBattleGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 \|\| !(Speed < 20))` |
+| Input  | Expression                                                                                                                                                                                                                                                                  |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Simple | <pre>Class == "軍師"</pre>                                                                                                                                                                                                                                                  |
+| Heavy  | <pre>Class == "軍師" && Name =~ '^(諸葛亮\|龐統\|法正)' && Name != "" && (<br/>    BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s<br/>) && (<br/>    HitPoint > 50 && MagicPoint > 100 && LifePoint != 0<br/>) && (<br/>    Magic >= 20 \|\| !(Speed < 20)<br/>)</pre> |
 
 Run them from the `benchmarks` module:
 
@@ -131,6 +163,8 @@ Run them from the `benchmarks` module:
 make bench target=filter      # filter only
 make bench target=comparison  # filter, expr, and CEL
 ```
+
+### Results
 
 Results on Apple M2, benchstat center of 5 runs at `-benchtime 100000x` (longer than the Makefile default so that start-up effects average out):
 
