@@ -28,15 +28,15 @@ func Example_basic() {
 		`Name =~ '^(諸葛亮|龐統|法正)'`,
 		`Name != ""`,
 		`BirthDate < '0190-01-01T00:00:00Z'`,
-		`ActiveTimeBattleGauge >= '20s'`,
+		`ATBGauge >= '20s'`,
 		`HitPoint > "50"`,
 		`MagicPoint > 100`,
 		`LifePoint != 0`,
 		`Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != ""`,
-		`BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s'`,
+		`BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s'`,
 		`HitPoint > "50" && MagicPoint > 100 && LifePoint != 0`,
 		`Magic >= 20 || !(Speed < 20)`,
-		`Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`,
+		`Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`,
 		`Class == "君主"`,
 	}
 	for _, input := range inputs {
@@ -57,15 +57,15 @@ func Example_basic() {
 	// Name =~ '^(諸葛亮|龐統|法正)': true
 	// Name != "": true
 	// BirthDate < '0190-01-01T00:00:00Z': true
-	// ActiveTimeBattleGauge >= '20s': true
+	// ATBGauge >= '20s': true
 	// HitPoint > "50": true
 	// MagicPoint > 100: true
 	// LifePoint != 0: true
 	// Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "": true
-	// BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s': true
+	// BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s': true
 	// HitPoint > "50" && MagicPoint > 100 && LifePoint != 0: true
 	// Magic >= 20 || !(Speed < 20): true
-	// Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ActiveTimeBattleGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20)): true
+	// Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20)): true
 	// Class == "君主": false
 }
 
