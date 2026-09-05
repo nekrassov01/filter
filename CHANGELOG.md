@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.3.2](https://github.com/nekrassov01/filter/compare/v0.3.1...v0.3.2) - 2026-09-05
+
+- Restructure README by @nekrassov01 in https://github.com/nekrassov01/filter/pull/34
+- Name the parser and nodes after the grammar by @nekrassov01 in https://github.com/nekrassov01/filter/pull/36
+- Make benchmark comparisons explicit and reproducible by @nekrassov01 in https://github.com/nekrassov01/filter/pull/38
+
 ## [v0.3.1](https://github.com/nekrassov01/filter/compare/v0.3.0...v0.3.1) - 2026-08-31
 
 - Remove gotos and labeled breaks from the lexer by @nekrassov01 in https://github.com/nekrassov01/filter/pull/31
