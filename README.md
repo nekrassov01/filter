@@ -31,14 +31,15 @@
 
 ## Overview
 
-`filter` evaluates small boolean filter expressions in Go, faster than expr and CEL on the boolean subset they share.
+`filter` evaluates a focused boolean expression language in Go through a small value-resolver interface.
 
 ## Features
 
-- Evaluation allocates nothing: a heavy expression takes about 200 ns, against 350 ns for expr and 530 ns for CEL, and parsing the same expression is about 10x and 78–88x faster ([Benchmarks](#benchmarks)).
-- Values are supplied through a one-method interface, `Resolve(name string) (filter.Value, bool)`, so nothing is reflected on or copied into maps.
-- Comparison, regular-expression, and logical operators over strings, numbers, times, durations, and booleans; the grammar is listed under [Syntax](#syntax).
-- Errors are `*filter.Error` values that carry the stage (lex, parse, or eval) and the line and column of the offending token.
+- Zero-allocation evaluation in the included benchmark: 1.6x faster than expr and 2.8x faster than CEL ([Benchmarks](#benchmarks))
+- Low repeated preparation cost: 9.3x faster than expr and 89x faster than CEL in the same benchmark
+- One-method integration with no reflection or map conversion
+- Typed comparisons, regular expressions, and logical operators
+- Positioned parse and evaluation errors
 
 ## Installation
 
@@ -50,7 +51,7 @@ go get github.com/nekrassov01/filter@latest
 
 ## Quick start
 
-The target structs must implement a small interface that resolves identifiers to `Value`s. Pass the expression as a string to `Parse`, and use the resulting `Expr` to evaluate the structs one by one.
+The target structs must implement a small interface that returns a `filter.Value` for each identifier. Pass the expression as a string to `Parse`, and use the resulting `Expr` to evaluate the structs one by one.
 
 ```go
 package main
@@ -62,8 +63,8 @@ import (
     "github.com/nekrassov01/filter"
 )
 
-// Record is one log line.
-type Record struct {
+// LogLine represents one application log entry.
+type LogLine struct {
     Time    time.Time
     Level   string
     Status  int
@@ -71,44 +72,43 @@ type Record struct {
     Path    string
 }
 
-// Resolve maps an identifier to a field of the record.
-func (r *Record) Resolve(name string) (filter.Value, bool) {
+// Resolve maps an identifier to a field of the log line.
+func (o *LogLine) Resolve(name string) (filter.Value, bool) {
     switch name {
     case "time":
-        return filter.Time(r.Time), true
+        return filter.Time(o.Time), true
     case "level":
-        return filter.String(r.Level), true
+        return filter.String(o.Level), true
     case "status":
-        return filter.Number(float64(r.Status)), true
+        return filter.Number(float64(o.Status)), true
     case "latency":
-        return filter.Duration(r.Latency), true
+        return filter.Duration(o.Latency), true
     case "path":
-        return filter.String(r.Path), true
+        return filter.String(o.Path), true
     default:
         return filter.Value{}, false
     }
 }
 
 func main() {
-    // Parse once; the expression is reused for every record.
-    expr, err := filter.Parse(`level == "error" || (status >= 500 && latency > 500ms && path !~ '^/health')`)
-    if err != nil {
-        panic(err)
-    }
-
-    records := []Record{
+    lines := []LogLine{
         {Time: time.Now(), Level: "info", Status: 200, Latency: 12 * time.Millisecond, Path: "/api/users"},
         {Time: time.Now(), Level: "error", Status: 200, Latency: 8 * time.Millisecond, Path: "/api/orders"},
         {Time: time.Now(), Level: "warn", Status: 503, Latency: 900 * time.Millisecond, Path: "/api/search"},
         {Time: time.Now(), Level: "warn", Status: 503, Latency: 900 * time.Millisecond, Path: "/health"},
     }
-    for i := range records {
-        ok, err := expr.Eval(&records[i])
+    condition := `level == "error" || (status >= 500 && latency > 500ms && path !~ '^/health')`
+    expr, err := filter.Parse(condition)
+    if err != nil {
+        panic(err)
+    }
+    for _, line := range lines {
+        ok, err := expr.Eval(&line)
         if err != nil {
             panic(err)
         }
         if ok {
-            fmt.Println(records[i].Level, records[i].Status, records[i].Path)
+            fmt.Println(line.Level, line.Status, line.Path)
         }
     }
     // Output:
@@ -135,85 +135,115 @@ go test ./examples/
 
 ## Performance
 
-Three choices keep the cost of an evaluation flat as the same expression runs again and again:
+`Parse` performs work that can be reused by every subsequent evaluation:
 
-- Regex literals are compiled once per distinct pattern in a process-wide cache, so the same pattern in many expressions is compiled once.
+- A successfully compiled regex literal is stored in a process-wide cache, and later parses of the same pattern reuse it.
 - Number, time, and duration literals are validated and converted during parsing, so a malformed literal is a parse error with a position and evaluation compares ready values. Quoted forms such as `"42"`, `"1500ms"`, or `"2023-01-01 09:00:00"` are converted at parse time too when their text reads as a literal, and otherwise at evaluation time against a number, time, or duration value.
 - Resolved values are reused within an evaluation: when an identifier appears more than once, its value is cached on first use in a small stack buffer (a heap slice only beyond 16 distinct identifiers), so repeating an identifier does not repeat `Resolve`. Expressions where every identifier appears once skip the cache.
 
 ## Benchmarks
 
-The same expressions run through `filter`, [expr](https://github.com/expr-lang/expr), and [CEL](https://github.com/google/cel-go). See [benchmark_test.go](./benchmarks/benchmark_test.go) for the inputs and the environments.
+The same expression runs through `filter`, [expr](https://github.com/expr-lang/expr), and [CEL](https://github.com/google/cel-go). See [benchmark_test.go](./benchmarks/benchmark_test.go) for the inputs and the environments.
 
 ### Setup
 
 > [!NOTE]
-> The three libraries differ in scale and purpose: expr and CEL are general expression languages with type checking, functions, and macros; `filter` covers only the boolean subset they are compared on. Each library is given the cheapest equivalent of the same expression over the same struct fields (expr reads the time and duration bounds from variables because it has no time or duration literals and its `date()` and `duration()` calls run on every evaluation; CEL folds constants and precompiles regular expressions with `OptOptimize`). Treat the numbers as the cost of that subset, not as a ranking of the libraries.
+> These numbers compare only the shared boolean subset, not the libraries as a whole:
+>
+> - Scope: expr and CEL are general expression languages with type checking, functions, and macros; `filter` covers only the boolean subset used here.
+> - Equivalent setup: each library receives the cheapest equivalent expression over the same struct fields. expr reads the time and duration bounds from variables; CEL folds constants and precompiles regular expressions with `OptOptimize`.
+> - Prepare: measures `filter.Parse`, `expr.Compile`, or CEL compilation, constant folding, and program construction. Reusable environment and option setup is excluded. After the first parse, `filter` reuses its process-wide regular-expression cache.
+> - Eval: prepares each expression once. filter and expr receive the same `examples.Stats` value; the CEL map is built from that value before measurement.
+>
+> Treat the results as the cost of this subset, not as a ranking of the libraries.
 
-Two inputs are used, each with an ASCII and a Unicode variant:
+One input is used:
 
-| Input  | Expression                                                                                                                                                                                                                                                                  |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Simple | <pre>Class == "軍師"</pre>                                                                                                                                                                                                                                                  |
-| Heavy  | <pre>Class == "軍師" && Name =~ '^(諸葛亮\|龐統\|法正)' && Name != "" && (<br/>    BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s<br/>) && (<br/>    HitPoint > 50 && MagicPoint > 100 && LifePoint != 0<br/>) && (<br/>    Magic >= 20 \|\| !(Speed < 20)<br/>)</pre> |
+```text
+Class == "軍師" &&
+Name =~ '^(諸葛亮|龐統|法正)' &&
+Name != "" &&
+BirthDate < 0190-01-01T00:00:00Z &&
+ATBGauge >= 20s &&
+HitPoint > 50 &&
+MagicPoint > 100 &&
+LifePoint != 0 &&
+Speed >= 20
+```
 
 Run them from the `benchmarks` module:
 
 ```bash
-make bench target=filter      # filter only
-make bench target=comparison  # filter, expr, and CEL
+make bench
 ```
 
 ### Results
 
-Results on Apple M2, benchstat center of 5 runs at `-benchtime 100000x` (longer than the Makefile default so that start-up effects average out):
+Results on Apple M2 with Go 1.27.0, median of 5 runs at `-benchtime 5s`:
 
-| Benchmark            | filter                     | expr                          | CEL                           |
-| -------------------- | -------------------------- | ----------------------------- | ----------------------------- |
-| Parse ASCII Simple   | 298 ns, 192 B, 1 alloc     | 6.8 µs, 11.7 KiB, 81 allocs   | 15.1 µs, 16.4 KiB, 331 allocs |
-| Eval ASCII Simple    | 9.8 ns, 0 B, 0 allocs      | 72.7 ns, 176 B, 1 alloc       | 63.4 ns, 16 B, 1 alloc        |
-| Parse ASCII Heavy    | 3.05 µs, 6.6 KiB, 2 allocs | 32.8 µs, 36.1 KiB, 416 allocs | 238 µs, 215 KiB, 3406 allocs  |
-| Eval ASCII Heavy     | 203 ns, 0 B, 0 allocs      | 351 ns, 177 B, 1 alloc        | 540 ns, 147 B, 9 allocs       |
-| Parse Unicode Simple | 295 ns, 192 B, 1 alloc     | 7.1 µs, 11.7 KiB, 81 allocs   | 22.2 µs, 25.8 KiB, 452 allocs |
-| Eval Unicode Simple  | 10.0 ns, 0 B, 0 allocs     | 70.4 ns, 176 B, 1 alloc       | 61.6 ns, 16 B, 1 alloc        |
-| Parse Unicode Heavy  | 3.03 µs, 6.6 KiB, 2 allocs | 30.8 µs, 33.1 KiB, 404 allocs | 267 µs, 257 KiB, 3955 allocs  |
-| Eval Unicode Heavy   | 191 ns, 0 B, 0 allocs      | 355 ns, 178 B, 1 alloc        | 503 ns, 147 B, 9 allocs       |
+| Benchmark  | filter                       | expr                            | CEL                               |
+| ---------- | ---------------------------- | ------------------------------- | --------------------------------- |
+| Prepare    | 2.645 µs, 6.375 KiB, 1 alloc | 24.65 µs, 28.89 KiB, 330 allocs | 235.9 µs, 230.4 KiB, 3,537 allocs |
+| Eval Match | 197.5 ns, 0 B, 0 allocs      | 322.6 ns, 146 B, 1 alloc        | 549.7 ns, 147 B, 9 allocs         |
+| Eval Miss  | 194.6 ns, 0 B, 0 allocs      | 319.7 ns, 146 B, 1 alloc        | 543.0 ns, 147 B, 9 allocs         |
 
 <details>
-<summary>Raw output of one run</summary>
+<summary>Raw output of five runs</summary>
 
 ```powershell
-$ go test -bench '(Simple|Heavy)(Filter|Expr|CEL)$' -benchmem -count 1 -benchtime 100000x .
+$ make bench
+go test -run '^$' -bench . -benchmem -benchtime 5s -count 5 .
 goos: darwin
 goarch: arm64
 pkg: benchmarks
 cpu: Apple M2
-BenchmarkParseASCIISimpleFilter-8     	  100000	       538.9 ns/op	     192 B/op	       1 allocs/op
-BenchmarkEvalASCIISimpleFilter-8      	  100000	        13.83 ns/op	       0 B/op	       0 allocs/op
-BenchmarkParseASCIIHeavyFilter-8      	  100000	      3171 ns/op	    6784 B/op	       2 allocs/op
-BenchmarkEvalASCIIHeavyFilter-8       	  100000	       216.0 ns/op	       0 B/op	       0 allocs/op
-BenchmarkParseUnicodeSimpleFilter-8   	  100000	       298.4 ns/op	     192 B/op	       1 allocs/op
-BenchmarkEvalUnicodeSimpleFilter-8    	  100000	         9.889 ns/op	       0 B/op	       0 allocs/op
-BenchmarkParseUnicodeHeavyFilter-8    	  100000	      3160 ns/op	    6784 B/op	       2 allocs/op
-BenchmarkEvalUnicodeHeavyFilter-8     	  100000	       192.1 ns/op	       0 B/op	       0 allocs/op
-BenchmarkParseASCIISimpleExpr-8       	  100000	      6765 ns/op	   11982 B/op	      81 allocs/op
-BenchmarkEvalASCIISimpleExpr-8        	  100000	        75.45 ns/op	     176 B/op	       1 allocs/op
-BenchmarkParseASCIIHeavyExpr-8        	  100000	     34228 ns/op	   36950 B/op	     416 allocs/op
-BenchmarkEvalASCIIHeavyExpr-8         	  100000	       354.3 ns/op	     179 B/op	       1 allocs/op
-BenchmarkParseUnicodeSimpleExpr-8     	  100000	      6842 ns/op	   11982 B/op	      81 allocs/op
-BenchmarkEvalUnicodeSimpleExpr-8      	  100000	        74.67 ns/op	     176 B/op	       1 allocs/op
-BenchmarkParseUnicodeHeavyExpr-8      	  100000	     30444 ns/op	   33876 B/op	     404 allocs/op
-BenchmarkEvalUnicodeHeavyExpr-8       	  100000	       383.1 ns/op	     178 B/op	       1 allocs/op
-BenchmarkParseASCIISimpleCEL-8        	  100000	     15315 ns/op	   16792 B/op	     331 allocs/op
-BenchmarkEvalASCIISimpleCEL-8         	  100000	        61.46 ns/op	      16 B/op	       1 allocs/op
-BenchmarkParseASCIIHeavyCEL-8         	  100000	    236474 ns/op	  219695 B/op	    3406 allocs/op
-BenchmarkEvalASCIIHeavyCEL-8          	  100000	       654.8 ns/op	     146 B/op	       9 allocs/op
-BenchmarkParseUnicodeSimpleCEL-8      	  100000	     22737 ns/op	   26460 B/op	     452 allocs/op
-BenchmarkEvalUnicodeSimpleCEL-8       	  100000	        71.07 ns/op	      16 B/op	       1 allocs/op
-BenchmarkParseUnicodeHeavyCEL-8       	  100000	    264542 ns/op	  262625 B/op	    3955 allocs/op
-BenchmarkEvalUnicodeHeavyCEL-8        	  100000	       517.1 ns/op	     146 B/op	       9 allocs/op
+BenchmarkPrepareFilter-8            2268176        2663 ns/op      6528 B/op        1 allocs/op
+BenchmarkPrepareFilter-8            2246515        2645 ns/op      6528 B/op        1 allocs/op
+BenchmarkPrepareFilter-8            2289106        2624 ns/op      6528 B/op        1 allocs/op
+BenchmarkPrepareFilter-8            2269144        2653 ns/op      6528 B/op        1 allocs/op
+BenchmarkPrepareFilter-8            2270137        2629 ns/op      6528 B/op        1 allocs/op
+BenchmarkPrepareExpr-8               213518       24599 ns/op     29585 B/op      330 allocs/op
+BenchmarkPrepareExpr-8               247897       24536 ns/op     29585 B/op      330 allocs/op
+BenchmarkPrepareExpr-8               233426       24854 ns/op     29585 B/op      330 allocs/op
+BenchmarkPrepareExpr-8               252259       24823 ns/op     29585 B/op      330 allocs/op
+BenchmarkPrepareExpr-8               253591       24646 ns/op     29585 B/op      330 allocs/op
+BenchmarkPrepareCEL-8                 26018      234934 ns/op    235925 B/op     3537 allocs/op
+BenchmarkPrepareCEL-8                 25333      242909 ns/op    235913 B/op     3537 allocs/op
+BenchmarkPrepareCEL-8                 25419      235659 ns/op    235938 B/op     3537 allocs/op
+BenchmarkPrepareCEL-8                 25440      235885 ns/op    235943 B/op     3537 allocs/op
+BenchmarkPrepareCEL-8                 25336      237116 ns/op    235952 B/op     3537 allocs/op
+BenchmarkEvalFilter/Match-8        29084169       198.0 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Match-8        31754208       192.2 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Match-8        29332669       197.5 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Match-8        31774808       197.2 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Match-8        31623531       201.6 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Miss-8         30802072       200.9 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Miss-8         31632187       194.6 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Miss-8         31694331       193.8 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Miss-8         30615394       192.6 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalFilter/Miss-8         31775536       195.8 ns/op         0 B/op        0 allocs/op
+BenchmarkEvalExpr/Match-8          18688982       332.0 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Match-8          19136402       319.1 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Match-8          19175406       317.3 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Match-8          19129795       326.4 ns/op       147 B/op        1 allocs/op
+BenchmarkEvalExpr/Match-8          19149080       322.6 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Miss-8           19069545       318.2 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Miss-8           18322120       319.8 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Miss-8           18774595       319.6 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Miss-8           18598035       319.7 ns/op       146 B/op        1 allocs/op
+BenchmarkEvalExpr/Miss-8           18969115       331.7 ns/op       147 B/op        1 allocs/op
+BenchmarkEvalCEL/Match-8           10345711       549.7 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Match-8           11293833       536.9 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Match-8           10855304       547.6 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Match-8           11381338       553.3 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Match-8           10970720       559.9 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Miss-8            10850890       550.3 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Miss-8            10868491       542.0 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Miss-8            11033768       543.0 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Miss-8            10614069       544.9 ns/op       147 B/op        9 allocs/op
+BenchmarkEvalCEL/Miss-8            11225605       542.8 ns/op       147 B/op        9 allocs/op
 PASS
-ok  	benchmarks	63.138s
+ok      benchmarks      272.084s
 ```
 
 </details>
