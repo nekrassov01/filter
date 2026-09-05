@@ -1,20 +1,9 @@
-export GO111MODULE=on
+benchtime ?= 5s
+count ?= 5
 
-# target selects the benchmarks to run: filter (default) or comparison.
-target ?= filter
-ifeq ($(target),filter)
-BENCH := (Simple|Heavy)Filter$$
-else ifeq ($(target),comparison)
-BENCH := (Simple|Heavy)(Filter|Expr|CEL)$$
-else
-$(error unknown target "$(target)": use filter or comparison)
-endif
-
-.PHONY: bench
+.PHONY: bench clean
 bench:
-	go test -bench '$(BENCH)' -benchmem -count 5 -benchtime 10000x -cpuprofile cpu.prof -memprofile mem.prof .
+	go test -run '^$$' -bench . -benchmem -benchtime $(benchtime) -count $(count) .
 
-.PHONY: clean
 clean:
 	go clean
-	rm -f cpu.prof mem.prof benchmarks.test

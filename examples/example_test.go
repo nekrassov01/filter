@@ -2,41 +2,26 @@ package examples
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/nekrassov01/filter"
 )
 
-func Example_basic() {
-	stats := &Stats{
-		Class:      "軍師",
-		Name:       "諸葛亮 孔明",
-		Birth:      time.Date(181, 7, 23, 0, 0, 0, 0, time.UTC),
-		ATBGauge:   time.Second * 30,
-		HitPoint:   80,
-		SkillPoint: 0,
-		SpellPoint: 250,
-		LifePoint:  5,
-		Strength:   10,
-		Stamina:    10,
-		Dexterity:  10,
-		Magic:      25,
-		Speed:      25,
-	}
+func Example_stats() {
+	stats := SampleStats()
 	inputs := []string{
 		`Class == "軍師"`,
 		`Name =~ '^(諸葛亮|龐統|法正)'`,
 		`Name != ""`,
-		`BirthDate < '0190-01-01T00:00:00Z'`,
-		`ATBGauge >= '20s'`,
-		`HitPoint > "50"`,
+		`BirthDate < 0190-01-01T00:00:00Z`,
+		`ATBGauge >= 20s`,
+		`HitPoint > 50`,
 		`MagicPoint > 100`,
 		`LifePoint != 0`,
 		`Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != ""`,
-		`BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s'`,
-		`HitPoint > "50" && MagicPoint > 100 && LifePoint != 0`,
+		`BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s`,
+		`HitPoint > 50 && MagicPoint > 100 && LifePoint != 0`,
 		`Magic >= 20 || !(Speed < 20)`,
-		`Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`,
+		`Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20))`,
 		`Class == "君主"`,
 	}
 	for _, input := range inputs {
@@ -45,7 +30,7 @@ func Example_basic() {
 			fmt.Printf("%s: %v\n", input, err)
 			continue
 		}
-		ok, err := expr.Eval(stats)
+		ok, err := expr.Eval(&stats)
 		if err != nil {
 			fmt.Printf("%s: %v\n", input, err)
 			continue
@@ -56,23 +41,21 @@ func Example_basic() {
 	// Class == "軍師": true
 	// Name =~ '^(諸葛亮|龐統|法正)': true
 	// Name != "": true
-	// BirthDate < '0190-01-01T00:00:00Z': true
-	// ATBGauge >= '20s': true
-	// HitPoint > "50": true
+	// BirthDate < 0190-01-01T00:00:00Z: true
+	// ATBGauge >= 20s: true
+	// HitPoint > 50: true
 	// MagicPoint > 100: true
 	// LifePoint != 0: true
 	// Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "": true
-	// BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s': true
-	// HitPoint > "50" && MagicPoint > 100 && LifePoint != 0: true
+	// BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s: true
+	// HitPoint > 50 && MagicPoint > 100 && LifePoint != 0: true
 	// Magic >= 20 || !(Speed < 20): true
-	// Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < '0190-01-01T00:00:00Z' && ATBGauge >= '20s') && (HitPoint > "50" && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20)): true
+	// Class == "軍師" && Name =~ '^(諸葛亮|龐統|法正)' && Name != "" && (BirthDate < 0190-01-01T00:00:00Z && ATBGauge >= 20s) && (HitPoint > 50 && MagicPoint > 100 && LifePoint != 0) && (Magic >= 20 || !(Speed < 20)): true
 	// Class == "君主": false
 }
 
 func Example_timeLayouts() {
-	event := &Event{
-		At: time.Date(2025, 1, 1, 9, 0, 0, 0, time.UTC),
-	}
+	event := SampleTimeLayouts()
 	inputs := []string{
 		// Forms without spaces can be written bare.
 		`At == 2025-01-01T09:00:00Z`,
@@ -96,7 +79,7 @@ func Example_timeLayouts() {
 			fmt.Printf("%s: %v\n", input, err)
 			continue
 		}
-		ok, err := expr.Eval(event)
+		ok, err := expr.Eval(&event)
 		if err != nil {
 			fmt.Printf("%s: %v\n", input, err)
 			continue
@@ -116,4 +99,25 @@ func Example_timeLayouts() {
 	// At == '01 Jan 25 09:00 UTC': true
 	// At == '01 Jan 25 18:00 +0900': true
 	// At == 'Wed, 01 Jan 2025 04:00:00 EST': eval error at 1:7: invalid time "Wed, 01 Jan 2025 04:00:00 EST"
+}
+
+func Example_logLine() {
+	lines := SampleLogLines()
+	condition := `level == "error" || (status >= 500 && latency > 500ms && path !~ '^/health')`
+	expr, err := filter.Parse(condition)
+	if err != nil {
+		panic(err)
+	}
+	for _, line := range lines {
+		ok, err := expr.Eval(&line)
+		if err != nil {
+			panic(err)
+		}
+		if ok {
+			fmt.Println(line.Level, line.Status, line.Path)
+		}
+	}
+	// Output:
+	// error 200 /api/orders
+	// warn 503 /api/search
 }
