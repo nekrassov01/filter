@@ -147,7 +147,7 @@ func Test_parse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:6: unexpected token after parsing: unexpected character U+0024 '$'`,
+				err:   `lex error at 1:6: unexpected character U+0024 '$'`,
 			},
 		},
 	}
@@ -738,7 +738,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `lex error at 1:6: unclosed left parenthesis`,
+				err:   `parse error at 1:6: expected right parenthesis, got EOF: ""`,
 			},
 		},
 		{
@@ -748,7 +748,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:2: expected left parenthesis or identifier, got error: "unclosed left parenthesis"`,
+				err:   `parse error at 1:2: expected left parenthesis or identifier, got EOF: ""`,
 			},
 		},
 		{
@@ -788,7 +788,7 @@ func Test_parser_parsePrimary(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:1: expected left parenthesis or identifier, got error: "unexpected character U+0024 '$'"`,
+				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
 			},
 		},
 	}

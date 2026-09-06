@@ -484,8 +484,7 @@ func Test_lexer_lexStmt(t *testing.T) {
 
 func Test_lexer_lexEOF(t *testing.T) {
 	type fields struct {
-		input      string
-		parenDepth int
+		input string
 	}
 	type want struct {
 		val state
@@ -497,10 +496,9 @@ func Test_lexer_lexEOF(t *testing.T) {
 		want   want
 	}{
 		{
-			name: "balanced parentheses emit EOF",
+			name: "empty input emits EOF",
 			fields: fields{
-				input:      "",
-				parenDepth: 0,
+				input: "",
 			},
 			want: want{
 				val: stateDone,
@@ -516,8 +514,7 @@ func Test_lexer_lexEOF(t *testing.T) {
 		{
 			name: "EOF follows the last token",
 			fields: fields{
-				input:      "a",
-				parenDepth: 0,
+				input: "a",
 			},
 			want: want{
 				val: stateDone,
@@ -533,8 +530,7 @@ func Test_lexer_lexEOF(t *testing.T) {
 		{
 			name: "EOF follows a wide identifier",
 			fields: fields{
-				input:      "軍師",
-				parenDepth: 0,
+				input: "軍師",
 			},
 			want: want{
 				val: stateDone,
@@ -547,57 +543,6 @@ func Test_lexer_lexEOF(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "unclosed left parenthesis",
-			fields: fields{
-				input:      "",
-				parenDepth: 1,
-			},
-			want: want{
-				val: stateDone,
-				tok: token{
-					typ:  tokenError,
-					v:    "unclosed left parenthesis",
-					pos:  0,
-					line: 1,
-					col:  1,
-				},
-			},
-		},
-		{
-			name: "deeply unclosed left parentheses",
-			fields: fields{
-				input:      "",
-				parenDepth: 3,
-			},
-			want: want{
-				val: stateDone,
-				tok: token{
-					typ:  tokenError,
-					v:    "unclosed left parenthesis",
-					pos:  0,
-					line: 1,
-					col:  1,
-				},
-			},
-		},
-		{
-			name: "unexpected right parenthesis",
-			fields: fields{
-				input:      "",
-				parenDepth: -1,
-			},
-			want: want{
-				val: stateDone,
-				tok: token{
-					typ:  tokenError,
-					v:    "unexpected right parenthesis",
-					pos:  0,
-					line: 1,
-					col:  1,
-				},
-			},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -605,7 +550,6 @@ func Test_lexer_lexEOF(t *testing.T) {
 			if test.fields.input != "" {
 				l.nextToken()
 			}
-			l.parenDepth = test.fields.parenDepth
 			got := l.lexEOF()
 			if got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
@@ -743,9 +687,8 @@ func Test_lexer_lexLparen(t *testing.T) {
 		input string
 	}
 	type want struct {
-		val        state
-		tok        token
-		parenDepth int
+		val state
+		tok token
 	}
 	tests := []struct {
 		name   string
@@ -766,7 +709,6 @@ func Test_lexer_lexLparen(t *testing.T) {
 					line: 1,
 					col:  1,
 				},
-				parenDepth: 1,
 			},
 		},
 		{
@@ -783,7 +725,6 @@ func Test_lexer_lexLparen(t *testing.T) {
 					line: 1,
 					col:  1,
 				},
-				parenDepth: 1,
 			},
 		},
 	}
@@ -798,9 +739,6 @@ func Test_lexer_lexLparen(t *testing.T) {
 			if l.token != test.want.tok {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.token, test.want.tok)
 			}
-			if l.parenDepth != test.want.parenDepth {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.parenDepth, test.want.parenDepth)
-			}
 		})
 	}
 }
@@ -810,9 +748,8 @@ func Test_lexer_lexRparen(t *testing.T) {
 		input string
 	}
 	type want struct {
-		val        state
-		tok        token
-		parenDepth int
+		val state
+		tok token
 	}
 	tests := []struct {
 		name   string
@@ -833,7 +770,6 @@ func Test_lexer_lexRparen(t *testing.T) {
 					line: 1,
 					col:  1,
 				},
-				parenDepth: -1,
 			},
 		},
 		{
@@ -850,7 +786,6 @@ func Test_lexer_lexRparen(t *testing.T) {
 					line: 1,
 					col:  1,
 				},
-				parenDepth: -1,
 			},
 		},
 	}
@@ -864,9 +799,6 @@ func Test_lexer_lexRparen(t *testing.T) {
 			}
 			if l.token != test.want.tok {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.token, test.want.tok)
-			}
-			if l.parenDepth != test.want.parenDepth {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.parenDepth, test.want.parenDepth)
 			}
 		})
 	}
@@ -5641,7 +5573,7 @@ func Test_lexer_nextToken(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid paren depth 1",
+			name: "unclosed left parentheses are tokens",
 			fields: fields{
 				input: "((",
 			},
@@ -5662,8 +5594,7 @@ func Test_lexer_nextToken(t *testing.T) {
 						col:  2,
 					},
 					{
-						typ:  tokenError,
-						v:    "unclosed left parenthesis",
+						typ:  tokenEOF,
 						pos:  2,
 						line: 1,
 						col:  3,
@@ -5672,7 +5603,7 @@ func Test_lexer_nextToken(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid paren depth 2",
+			name: "unmatched right parentheses are tokens",
 			fields: fields{
 				input: "))",
 			},
@@ -5693,8 +5624,7 @@ func Test_lexer_nextToken(t *testing.T) {
 						col:  2,
 					},
 					{
-						typ:  tokenError,
-						v:    "unexpected right parenthesis",
+						typ:  tokenEOF,
 						pos:  2,
 						line: 1,
 						col:  3,
@@ -5703,7 +5633,7 @@ func Test_lexer_nextToken(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid paren depth 3",
+			name: "unbalanced nested left parentheses are tokens",
 			fields: fields{
 				input: "((())",
 			},
@@ -5745,8 +5675,7 @@ func Test_lexer_nextToken(t *testing.T) {
 						col:  5,
 					},
 					{
-						typ:  tokenError,
-						v:    "unclosed left parenthesis",
+						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
@@ -5755,7 +5684,7 @@ func Test_lexer_nextToken(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid paren depth 4",
+			name: "unbalanced nested right parentheses are tokens",
 			fields: fields{
 				input: "(()))",
 			},
@@ -5797,8 +5726,7 @@ func Test_lexer_nextToken(t *testing.T) {
 						col:  5,
 					},
 					{
-						typ:  tokenError,
-						v:    "unexpected right parenthesis",
+						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,

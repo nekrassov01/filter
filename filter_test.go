@@ -322,7 +322,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `lex error at 1:6: unclosed left parenthesis`,
+				err:   `parse error at 1:6: expected right parenthesis, got EOF: ""`,
 			},
 		},
 		{
@@ -540,7 +540,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:1: expected left parenthesis or identifier, got error: "unexpected character U+0023 '#'"`,
+				err:   `lex error at 1:1: unexpected character U+0023 '#'`,
 			},
 		},
 		{
@@ -550,7 +550,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:7: expected left parenthesis or identifier, got error: "unexpected character U+0023 '#'"`,
+				err:   `lex error at 1:7: unexpected character U+0023 '#'`,
 			},
 		},
 		{
@@ -560,7 +560,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:6: unexpected token after parsing: unexpected character 'X' after '&'`,
+				err:   `lex error at 1:6: unexpected character 'X' after '&'`,
 			},
 		},
 		{
@@ -570,7 +570,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:2: expected left parenthesis or identifier, got error: "unexpected character U+0023 '#'"`,
+				err:   `lex error at 1:2: unexpected character U+0023 '#'`,
 			},
 		},
 		{
@@ -580,7 +580,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:2: expected left parenthesis or identifier, got error: "unexpected character U+0023 '#'"`,
+				err:   `lex error at 1:2: unexpected character U+0023 '#'`,
 			},
 		},
 		{
@@ -590,7 +590,7 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:2: expected left parenthesis or identifier, got error: "unexpected character U+0023 '#'"`,
+				err:   `lex error at 1:2: unexpected character U+0023 '#'`,
 			},
 		},
 		{
