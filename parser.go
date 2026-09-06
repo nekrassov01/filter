@@ -46,16 +46,10 @@ var regexMap sync.Map
 // parse parses input into an expression tree.
 func parse(input string) (expr, error) {
 	if input == "" {
-		return expr{}, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("empty input"),
-		}
+		return expr{}, newError(KindParse, token{}, "empty input")
 	}
 	if len(input) > MaxInput {
-		return expr{}, &Error{
-			Kind: KindParse,
-			Err:  fmt.Errorf("input too long: %d bytes exceeds limit %d", len(input), MaxInput),
-		}
+		return expr{}, newError(KindParse, token{}, "input too long: %d bytes exceeds limit %d", len(input), MaxInput)
 	}
 	p := newParser(input)
 	n, err := p.parseExpr()
@@ -63,6 +57,10 @@ func parse(input string) (expr, error) {
 		return expr{}, err
 	}
 	if t := p.peek(); t.typ != tokenEOF {
+		if t.typ == tokenError {
+			_, err := p.next()
+			return expr{}, err
+		}
 		return expr{}, newError(KindParse, t, "unexpected token after parsing: %s", t.v)
 	}
 	nodes := p.nodes
@@ -175,6 +173,9 @@ func (p *parser) parseUnary() (int32, error) {
 func (p *parser) parsePrimary() (int32, error) {
 	t := p.peek()
 	switch t.typ {
+	case tokenError:
+		_, err := p.next()
+		return 0, err
 	case tokenLparen:
 		if _, err := p.next(); err != nil {
 			return 0, err

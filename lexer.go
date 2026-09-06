@@ -32,18 +32,17 @@ type mark struct {
 
 // lexer scans an input string into tokens on demand.
 type lexer struct {
-	input      string // the string being scanned
-	state      state  // current state
-	token      token  // last emitted token waiting to be consumed
-	hasNext    bool   // flag there is a pending token
-	prev       mark   // position before the last next; backup returns here
-	parenDepth int    // nesting depth of ( ) exprs
-	pos        int32  // current byte offset in the input
-	startPos   int32  // byte offset where the current token starts
-	line       int32  // 1+number of newlines seen
-	startLine  int32  // line where the current token starts
-	col        int32  // 1+display width of the runes since the last newline
-	startCol   int32  // column where the current token starts
+	input     string // the string being scanned
+	state     state  // current state
+	token     token  // last emitted token waiting to be consumed
+	hasNext   bool   // flag there is a pending token
+	prev      mark   // position before the last next; backup returns here
+	pos       int32  // current byte offset in the input
+	startPos  int32  // byte offset where the current token starts
+	line      int32  // 1+number of newlines seen
+	startLine int32  // line where the current token starts
+	col       int32  // 1+display width of the runes since the last newline
+	startCol  int32  // column where the current token starts
 }
 
 // newLexer creates a new lexer for the input string.
@@ -97,15 +96,8 @@ func (l *lexer) lexStmt() state {
 	}
 }
 
-// lexEOF emits the EOF token once the input is consumed, or an error when
-// parentheses are unbalanced.
+// lexEOF emits the EOF token once the input is consumed.
 func (l *lexer) lexEOF() state {
-	if l.parenDepth < 0 {
-		return l.errorf("unexpected right parenthesis")
-	}
-	if l.parenDepth > 0 {
-		return l.errorf("unclosed left parenthesis")
-	}
 	l.emit(tokenEOF)
 	return stateDone
 }
@@ -134,14 +126,12 @@ func (l *lexer) lexSpace() state {
 // lexLparen emits a left parenthesis.
 func (l *lexer) lexLparen() state {
 	l.emit(tokenLparen)
-	l.parenDepth++
 	return stateStmt
 }
 
 // lexRparen emits a right parenthesis.
 func (l *lexer) lexRparen() state {
 	l.emit(tokenRparen)
-	l.parenDepth--
 	return stateStmt
 }
 
