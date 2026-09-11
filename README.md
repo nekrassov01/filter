@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">FILTER</h1>
 
-<p align="center">The minimal filter expressions for Go</p>
+<p align="center">A minimal filter expression language for Go</p>
 <p align="center">
     <a href="https://github.com/nekrassov01/filter/actions/workflows/ci.yml"><img src="https://github.com/nekrassov01/filter/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
     <a href="https://pkg.go.dev/github.com/nekrassov01/filter"><img src="https://pkg.go.dev/badge/github.com/nekrassov01/filter.svg" alt="Go Reference" /></a>
@@ -31,7 +31,7 @@
 
 ## Overview
 
-`filter` evaluates a focused boolean expression language in Go through a small value-resolver interface.
+`nekrassov01/filter` evaluates a focused boolean expression language in Go through a small value-resolver interface.
 
 ## Features
 
@@ -39,7 +39,7 @@
 - Low repeated preparation cost: 9.3x faster than expr and 89x faster than CEL in the same benchmark
 - One-method integration with no reflection or map conversion
 - Typed comparisons, regular expressions, and logical operators
-- Positioned parse and evaluation errors
+- Positioned lexing, parsing, and evaluation errors
 
 ## Installation
 
@@ -127,7 +127,7 @@ Notes on the API:
 
 ## Examples
 
-A sample test is provided for a quick functional check:
+Runnable examples are provided for a quick functional check:
 
 ```sh
 go test ./examples/
@@ -250,7 +250,7 @@ ok      benchmarks      272.084s
 
 ## Syntax
 
-Identifiers are made of Unicode letters, digits, and `_`, with no dots; `true` and `false` in any letter case are literals, not identifiers.
+Identifiers are made of Unicode letters, digits, and `_`, with no dots; `true` and `false` in lowercase, title case, or uppercase are literals, not identifiers.
 
 ### Literals
 
@@ -260,7 +260,7 @@ Identifiers are made of Unicode letters, digits, and `_`, with no dots; `true` a
 | Number   | `42`, `3.14`, `0x1.fp3`                                                                                                 | Subset of Go numeric literals                           |
 | Time     | `2023-01-01T00:00:00Z`, `2023-01-01T09:00:00`, `2023-01-01`, `'2023-01-01 09:00:00'`, `'Sun, 01 Jan 2023 09:00:00 GMT'` | Zone-less forms are UTC; quote when it contains a space |
 | Duration | `1500ms`, `2s`, `1h30m`, `4000μs`                                                                                       | Go `time.ParseDuration` compatible                      |
-| Boolean  | `true`, `false`, `True`, `FALSE`                                                                                        | Any letter case; compared as `true` / `false`           |
+| Boolean  | `true`, `false`, `True`, `FALSE`                                                                                        | Lowercase, title case, or uppercase only                |
 
 Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `2006-01-02`, RFC 1123 and RFC 822 (each with a named or numeric zone), RFC 850 (named zone), and integer Unix seconds. Rules that follow from Go's `time.Parse`:
 
