@@ -33,9 +33,7 @@ type mark struct {
 // lexer scans an input string into tokens on demand.
 type lexer struct {
 	input     string // the string being scanned
-	state     state  // current state
 	token     token  // last emitted token waiting to be consumed
-	hasNext   bool   // flag there is a pending token
 	prev      mark   // position before the last next; backup returns here
 	pos       int32  // current byte offset in the input
 	startPos  int32  // byte offset where the current token starts
@@ -43,6 +41,8 @@ type lexer struct {
 	startLine int32  // line where the current token starts
 	col       int32  // 1+display width of the runes since the last newline
 	startCol  int32  // column where the current token starts
+	state     state  // current state
+	hasNext   bool   // flag there is a pending token
 }
 
 // newLexer creates a new lexer for the input string.

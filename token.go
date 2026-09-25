@@ -2,12 +2,12 @@ package filter
 
 // token represents a token produced by the lexer.
 type token struct {
-	typ  tokenType
 	v    string
 	pos  int32
 	line int32
 	col  int32
 	idx  int32
+	typ  tokenType
 }
 
 // tokenType represents the type of token produced by the lexer.

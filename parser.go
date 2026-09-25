@@ -80,17 +80,19 @@ func parse(input string) (expr, error) {
 // are written into inline buffers by index so that the parser stays on the
 // stack of parse.
 type parser struct {
-	lexer      lexer                // lexer for tokenizing input
-	current    token                // current token
-	peeked     bool                 // indicates if the next token has been peeked
-	parenCount int                  // number of opening parentheses
-	nodeBuf    [nodeBufSize]node    // expression tree nodes until nodeBuf is full
-	nodes      []node               // all expression tree nodes once nodeBuf overflowed
-	nnode      int32                // number of nodes
-	identBuf   [identBufSize]string // distinct identifiers until identBuf is full
-	idents     []string             // all distinct identifiers once identBuf overflowed
-	nident     int32                // number of distinct identifiers
-	shared     bool                 // some identifier is referenced more than once
+	lexer      lexer // lexer for tokenizing input
+	current    token // current token
+	parenCount int   // number of opening parentheses
+	peeked     bool  // indicates if the next token has been peeked
+
+	nodeBuf [nodeBufSize]node // expression tree nodes until nodeBuf is full
+	nodes   []node            // all expression tree nodes once nodeBuf overflowed
+	nnode   int32             // number of nodes
+
+	identBuf [identBufSize]string // distinct identifiers until identBuf is full
+	idents   []string             // all distinct identifiers once identBuf overflowed
+	nident   int32                // number of distinct identifiers
+	shared   bool                 // some identifier is referenced more than once
 }
 
 // newParser creates a new parser for the input string.
