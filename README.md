@@ -35,8 +35,8 @@
 
 ## Features
 
-- Zero-allocation evaluation in the included benchmark: 1.6x faster than expr and 2.8x faster than CEL ([Benchmarks](#benchmarks))
-- Low repeated preparation cost: 9.3x faster than expr and 89x faster than CEL in the same benchmark
+- Zero-allocation evaluation in the included benchmark: 1.6x faster than expr and 2.7x faster than CEL ([Benchmarks](#benchmarks))
+- Low repeated preparation cost: 9.0x faster than expr and 88x faster than CEL in the same benchmark
 - One-method integration with no reflection or map conversion
 - Typed comparisons, regular expressions, and logical operators
 - Positioned lexing, parsing, and evaluation errors
@@ -181,13 +181,13 @@ make bench
 
 ### Results
 
-Results on Apple M2 with Go 1.27.0, median of 5 runs at `-benchtime 5s`:
+Results on Apple M2 with Go 1.27.1, median of 5 runs at `-benchtime 5s`:
 
 | Benchmark  | filter                       | expr                            | CEL                               |
 | ---------- | ---------------------------- | ------------------------------- | --------------------------------- |
-| Prepare    | 2.645 µs, 6.375 KiB, 1 alloc | 24.65 µs, 28.89 KiB, 330 allocs | 235.9 µs, 230.4 KiB, 3,537 allocs |
-| Eval Match | 197.5 ns, 0 B, 0 allocs      | 322.6 ns, 146 B, 1 alloc        | 549.7 ns, 147 B, 9 allocs         |
-| Eval Miss  | 194.6 ns, 0 B, 0 allocs      | 319.7 ns, 146 B, 1 alloc        | 543.0 ns, 147 B, 9 allocs         |
+| Prepare    | 2.724 µs, 6.625 KiB, 1 alloc | 24.60 µs, 28.89 KiB, 330 allocs | 241.0 µs, 230.4 KiB, 3,537 allocs |
+| Eval Match | 194.5 ns, 0 B, 0 allocs      | 314.3 ns, 146 B, 1 alloc        | 523.2 ns, 147 B, 9 allocs         |
+| Eval Miss  | 194.4 ns, 0 B, 0 allocs      | 313.5 ns, 146 B, 1 alloc        | 530.7 ns, 146 B, 9 allocs         |
 
 <details>
 <summary>Raw output of five runs</summary>
@@ -199,53 +199,53 @@ goos: darwin
 goarch: arm64
 pkg: benchmarks
 cpu: Apple M2
-BenchmarkPrepareFilter-8            2268176        2663 ns/op      6528 B/op        1 allocs/op
-BenchmarkPrepareFilter-8            2246515        2645 ns/op      6528 B/op        1 allocs/op
-BenchmarkPrepareFilter-8            2289106        2624 ns/op      6528 B/op        1 allocs/op
-BenchmarkPrepareFilter-8            2269144        2653 ns/op      6528 B/op        1 allocs/op
-BenchmarkPrepareFilter-8            2270137        2629 ns/op      6528 B/op        1 allocs/op
-BenchmarkPrepareExpr-8               213518       24599 ns/op     29585 B/op      330 allocs/op
-BenchmarkPrepareExpr-8               247897       24536 ns/op     29585 B/op      330 allocs/op
-BenchmarkPrepareExpr-8               233426       24854 ns/op     29585 B/op      330 allocs/op
-BenchmarkPrepareExpr-8               252259       24823 ns/op     29585 B/op      330 allocs/op
-BenchmarkPrepareExpr-8               253591       24646 ns/op     29585 B/op      330 allocs/op
-BenchmarkPrepareCEL-8                 26018      234934 ns/op    235925 B/op     3537 allocs/op
-BenchmarkPrepareCEL-8                 25333      242909 ns/op    235913 B/op     3537 allocs/op
-BenchmarkPrepareCEL-8                 25419      235659 ns/op    235938 B/op     3537 allocs/op
-BenchmarkPrepareCEL-8                 25440      235885 ns/op    235943 B/op     3537 allocs/op
-BenchmarkPrepareCEL-8                 25336      237116 ns/op    235952 B/op     3537 allocs/op
-BenchmarkEvalFilter/Match-8        29084169       198.0 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Match-8        31754208       192.2 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Match-8        29332669       197.5 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Match-8        31774808       197.2 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Match-8        31623531       201.6 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Miss-8         30802072       200.9 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Miss-8         31632187       194.6 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Miss-8         31694331       193.8 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Miss-8         30615394       192.6 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalFilter/Miss-8         31775536       195.8 ns/op         0 B/op        0 allocs/op
-BenchmarkEvalExpr/Match-8          18688982       332.0 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Match-8          19136402       319.1 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Match-8          19175406       317.3 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Match-8          19129795       326.4 ns/op       147 B/op        1 allocs/op
-BenchmarkEvalExpr/Match-8          19149080       322.6 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Miss-8           19069545       318.2 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Miss-8           18322120       319.8 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Miss-8           18774595       319.6 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Miss-8           18598035       319.7 ns/op       146 B/op        1 allocs/op
-BenchmarkEvalExpr/Miss-8           18969115       331.7 ns/op       147 B/op        1 allocs/op
-BenchmarkEvalCEL/Match-8           10345711       549.7 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Match-8           11293833       536.9 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Match-8           10855304       547.6 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Match-8           11381338       553.3 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Match-8           10970720       559.9 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Miss-8            10850890       550.3 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Miss-8            10868491       542.0 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Miss-8            11033768       543.0 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Miss-8            10614069       544.9 ns/op       147 B/op        9 allocs/op
-BenchmarkEvalCEL/Miss-8            11225605       542.8 ns/op       147 B/op        9 allocs/op
+BenchmarkPrepareFilter-8   	 2195054	      2728 ns/op	    6784 B/op	       1 allocs/op
+BenchmarkPrepareFilter-8   	 2215197	      2690 ns/op	    6784 B/op	       1 allocs/op
+BenchmarkPrepareFilter-8   	 2194909	      2716 ns/op	    6784 B/op	       1 allocs/op
+BenchmarkPrepareFilter-8   	 2212471	      2724 ns/op	    6784 B/op	       1 allocs/op
+BenchmarkPrepareFilter-8   	 2206818	      2726 ns/op	    6784 B/op	       1 allocs/op
+BenchmarkPrepareExpr-8     	  249472	     24525 ns/op	   29585 B/op	     330 allocs/op
+BenchmarkPrepareExpr-8     	  249265	     24892 ns/op	   29585 B/op	     330 allocs/op
+BenchmarkPrepareExpr-8     	  254310	     24600 ns/op	   29585 B/op	     330 allocs/op
+BenchmarkPrepareExpr-8     	  251337	     24562 ns/op	   29585 B/op	     330 allocs/op
+BenchmarkPrepareExpr-8     	  243472	     24638 ns/op	   29585 B/op	     330 allocs/op
+BenchmarkPrepareCEL-8      	   25983	    233374 ns/op	  235923 B/op	    3537 allocs/op
+BenchmarkPrepareCEL-8      	   24476	    243536 ns/op	  235893 B/op	    3536 allocs/op
+BenchmarkPrepareCEL-8      	   25244	    235059 ns/op	  235922 B/op	    3537 allocs/op
+BenchmarkPrepareCEL-8      	   24717	    240950 ns/op	  235929 B/op	    3537 allocs/op
+BenchmarkPrepareCEL-8      	   24310	    246521 ns/op	  235920 B/op	    3537 allocs/op
+BenchmarkEvalFilter/Match-8         	31464157	       194.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Match-8         	31562563	       199.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Match-8         	30806656	       194.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Match-8         	31252963	       195.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Match-8         	31688061	       193.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Miss-8          	31542886	       194.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Miss-8          	31627358	       195.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Miss-8          	31500486	       193.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Miss-8          	29466393	       193.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalFilter/Miss-8          	30064516	       197.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEvalExpr/Match-8           	18442988	       314.8 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Match-8           	19569502	       317.5 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Match-8           	18781815	       313.5 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Match-8           	19650080	       314.2 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Match-8           	19434205	       314.3 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Miss-8            	19377087	       312.4 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Miss-8            	19557372	       315.1 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Miss-8            	19640089	       319.9 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Miss-8            	18880936	       312.2 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalExpr/Miss-8            	19234300	       313.5 ns/op	     146 B/op	       1 allocs/op
+BenchmarkEvalCEL/Match-8            	11073250	       525.3 ns/op	     147 B/op	       9 allocs/op
+BenchmarkEvalCEL/Match-8            	11690256	       536.3 ns/op	     147 B/op	       9 allocs/op
+BenchmarkEvalCEL/Match-8            	11625915	       522.2 ns/op	     146 B/op	       9 allocs/op
+BenchmarkEvalCEL/Match-8            	11328260	       523.2 ns/op	     147 B/op	       9 allocs/op
+BenchmarkEvalCEL/Match-8            	11637328	       522.2 ns/op	     147 B/op	       9 allocs/op
+BenchmarkEvalCEL/Miss-8             	11102700	       537.2 ns/op	     146 B/op	       9 allocs/op
+BenchmarkEvalCEL/Miss-8             	11632204	       528.9 ns/op	     146 B/op	       9 allocs/op
+BenchmarkEvalCEL/Miss-8             	11506784	       525.8 ns/op	     146 B/op	       9 allocs/op
+BenchmarkEvalCEL/Miss-8             	11585299	       534.8 ns/op	     147 B/op	       9 allocs/op
+BenchmarkEvalCEL/Miss-8             	11523722	       530.7 ns/op	     147 B/op	       9 allocs/op
 PASS
-ok      benchmarks      272.084s
+ok  	benchmarks	273.031s
 ```
 
 </details>
