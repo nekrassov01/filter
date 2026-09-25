@@ -2,6 +2,7 @@ package filter
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 )
@@ -761,6 +762,46 @@ func TestParse(t *testing.T) {
 				err:   `parse error at 1:9: invalid regex "": empty pattern`,
 			},
 		},
+		{
+			name: "invalid integer -9223372036854775809",
+			args: args{
+				input: `n == -9223372036854775809`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:6: invalid number "-9223372036854775809"`,
+			},
+		},
+		{
+			name: "invalid integer 18446744073709551616",
+			args: args{
+				input: `n == 18446744073709551616`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:6: invalid number "18446744073709551616"`,
+			},
+		},
+		{
+			name: "invalid integer 1__0",
+			args: args{
+				input: `n == 1__0`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:6: invalid number "1__0"`,
+			},
+		},
+		{
+			name: "invalid integer 1_",
+			args: args{
+				input: `n == 1_`,
+			},
+			want: want{
+				isErr: true,
+				err:   `parse error at 1:6: invalid number "1_"`,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1240,6 +1281,558 @@ func TestExpr_Eval(t *testing.T) {
 			},
 			args: args{
 				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "large signed integers are distinct",
+			fields: fields{
+				expr: MustParse(`n == 9007199254740992`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(9007199254740993)},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "large signed integer ordering",
+			fields: fields{
+				expr: MustParse(`n > 9007199254740992`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(9007199254740993)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "large negative integer ordering",
+			fields: fields{
+				expr: MustParse(`n < -9007199254740992`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(-9007199254740993)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "minimum signed integer is exact",
+			fields: fields{
+				expr: MustParse(`n == -9223372036854775808`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(math.MinInt64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "minimum signed integer neighbor is distinct",
+			fields: fields{
+				expr: MustParse(`n != -9223372036854775808`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(math.MinInt64 + 1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "maximum signed integer is exact",
+			fields: fields{
+				expr: MustParse(`n == 9223372036854775807`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(math.MaxInt64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "maximum unsigned integer is exact",
+			fields: fields{
+				expr: MustParse(`n == 18446744073709551615`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(math.MaxUint64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "maximum unsigned integer neighbor is distinct",
+			fields: fields{
+				expr: MustParse(`n == 18446744073709551614`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(math.MaxUint64)},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "quoted large integer is exact",
+			fields: fields{
+				expr: MustParse(`n == "18446744073709551615"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(math.MaxUint64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer separators preserve precision",
+			fields: fields{
+				expr: MustParse(`n == 9_007_199_254_740_993`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(9007199254740993)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "leading plus preserves unsigned maximum",
+			fields: fields{
+				expr: MustParse(`n == +18446744073709551615`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(math.MaxUint64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "leading zero remains decimal",
+			fields: fields{
+				expr: MustParse(`n == 08`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(8)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "signed value compares with unsigned literal",
+			fields: fields{
+				expr: MustParse(`n < 18446744073709551615`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(-1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "unsigned value compares with negative literal",
+			fields: fields{
+				expr: MustParse(`n > -1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(0)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "equal values across signedness",
+			fields: fields{
+				expr: MustParse(`n == 42`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(42)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "large integer exceeds float",
+			fields: fields{
+				expr: MustParse(`n > 9007199254740992.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(9007199254740993)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "float precedes large integer",
+			fields: fields{
+				expr: MustParse(`n < 9007199254740993`).expr,
+			},
+			args: args{
+				r: testResolver{"n": float64(9007199254740992)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "signed maximum precedes rounded float",
+			fields: fields{
+				expr: MustParse(`n < 9223372036854775808.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(math.MaxInt64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "unsigned maximum precedes rounded float",
+			fields: fields{
+				expr: MustParse(`n < 18446744073709551616.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(math.MaxUint64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "rounded float exceeds unsigned maximum",
+			fields: fields{
+				expr: MustParse(`n > 18446744073709551615`).expr,
+			},
+			args: args{
+				r: testResolver{"n": float64(1 << 64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer equality is exact",
+			fields: fields{
+				expr: MustParse(`n == 1.0000000001`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(1)},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "mixed equality is symmetric",
+			fields: fields{
+				expr: MustParse(`n == 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": 1.0000000001},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "float equality retains epsilon",
+			fields: fields{
+				expr: MustParse(`n == 1.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": 1.0000000001},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "float inequality retains epsilon",
+			fields: fields{
+				expr: MustParse(`n != 1.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": 1.0000000001},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "nan is not equal to integer",
+			fields: fields{
+				expr: MustParse(`n == 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.NaN()},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "nan differs from integer",
+			fields: fields{
+				expr: MustParse(`n != 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.NaN()},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer differs from nan",
+			fields: fields{
+				expr: MustParse(`n != "NaN"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "nan is not less than integer",
+			fields: fields{
+				expr: MustParse(`n < 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.NaN()},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "nan is not at most integer",
+			fields: fields{
+				expr: MustParse(`n <= 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.NaN()},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "nan is not greater than integer",
+			fields: fields{
+				expr: MustParse(`n > 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.NaN()},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "nan is not at least integer",
+			fields: fields{
+				expr: MustParse(`n >= 1`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.NaN()},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "integer is not at most nan",
+			fields: fields{
+				expr: MustParse(`n <= "NaN"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(1)},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "float is not at most nan",
+			fields: fields{
+				expr: MustParse(`n <= "NaN"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": 1.0},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "positive infinity exceeds unsigned maximum",
+			fields: fields{
+				expr: MustParse(`n > 18446744073709551615`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.Inf(1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "negative infinity precedes signed minimum",
+			fields: fields{
+				expr: MustParse(`n < -9223372036854775808`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.Inf(-1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer precedes positive infinity",
+			fields: fields{
+				expr: MustParse(`n < "Inf"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(math.MaxUint64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer exceeds negative infinity",
+			fields: fields{
+				expr: MustParse(`n > "-Inf"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(math.MinInt64)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "zero exceeds tiny negative float",
+			fields: fields{
+				expr: MustParse(`n > -5e-324`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(0)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "zero precedes tiny positive float",
+			fields: fields{
+				expr: MustParse(`n < 5e-324`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(0)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "negative zero equals integer zero",
+			fields: fields{
+				expr: MustParse(`n == 0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": math.Copysign(0, -1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "hex float retains numeric value",
+			fields: fields{
+				expr: MustParse(`n < 0x1.fp3`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(15)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "mixed comparison supports fractions",
+			fields: fields{
+				expr: MustParse(`n > 1.5`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(2)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "mixed comparison supports negative fractions",
+			fields: fields{
+				expr: MustParse(`n < -0.5`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(-1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer equality across float syntax",
+			fields: fields{
+				expr: MustParse(`n == 1.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "integer ordering across float syntax",
+			fields: fields{
+				expr: MustParse(`n >= 1.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(1)},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "unsigned ordering across float syntax",
+			fields: fields{
+				expr: MustParse(`n <= 1.0`).expr,
+			},
+			args: args{
+				r: testResolver{"n": uint64(1)},
 			},
 			want: want{
 				val: true,
@@ -2241,6 +2834,58 @@ func TestExpr_Eval(t *testing.T) {
 			want: want{
 				isErr: true,
 				err:   `eval error at 1:10: invalid duration "bad-duration"`,
+			},
+		},
+		{
+			name: "invalid quoted integer -9223372036854775809",
+			fields: fields{
+				expr: MustParse(`n == "-9223372036854775809"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(0)},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:6: invalid number "-9223372036854775809"`,
+			},
+		},
+		{
+			name: "invalid quoted integer 18446744073709551616",
+			fields: fields{
+				expr: MustParse(`n == "18446744073709551616"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(0)},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:6: invalid number "18446744073709551616"`,
+			},
+		},
+		{
+			name: "invalid quoted integer 1__0",
+			fields: fields{
+				expr: MustParse(`n == "1__0"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(0)},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:6: invalid number "1__0"`,
+			},
+		},
+		{
+			name: "invalid quoted integer 1_",
+			fields: fields{
+				expr: MustParse(`n == "1_"`).expr,
+			},
+			args: args{
+				r: testResolver{"n": int64(0)},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:6: invalid number "1_"`,
 			},
 		},
 	}

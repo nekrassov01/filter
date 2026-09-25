@@ -40,14 +40,18 @@ type node struct {
 	re    *regexp.Regexp // regular expression for pattern matching
 
 	// Cached values
-	num  float64       // cached numeric value
-	dur  time.Duration // cached duration value
-	time time.Time     // cached time value
+	valInt      int64         // cached signed integer
+	valUint     uint64        // cached unsigned integer
+	valFloat    float64       // cached floating-point value
+	valDuration time.Duration // cached duration value
+	valTime     time.Time     // cached time value
 
 	// Cached flags
-	hasNum  bool // indicates if num is cached
-	hasDur  bool // indicates if dur is cached
-	hasTime bool // indicates if time is cached
+	hasInt      bool // indicates if valInt is cached
+	hasUint     bool // indicates if valUint is cached
+	hasFloat    bool // indicates if valFloat is cached
+	hasDuration bool // indicates if valDuration is cached
+	hasTime     bool // indicates if valTime is cached
 }
 
 // newNodeBinary creates a new binary expression node.

@@ -251,7 +251,7 @@ func (p *parser) parsePredicate() (int32, error) {
 			return 0, newError(KindParse, val, "invalid duration %q", val.v)
 		}
 	case tokenNumber:
-		if !p.cacheNumber(i, val.v) {
+		if !p.cacheInt(i, val.v) && !p.cacheUint(i, val.v) && !p.cacheFloat(i, val.v) {
 			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
 		p.cacheTime(i, val.v)
@@ -299,7 +299,9 @@ func (p *parser) cacheValues(i int32, s string) {
 			if !strings.ContainsAny(s, "0123456789") {
 				return
 			}
-			p.cacheNumber(i, s)
+			if !p.cacheInt(i, s) && !p.cacheUint(i, s) {
+				p.cacheFloat(i, s)
+			}
 			p.cacheTime(i, s)
 		}
 	case strings.Contains(s, ", "):
@@ -314,7 +316,7 @@ func (p *parser) cacheTime(i int32, s string) bool {
 	if err != nil {
 		return false
 	}
-	p.node(i).time = t
+	p.node(i).valTime = t
 	p.node(i).hasTime = true
 	return true
 }
@@ -325,19 +327,41 @@ func (p *parser) cacheDuration(i int32, s string) bool {
 	if err != nil {
 		return false
 	}
-	p.node(i).dur = d
-	p.node(i).hasDur = true
+	p.node(i).valDuration = d
+	p.node(i).hasDuration = true
 	return true
 }
 
-// cacheNumber stores the number that s spells on node i and reports whether it did.
-func (p *parser) cacheNumber(i int32, s string) bool {
-	f, err := strconv.ParseFloat(s, 64)
+// cacheInt stores the signed integer that s spells on node i and reports whether it did.
+func (p *parser) cacheInt(i int32, s string) bool {
+	v, err := parseNumber[int64](s)
 	if err != nil {
 		return false
 	}
-	p.node(i).num = f
-	p.node(i).hasNum = true
+	p.node(i).valInt = v
+	p.node(i).hasInt = true
+	return true
+}
+
+// cacheUint stores the unsigned integer that s spells on node i and reports whether it did.
+func (p *parser) cacheUint(i int32, s string) bool {
+	v, err := parseNumber[uint64](s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valUint = v
+	p.node(i).hasUint = true
+	return true
+}
+
+// cacheFloat stores the floating-point value that s spells on node i and reports whether it did.
+func (p *parser) cacheFloat(i int32, s string) bool {
+	v, err := parseNumber[float64](s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valFloat = v
+	p.node(i).hasFloat = true
 	return true
 }
 
@@ -429,6 +453,44 @@ func (p *parser) peek() token {
 		p.peeked = true
 	}
 	return p.current
+}
+
+// parseNumber parses a literal of the requested numeric type. Integer literals
+// are never accepted as floats, so out-of-range integers cannot be rounded.
+func parseNumber[T int64 | uint64 | float64](s string) (T, error) {
+	var zero T
+	if _, ok := any(zero).(float64); ok {
+		digits := s
+		if len(digits) > 0 && (digits[0] == '+' || digits[0] == '-') {
+			digits = digits[1:]
+		}
+		integer := digits != ""
+		for _, c := range digits {
+			if (c < '0' || c > '9') && c != '_' {
+				integer = false
+				break
+			}
+		}
+		if integer {
+			return zero, fmt.Errorf("invalid floating-point literal %q", s)
+		}
+		v, err := strconv.ParseFloat(s, 64)
+		return T(v), err
+	}
+	if strings.Contains(s, "_") {
+		// Base 10 rejects separators, while base 0 treats leading zeros as octal.
+		// Validate separators before removing them; ignore the floating-point value.
+		if _, err := strconv.ParseFloat(s, 64); err != nil {
+			return zero, err
+		}
+		s = strings.ReplaceAll(s, "_", "")
+	}
+	if _, ok := any(zero).(int64); ok {
+		v, err := strconv.ParseInt(s, 10, 64)
+		return T(v), err
+	}
+	v, err := strconv.ParseUint(strings.TrimPrefix(s, "+"), 10, 64)
+	return T(v), err
 }
 
 // parseTime converts Unix seconds or a literal in one of timeLayouts to a

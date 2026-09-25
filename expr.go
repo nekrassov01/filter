@@ -2,12 +2,8 @@ package filter
 
 import (
 	"math"
-	"strconv"
 	"time"
 )
-
-// Epsilon is the tolerance within which two numbers compare as equal.
-const Epsilon = 1e-9
 
 // cacheSize is the number of resolved values cached on the stack per evaluation.
 // Expressions with more distinct identifiers fall back to a heap-allocated cache.
@@ -95,7 +91,12 @@ func evalPredicate(n *node, v Value) (bool, error) {
 	switch v.kind {
 	case kindString:
 		return evalString(n, v.s)
-	case kindNumber:
+	case kindInt64:
+		return evalNumber(n, v.a)
+	case kindUint64:
+		//nolint:gosec // bit pattern conversion
+		return evalNumber(n, uint64(v.a))
+	case kindFloat64:
 		//nolint:gosec // bit pattern conversion
 		return evalNumber(n, math.Float64frombits(uint64(v.a)))
 	case kindTime:
@@ -123,29 +124,52 @@ func evalString(n *node, v string) (bool, error) {
 	}
 }
 
-// evalNumber evaluates the predicate against a numeric value.
-func evalNumber(n *node, v float64) (bool, error) {
-	f := n.num
-	if !n.hasNum {
-		parsed, err := strconv.ParseFloat(n.val.v, 64)
-		if err != nil {
-			return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
+// evalNumber evaluates a predicate against a signed integer, unsigned integer,
+// or floating-point value without rounding integers for mixed comparisons.
+func evalNumber[T int64 | uint64 | float64](n *node, v T) (bool, error) {
+	rhs := n
+	if !n.hasInt && !n.hasUint && !n.hasFloat {
+		var parsed node
+		var err error
+		parsed.valInt, err = parseNumber[int64](n.val.v)
+		parsed.hasInt = err == nil
+		if !parsed.hasInt {
+			parsed.valUint, err = parseNumber[uint64](n.val.v)
+			parsed.hasUint = err == nil
 		}
-		f = parsed
+		if !parsed.hasInt && !parsed.hasUint {
+			v, err := parseNumber[float64](n.val.v)
+			if err != nil {
+				return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
+			}
+			parsed.valFloat = v
+			parsed.hasFloat = true
+		}
+		rhs = &parsed
+	}
+	var c int
+	var equal, ordered bool
+	switch {
+	case rhs.hasInt:
+		c, equal, ordered = compareNumber(v, rhs.valInt)
+	case rhs.hasUint:
+		c, equal, ordered = compareNumber(v, rhs.valUint)
+	case rhs.hasFloat:
+		c, equal, ordered = compareNumber(v, rhs.valFloat)
 	}
 	switch n.op.typ {
 	case tokenGT:
-		return v > f, nil
+		return ordered && c > 0, nil
 	case tokenGTE:
-		return v >= f, nil
+		return ordered && c >= 0, nil
 	case tokenLT:
-		return v < f, nil
+		return ordered && c < 0, nil
 	case tokenLTE:
-		return v <= f, nil
+		return ordered && c <= 0, nil
 	case tokenEQ:
-		return math.Abs(v-f) <= Epsilon, nil
+		return equal, nil
 	case tokenNEQ:
-		return !(math.Abs(v-f) <= Epsilon), nil
+		return !equal, nil
 	default:
 		return false, newError(KindEval, n.op, "invalid operator for number value %q", n.op.typ.literal())
 	}
@@ -153,7 +177,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 
 // evalTime evaluates the predicate against a time value.
 func evalTime(n *node, v time.Time) (bool, error) {
-	t := n.time
+	t := n.valTime
 	if !n.hasTime {
 		parsed, err := parseTime(n.val.v)
 		if err != nil {
@@ -181,8 +205,8 @@ func evalTime(n *node, v time.Time) (bool, error) {
 
 // evalDuration evaluates the predicate against a duration value.
 func evalDuration(n *node, v time.Duration) (bool, error) {
-	d := n.dur
-	if !n.hasDur {
+	d := n.valDuration
+	if !n.hasDuration {
 		parsed, err := time.ParseDuration(n.val.v)
 		if err != nil {
 			return false, newError(KindEval, n.val, "invalid duration %q", n.val.v)

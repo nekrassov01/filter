@@ -299,10 +299,10 @@ func Test_evalPredicate(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					num:    1,
-					hasNum: true,
+					valFloat: 1,
+					hasFloat: true,
 				},
-				v: Number(2),
+				v: Float64(2),
 			},
 			want: want{
 				val: true,
@@ -316,7 +316,7 @@ func Test_evalPredicate(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					time:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+					valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 					hasTime: true,
 				},
 				v: Time(time.Date(2024, 12, 31, 23, 59, 59, 999999999, time.UTC)),
@@ -333,8 +333,8 @@ func Test_evalPredicate(t *testing.T) {
 					op: token{
 						typ: tokenNEQ,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: Duration(time.Second),
 			},
@@ -703,8 +703,8 @@ func Test_evalString(t *testing.T) {
 
 func Test_evalNumber(t *testing.T) {
 	type args struct {
-		n *node
-		v float64
+		n    *node
+		eval func(*node) (bool, error)
 	}
 	type want struct {
 		val   bool
@@ -717,135 +717,931 @@ func Test_evalNumber(t *testing.T) {
 		want want
 	}{
 		{
-			name: "cached gt",
+			name: "int64/gt",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenGT,
 					},
-					num:    1,
-					hasNum: true,
+					valInt: 1,
+					hasInt: true,
 				},
-				v: 2,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 2)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "cached gt equal",
+			name: "int64/gte equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/lt",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valInt: 2,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/lte equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLTE,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/eq",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/neq",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 2)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/mixed fraction",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valFloat: 1.5,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/mixed equality is exact",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valFloat: 1.0000000001,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "int64/same value across float syntax",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/nan equality",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valFloat: math.NaN(),
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "int64/nan inequality",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valFloat: math.NaN(),
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/nan ordering",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valFloat: math.NaN(),
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "int64/negative versus unsigned",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valUint: 0,
+					hasUint: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, -1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/positive versus unsigned",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenGT,
 					},
-					num:    1,
-					hasNum: true,
+					valUint: 1,
+					hasUint: true,
 				},
-				v: 1,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "gte equal",
-			args: args{
-				n: &node{
-					op: token{
-						typ: tokenGTE,
-					},
-					num:    1,
-					hasNum: true,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 2)
 				},
-				v: 1,
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "gte less",
+			name: "int64/equal versus unsigned",
 			args: args{
 				n: &node{
 					op: token{
-						typ: tokenGTE,
+						typ: tokenEQ,
 					},
-					num:    1,
-					hasNum: true,
+					valUint: 1,
+					hasUint: true,
 				},
-				v: 0.5,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
 			},
 			want: want{
-				val: false,
+				val: true,
 			},
 		},
 		{
-			name: "lt",
+			name: "int64/unsigned boundary",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenLT,
 					},
-					num:    1,
-					hasNum: true,
+					valUint: 1 << 63,
+					hasUint: true,
 				},
-				v: -1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, math.MaxInt64)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "lt equal",
+			name: "int64/large integer versus float",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valFloat: 9007199254740992,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 9007199254740993)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/uncached integer",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ: tokenString,
+						v:   "42",
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 42)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/uncached float",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ: tokenString,
+						v:   "42.0",
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 42)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "int64/invalid literal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ:  tokenString,
+						v:    "bad",
+						line: 1,
+						col:  6,
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:6: invalid number "bad"`,
+			},
+		},
+		{
+			name: "int64/invalid operator",
+			args: args{
+				n: &node{
+					op: token{
+						typ:  tokenREQ,
+						line: 1,
+						col:  3,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[int64](n, 1)
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:3: invalid operator for number value "=~"`,
+			},
+		},
+		{
+			name: "uint64/gt",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valUint: 1,
+					hasUint: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 2)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/gte equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valUint: 1,
+					hasUint: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/lt",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenLT,
 					},
-					num:    1,
-					hasNum: true,
+					valUint: 2,
+					hasUint: true,
 				},
-				v: 1,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "lte equal",
-			args: args{
-				n: &node{
-					op: token{
-						typ: tokenLTE,
-					},
-					num:    1,
-					hasNum: true,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
 				},
-				v: 1,
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "lte greater",
+			name: "uint64/lte equal",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenLTE,
 					},
-					num:    1,
-					hasNum: true,
+					valUint: 1,
+					hasUint: true,
 				},
-				v: 1.1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/eq",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valUint: 1,
+					hasUint: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/neq",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valUint: 1,
+					hasUint: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 2)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/mixed fraction",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valFloat: 1.5,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/mixed equality is exact",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valFloat: 1.0000000001,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "uncached literal parsed",
+			name: "uint64/same value across float syntax",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/nan equality",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valFloat: math.NaN(),
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "uint64/nan inequality",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valFloat: math.NaN(),
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/nan ordering",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valFloat: math.NaN(),
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "uint64/unsigned versus negative",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valInt: -1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 0)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/unsigned versus positive",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 0)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/equal versus signed",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/unsigned boundary",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valInt: math.MaxInt64,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1<<63)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/unsigned maximum versus float",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valFloat: 0x1p64,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, math.MaxUint64)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/uncached integer",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ: tokenString,
+						v:   "42",
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 42)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/uncached float",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ: tokenString,
+						v:   "42.0",
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 42)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uint64/invalid literal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ:  tokenString,
+						v:    "bad",
+						line: 1,
+						col:  6,
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:6: invalid number "bad"`,
+			},
+		},
+		{
+			name: "uint64/invalid operator",
+			args: args{
+				n: &node{
+					op: token{
+						typ:  tokenREQ,
+						line: 1,
+						col:  3,
+					},
+					valInt: 1,
+					hasInt: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, 1)
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:3: invalid operator for number value "=~"`,
+			},
+		},
+		{
+			name: "float64/cached gt",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 2)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "float64/cached gt equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "float64/gte equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "float64/gte less",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, 0.5)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "float64/lt",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, -1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "float64/lt equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "float64/lte equal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLTE,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "float64/lte greater",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLTE,
+					},
+					valFloat: 1,
+					hasFloat: true,
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, 1.1)
+				},
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "float64/uncached literal parsed",
 			args: args{
 				n: &node{
 					op: token{
@@ -856,14 +1652,16 @@ func Test_evalNumber(t *testing.T) {
 						v:   "1.5",
 					},
 				},
-				v: 1.5,
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, 1.5)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "uncached literal with exponent",
+			name: "float64/uncached literal with exponent",
 			args: args{
 				n: &node{
 					op: token{
@@ -874,14 +1672,16 @@ func Test_evalNumber(t *testing.T) {
 						v:   "1e3",
 					},
 				},
-				v: 1001,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1001)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "uncached literal invalid",
+			name: "float64/uncached literal invalid",
 			args: args{
 				n: &node{
 					op: token{
@@ -894,7 +1694,9 @@ func Test_evalNumber(t *testing.T) {
 						col:  6,
 					},
 				},
-				v: 1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
 			},
 			want: want{
 				isErr: true,
@@ -902,7 +1704,7 @@ func Test_evalNumber(t *testing.T) {
 			},
 		},
 		{
-			name: "uncached literal empty",
+			name: "float64/uncached literal empty",
 			args: args{
 				n: &node{
 					op: token{
@@ -914,7 +1716,9 @@ func Test_evalNumber(t *testing.T) {
 						col:  6,
 					},
 				},
-				v: 0,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 0)
+				},
 			},
 			want: want{
 				isErr: true,
@@ -922,215 +1726,241 @@ func Test_evalNumber(t *testing.T) {
 			},
 		},
 		{
-			name: "eq within epsilon",
+			name: "float64/eq within epsilon",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenEQ,
 					},
-					num:    1 + 1e-10,
-					hasNum: true,
+					valFloat: 1 + 1e-10,
+					hasFloat: true,
 				},
-				v: 1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "eq at epsilon",
+			name: "float64/eq at epsilon",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenEQ,
 					},
-					num:    0,
-					hasNum: true,
+					valFloat: 0,
+					hasFloat: true,
 				},
-				v: Epsilon,
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, Epsilon)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "eq beyond epsilon",
+			name: "float64/eq beyond epsilon",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenEQ,
 					},
-					num:    1 + 1e-8,
-					hasNum: true,
+					valFloat: 1 + 1e-8,
+					hasFloat: true,
 				},
-				v: 1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "neq within epsilon",
+			name: "float64/neq within epsilon",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenNEQ,
 					},
-					num:    1 + 1e-10,
-					hasNum: true,
+					valFloat: 1 + 1e-10,
+					hasFloat: true,
 				},
-				v: 1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "neq beyond epsilon",
+			name: "float64/neq beyond epsilon",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenNEQ,
 					},
-					num:    1 + 1e-8,
-					hasNum: true,
+					valFloat: 1 + 1e-8,
+					hasFloat: true,
 				},
-				v: 1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "negative zero equals zero",
+			name: "float64/negative zero equals zero",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenEQ,
 					},
-					num:    0,
-					hasNum: true,
+					valFloat: 0,
+					hasFloat: true,
 				},
-				v: math.Copysign(0, -1),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.Copysign(0, -1))
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "nan eq",
+			name: "float64/nan eq",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenEQ,
 					},
-					num:    1,
-					hasNum: true,
+					valFloat: 1,
+					hasFloat: true,
 				},
-				v: math.NaN(),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.NaN())
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "nan neq is true",
+			name: "float64/nan neq is true",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenNEQ,
 					},
-					num:    1,
-					hasNum: true,
+					valFloat: 1,
+					hasFloat: true,
 				},
-				v: math.NaN(),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.NaN())
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "nan gt",
+			name: "float64/nan gt",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenGT,
 					},
-					num:    1,
-					hasNum: true,
+					valFloat: 1,
+					hasFloat: true,
 				},
-				v: math.NaN(),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.NaN())
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "nan lte",
+			name: "float64/nan lte",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenLTE,
 					},
-					num:    1,
-					hasNum: true,
+					valFloat: 1,
+					hasFloat: true,
 				},
-				v: math.NaN(),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.NaN())
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "positive infinity gt max",
+			name: "float64/positive infinity gt max",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenGT,
 					},
-					num:    math.MaxFloat64,
-					hasNum: true,
+					valFloat: math.MaxFloat64,
+					hasFloat: true,
 				},
-				v: math.Inf(1),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.Inf(1))
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "positive infinity eq itself",
+			name: "float64/positive infinity eq itself",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenEQ,
 					},
-					num:    math.Inf(1),
-					hasNum: true,
+					valFloat: math.Inf(1),
+					hasFloat: true,
 				},
-				v: math.Inf(1),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.Inf(1))
+				},
 			},
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "negative infinity lt min",
+			name: "float64/negative infinity lt min",
 			args: args{
 				n: &node{
 					op: token{
 						typ: tokenLT,
 					},
-					num:    -math.MaxFloat64,
-					hasNum: true,
+					valFloat: -math.MaxFloat64,
+					hasFloat: true,
 				},
-				v: math.Inf(-1),
+				eval: func(n *node) (bool, error) {
+					return evalNumber(n, math.Inf(-1))
+				},
 			},
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "invalid operator",
+			name: "float64/invalid operator",
 			args: args{
 				n: &node{
 					op: token{
@@ -1138,10 +1968,12 @@ func Test_evalNumber(t *testing.T) {
 						line: 1,
 						col:  4,
 					},
-					num:    1,
-					hasNum: true,
+					valFloat: 1,
+					hasFloat: true,
 				},
-				v: 1,
+				eval: func(n *node) (bool, error) {
+					return evalNumber[float64](n, 1)
+				},
 			},
 			want: want{
 				isErr: true,
@@ -1151,7 +1983,7 @@ func Test_evalNumber(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := evalNumber(test.args.n, test.args.v)
+			got, err := test.args.eval(test.args.n)
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
@@ -1232,7 +2064,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.Add(time.Nanosecond),
@@ -1248,7 +2080,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch,
@@ -1264,7 +2096,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenGTE,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch,
@@ -1280,7 +2112,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenGTE,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.Add(-time.Nanosecond),
@@ -1296,7 +2128,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.Add(-time.Nanosecond),
@@ -1312,7 +2144,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch,
@@ -1328,7 +2160,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenLTE,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch,
@@ -1344,7 +2176,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenLTE,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.Add(time.Nanosecond),
@@ -1360,7 +2192,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenEQ,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.In(time.FixedZone("JST", 9*3600)),
@@ -1376,7 +2208,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenEQ,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.Add(time.Nanosecond),
@@ -1392,7 +2224,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenNEQ,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch.Add(time.Nanosecond),
@@ -1408,7 +2240,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenNEQ,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch,
@@ -1424,7 +2256,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					time:    time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC),
+					valTime: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC),
 					hasTime: true,
 				},
 				v: time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -1440,7 +2272,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC),
@@ -1456,7 +2288,7 @@ func Test_evalTime(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: time.Time{},
@@ -1474,7 +2306,7 @@ func Test_evalTime(t *testing.T) {
 						line: 1,
 						col:  5,
 					},
-					time:    epoch,
+					valTime: epoch,
 					hasTime: true,
 				},
 				v: epoch,
@@ -1528,8 +2360,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second + time.Nanosecond,
 			},
@@ -1544,8 +2376,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second,
 			},
@@ -1560,8 +2392,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenGTE,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second,
 			},
@@ -1576,8 +2408,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenGTE,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second - time.Nanosecond,
 			},
@@ -1592,8 +2424,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Millisecond,
 			},
@@ -1608,8 +2440,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second,
 			},
@@ -1624,8 +2456,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenLTE,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second,
 			},
@@ -1640,8 +2472,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenLTE,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Minute,
 			},
@@ -1656,8 +2488,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenEQ,
 					},
-					dur:    1500 * time.Millisecond,
-					hasDur: true,
+					valDuration: 1500 * time.Millisecond,
+					hasDuration: true,
 				},
 				v: 1500 * time.Millisecond,
 			},
@@ -1672,8 +2504,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenEQ,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second + time.Nanosecond,
 			},
@@ -1688,8 +2520,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenNEQ,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second + time.Nanosecond,
 			},
@@ -1704,8 +2536,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenNEQ,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second,
 			},
@@ -1720,8 +2552,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenEQ,
 					},
-					dur:    0,
-					hasDur: true,
+					valDuration: 0,
+					hasDuration: true,
 				},
 				v: 0,
 			},
@@ -1736,8 +2568,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenLT,
 					},
-					dur:    0,
-					hasDur: true,
+					valDuration: 0,
+					hasDuration: true,
 				},
 				v: -time.Second,
 			},
@@ -1752,8 +2584,8 @@ func Test_evalDuration(t *testing.T) {
 					op: token{
 						typ: tokenGT,
 					},
-					dur:    -time.Minute,
-					hasDur: true,
+					valDuration: -time.Minute,
+					hasDuration: true,
 				},
 				v: -time.Second,
 			},
@@ -1848,8 +2680,8 @@ func Test_evalDuration(t *testing.T) {
 						line: 1,
 						col:  9,
 					},
-					dur:    time.Second,
-					hasDur: true,
+					valDuration: time.Second,
+					hasDuration: true,
 				},
 				v: time.Second,
 			},

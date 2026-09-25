@@ -53,7 +53,244 @@ func TestString(t *testing.T) {
 	}
 }
 
-func TestNumber(t *testing.T) {
+func TestInt(t *testing.T) {
+	type args struct {
+		n int
+	}
+	type want struct {
+		val Value
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "positive",
+			args: args{
+				n: 42,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    42,
+				},
+			},
+		},
+		{
+			name: "negative",
+			args: args{
+				n: -42,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    -42,
+				},
+			},
+		},
+		{
+			name: "zero",
+			args: args{
+				n: 0,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    0,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := Int(test.args.n)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestInt64(t *testing.T) {
+	type args struct {
+		n int64
+	}
+	type want struct {
+		val Value
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "positive",
+			args: args{
+				n: 42,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    42,
+				},
+			},
+		},
+		{
+			name: "negative",
+			args: args{
+				n: -42,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    -42,
+				},
+			},
+		},
+		{
+			name: "zero",
+			args: args{
+				n: 0,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    0,
+				},
+			},
+		},
+		{
+			name: "above exact float range",
+			args: args{
+				n: 9007199254740993,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    9007199254740993,
+				},
+			},
+		},
+		{
+			name: "minimum",
+			args: args{
+				n: math.MinInt64,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    math.MinInt64,
+				},
+			},
+		},
+		{
+			name: "maximum",
+			args: args{
+				n: math.MaxInt64,
+			},
+			want: want{
+				val: Value{
+					kind: kindInt64,
+					a:    math.MaxInt64,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := Int64(test.args.n)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestUint64(t *testing.T) {
+	type args struct {
+		n uint64
+	}
+	type want struct {
+		val Value
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "positive",
+			args: args{
+				n: 42,
+			},
+			want: want{
+				val: Value{
+					kind: kindUint64,
+					a:    42,
+				},
+			},
+		},
+		{
+			name: "zero",
+			args: args{
+				n: 0,
+			},
+			want: want{
+				val: Value{
+					kind: kindUint64,
+					a:    0,
+				},
+			},
+		},
+		{
+			name: "above exact float range",
+			args: args{
+				n: 9007199254740993,
+			},
+			want: want{
+				val: Value{
+					kind: kindUint64,
+					a:    9007199254740993,
+				},
+			},
+		},
+		{
+			name: "signed boundary",
+			args: args{
+				n: 1 << 63,
+			},
+			want: want{
+				val: Value{
+					kind: kindUint64,
+					a:    math.MinInt64,
+				},
+			},
+		},
+		{
+			name: "maximum",
+			args: args{
+				n: math.MaxUint64,
+			},
+			want: want{
+				val: Value{
+					kind: kindUint64,
+					a:    -1,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := Uint64(test.args.n)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestFloat64(t *testing.T) {
 	type args struct {
 		n float64
 	}
@@ -72,7 +309,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(42),
 				},
 			},
@@ -84,7 +321,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(3.14),
 				},
 			},
@@ -96,7 +333,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(-1.5),
 				},
 			},
@@ -108,7 +345,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    0,
 				},
 			},
@@ -120,7 +357,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(math.MaxFloat64),
 				},
 			},
@@ -132,7 +369,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(math.Copysign(0, -1)),
 				},
 			},
@@ -144,7 +381,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(math.Inf(1)),
 				},
 			},
@@ -156,7 +393,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(math.NaN()),
 				},
 			},
@@ -168,7 +405,7 @@ func TestNumber(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindNumber,
+					kind: kindFloat64,
 					a:    float64Bits(math.SmallestNonzeroFloat64),
 				},
 			},
@@ -176,7 +413,7 @@ func TestNumber(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := Number(test.args.n)
+			got := Float64(test.args.n)
 			if got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
@@ -438,7 +675,7 @@ func TestValueOf(t *testing.T) {
 				v: int(-7),
 			},
 			want: want{
-				val: Number(-7),
+				val: Int64(-7),
 			},
 		},
 		{
@@ -447,7 +684,7 @@ func TestValueOf(t *testing.T) {
 				v: int8(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Int64(5),
 			},
 		},
 		{
@@ -456,7 +693,7 @@ func TestValueOf(t *testing.T) {
 				v: int16(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Int64(5),
 			},
 		},
 		{
@@ -465,7 +702,7 @@ func TestValueOf(t *testing.T) {
 				v: int32(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Int64(5),
 			},
 		},
 		{
@@ -474,7 +711,7 @@ func TestValueOf(t *testing.T) {
 				v: int64(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Int64(5),
 			},
 		},
 		{
@@ -483,7 +720,7 @@ func TestValueOf(t *testing.T) {
 				v: uint(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Uint64(5),
 			},
 		},
 		{
@@ -492,7 +729,7 @@ func TestValueOf(t *testing.T) {
 				v: uint8(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Uint64(5),
 			},
 		},
 		{
@@ -501,7 +738,7 @@ func TestValueOf(t *testing.T) {
 				v: uint16(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Uint64(5),
 			},
 		},
 		{
@@ -510,7 +747,7 @@ func TestValueOf(t *testing.T) {
 				v: uint32(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Uint64(5),
 			},
 		},
 		{
@@ -519,7 +756,7 @@ func TestValueOf(t *testing.T) {
 				v: uint64(5),
 			},
 			want: want{
-				val: Number(5),
+				val: Uint64(5),
 			},
 		},
 		{
@@ -528,7 +765,7 @@ func TestValueOf(t *testing.T) {
 				v: float32(2.5),
 			},
 			want: want{
-				val: Number(2.5),
+				val: Float64(2.5),
 			},
 		},
 		{
@@ -537,7 +774,7 @@ func TestValueOf(t *testing.T) {
 				v: 3.14,
 			},
 			want: want{
-				val: Number(3.14),
+				val: Float64(3.14),
 			},
 		},
 		{
@@ -591,16 +828,16 @@ func TestValueOf(t *testing.T) {
 				v: int64(math.MaxInt64),
 			},
 			want: want{
-				val: Number(float64(math.MaxInt64)),
+				val: Int64(math.MaxInt64),
 			},
 		},
 		{
-			name: "largest uint64 rounds to float64",
+			name: "largest uint64 stays exact",
 			args: args{
 				v: uint64(math.MaxUint64),
 			},
 			want: want{
-				val: Number(float64(math.MaxUint64)),
+				val: Uint64(math.MaxUint64),
 			},
 		},
 		{
@@ -659,7 +896,7 @@ func TestValueOf(t *testing.T) {
 	}
 }
 
-// float64Bits returns the bit pattern of f as Number stores it.
+// float64Bits returns the bit pattern of f as Float64 stores it.
 func float64Bits(f float64) int64 {
 	//nolint:gosec // bit pattern conversion
 	return int64(math.Float64bits(f))
