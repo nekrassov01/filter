@@ -14,7 +14,9 @@ type kind uint8
 const (
 	kindNone     kind = iota // zero Value: nothing resolved
 	kindString               // s
-	kindNumber               // a holds the float64 bits
+	kindInt64                // a holds the signed integer
+	kindUint64               // a holds the unsigned integer bits
+	kindFloat64              // a holds the float64 bits
 	kindDuration             // a holds the duration
 	kindTime                 // a holds Unix seconds, b the nanoseconds
 )
@@ -23,7 +25,8 @@ const (
 type Value struct {
 	kind kind
 	s    string
-	a, b int64
+	a    int64
+	b    int64
 }
 
 // String returns a Value holding s.
@@ -34,11 +37,33 @@ func String(s string) Value {
 	}
 }
 
-// Number returns a Value holding n.
-func Number(n float64) Value {
+// Int returns a Value holding n.
+func Int(n int) Value {
+	return Int64(int64(n))
+}
+
+// Int64 returns a Value holding n.
+func Int64(n int64) Value {
+	return Value{
+		kind: kindInt64,
+		a:    n,
+	}
+}
+
+// Uint64 returns a Value holding n.
+func Uint64(n uint64) Value {
 	//nolint:gosec // bit pattern conversion
 	return Value{
-		kind: kindNumber,
+		kind: kindUint64,
+		a:    int64(n),
+	}
+}
+
+// Float64 returns a Value holding n.
+func Float64(n float64) Value {
+	//nolint:gosec // bit pattern conversion
+	return Value{
+		kind: kindFloat64,
 		a:    int64(math.Float64bits(n)),
 	}
 }
@@ -69,36 +94,37 @@ func Bool(b bool) Value {
 }
 
 // ValueOf converts a Go value to a Value. Strings, integer and float types,
-// time.Time, time.Duration, and bool keep their kind; any other value is
-// formatted with fmt.Sprint and compared as a string.
+// time.Time, and time.Duration keep their kind. Booleans compare as the strings
+// "true" or "false"; any other value is formatted with fmt.Sprint and compared
+// as a string.
 func ValueOf(v any) Value {
 	switch v := v.(type) {
 	case string:
 		return String(v)
 	case int:
-		return Number(float64(v))
+		return Int(v)
 	case int8:
-		return Number(float64(v))
+		return Int64(int64(v))
 	case int16:
-		return Number(float64(v))
+		return Int64(int64(v))
 	case int32:
-		return Number(float64(v))
+		return Int64(int64(v))
 	case int64:
-		return Number(float64(v))
+		return Int64(v)
 	case uint:
-		return Number(float64(v))
+		return Uint64(uint64(v))
 	case uint8:
-		return Number(float64(v))
+		return Uint64(uint64(v))
 	case uint16:
-		return Number(float64(v))
+		return Uint64(uint64(v))
 	case uint32:
-		return Number(float64(v))
+		return Uint64(uint64(v))
 	case uint64:
-		return Number(float64(v))
+		return Uint64(v)
 	case float32:
-		return Number(float64(v))
+		return Float64(float64(v))
 	case float64:
-		return Number(v)
+		return Float64(v)
 	case time.Time:
 		return Time(v)
 	case time.Duration:

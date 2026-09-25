@@ -80,7 +80,7 @@ func (o *LogLine) Resolve(name string) (filter.Value, bool) {
     case "level":
         return filter.String(o.Level), true
     case "status":
-        return filter.Number(float64(o.Status)), true
+        return filter.Int(o.Status), true
     case "latency":
         return filter.Duration(o.Latency), true
     case "path":
@@ -121,7 +121,9 @@ Notes on the API:
 
 - `Parse` returns `*Expr`; `MustParse` panics instead of returning an error, for expressions fixed at build time.
 - An `*Expr` is safe to share: `Eval` can run on it from many goroutines at once.
-- Build values with `filter.String`, `Number`, `Duration`, `Time`, and `Bool`, or `filter.ValueOf(any)` when the value is already dynamically typed.
+- Build values with `filter.String`, `Int`, `Int64`, `Uint64`, `Float64`, `Duration`, `Time`, and `Bool`, or `filter.ValueOf(any)` when the value is already dynamically typed.
+- Integer values retain all 64 bits: `Int` and `Int64` store signed integers, `Uint64` stores unsigned integers, and `Float64` stores floating-point values. `ValueOf` preserves these numeric categories as well.
+- `Number` has been removed. Replace `Number(f)` with `Float64(f)` for floating-point values, and replace `Number(float64(i))` with `Int(i)`, `Int64(i)`, or `Uint64(i)` for integers.
 - A `Resolve` that returns `false` makes `Eval` fail with `unknown identifier "name"` at the identifier's position.
 - Errors from `Parse` and `Eval` are `*filter.Error`; use `errors.As` to read `Kind`, `Line`, and `Col`.
 
@@ -270,13 +272,17 @@ Time literals accept RFC 3339, `2006-01-02T15:04:05`, `2006-01-02 15:04:05`, `20
 - Two-digit years (RFC 822, RFC 850) map to 1969–2068
 - A number compared with a `time.Time` value is read as Unix seconds
 
+Decimal integer literals, including quoted numeric forms, retain their exact value in the range `-9223372036854775808` through `18446744073709551615`. Leading zeros are decimal, and underscores may separate digits. Integers outside this range are rejected when interpreted as numbers. A decimal point or exponent selects floating-point parsing, which can round the literal to `float64` precision.
+
+Comparisons involving an integer are exact, including comparisons with floating-point values: the integer is never rounded to `float64`. For example, integer `9007199254740993` is greater than `9007199254740992.0`, and integer `1` is not equal to `1.0000000001`. When both operands are floating-point values, equality retains the `Epsilon` tolerance.
+
 ### Operators
 
-| Category   | Operators                   | Description                                                                                                    |
-| ---------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Comparison | `>` `>=` `<` `<=` `==` `!=` | Ordering for numbers, times, and durations; equality for all types, within `filter.Epsilon` (1e-9) for numbers |
-| Regex      | `=~` `!~`                   | Go regular-expression syntax; the pattern must be a string literal, the value a string                         |
-| Logical    | `&&` `\|\|` `!`             | Short-circuit                                                                                                  |
+| Category   | Operators                   | Description                                                                                                                                          |
+| ---------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Comparison | `>` `>=` `<` `<=` `==` `!=` | Ordering for numbers, times, and durations; equality for all types, within `filter.Epsilon` (1e-9) only when both operands are floating-point values |
+| Regex      | `=~` `!~`                   | Go regular-expression syntax; the pattern must be a string literal, the value a string                                                               |
+| Logical    | `&&` `\|\|` `!`             | Short-circuit                                                                                                                                        |
 
 ## Author
 

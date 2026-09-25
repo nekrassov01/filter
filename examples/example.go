@@ -54,15 +54,15 @@ func (o *Stats) Resolve(name string) (filter.Value, bool) {
 	case "MinGauge":
 		return filter.Duration(o.MinGauge), true
 	case "HP", "Hp", "HitPoint":
-		return filter.Number(o.HitPoint), true
+		return filter.Float64(o.HitPoint), true
 	case "MP", "Mp", "MagicPoint":
-		return filter.Number(o.MagicPoint), true
+		return filter.Float64(o.MagicPoint), true
 	case "LP", "Lp", "LifePoint":
-		return filter.Number(float64(o.LifePoint)), true
+		return filter.Int(o.LifePoint), true
 	case "MAG", "Mag", "Magic":
-		return filter.Number(float64(o.Magic)), true
+		return filter.Int(o.Magic), true
 	case "SPD", "Spd", "Speed":
-		return filter.Number(float64(o.Speed)), true
+		return filter.Int(o.Speed), true
 	default:
 		return filter.Value{}, false
 	}
@@ -115,7 +115,7 @@ func (o *LogLine) Resolve(name string) (filter.Value, bool) {
 	case "level":
 		return filter.String(o.Level), true
 	case "status":
-		return filter.Number(float64(o.Status)), true
+		return filter.Int(o.Status), true
 	case "latency":
 		return filter.Duration(o.Latency), true
 	case "path":
