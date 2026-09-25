@@ -125,8 +125,8 @@ func evalString(n *node, v string) (bool, error) {
 
 // evalNumber evaluates the predicate against a numeric value.
 func evalNumber(n *node, v float64) (bool, error) {
-	f := n.num
-	if !n.hasNum {
+	f := n.valFloat
+	if !n.hasFloat {
 		parsed, err := strconv.ParseFloat(n.val.v, 64)
 		if err != nil {
 			return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
@@ -153,7 +153,7 @@ func evalNumber(n *node, v float64) (bool, error) {
 
 // evalTime evaluates the predicate against a time value.
 func evalTime(n *node, v time.Time) (bool, error) {
-	t := n.time
+	t := n.valTime
 	if !n.hasTime {
 		parsed, err := parseTime(n.val.v)
 		if err != nil {
@@ -181,8 +181,8 @@ func evalTime(n *node, v time.Time) (bool, error) {
 
 // evalDuration evaluates the predicate against a duration value.
 func evalDuration(n *node, v time.Duration) (bool, error) {
-	d := n.dur
-	if !n.hasDur {
+	d := n.valDuration
+	if !n.hasDuration {
 		parsed, err := time.ParseDuration(n.val.v)
 		if err != nil {
 			return false, newError(KindEval, n.val, "invalid duration %q", n.val.v)

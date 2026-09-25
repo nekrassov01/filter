@@ -822,13 +822,13 @@ func Test_parser_parsePredicate(t *testing.T) {
 		input string
 	}
 	type want struct {
-		val     string
-		hasNum  bool
-		hasTime bool
-		hasDur  bool
-		regex   bool
-		isErr   bool
-		err     string
+		val         string
+		hasFloat    bool
+		hasTime     bool
+		hasDuration bool
+		regex       bool
+		isErr       bool
+		err         string
 	}
 	tests := []struct {
 		name   string
@@ -841,9 +841,9 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A==1`,
 			},
 			want: want{
-				val:     `(A == 1)`,
-				hasNum:  true,
-				hasTime: true,
+				val:      `(A == 1)`,
+				hasFloat: true,
+				hasTime:  true,
 			},
 		},
 		{
@@ -852,8 +852,8 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A>=1.5`,
 			},
 			want: want{
-				val:    `(A >= 1.5)`,
-				hasNum: true,
+				val:      `(A >= 1.5)`,
+				hasFloat: true,
 			},
 		},
 		{
@@ -862,9 +862,9 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A<=1`,
 			},
 			want: want{
-				val:     `(A <= 1)`,
-				hasNum:  true,
-				hasTime: true,
+				val:      `(A <= 1)`,
+				hasFloat: true,
+				hasTime:  true,
 			},
 		},
 		{
@@ -891,9 +891,9 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A>"50"`,
 			},
 			want: want{
-				val:     `(A > "50")`,
-				hasNum:  true,
-				hasTime: true,
+				val:      `(A > "50")`,
+				hasFloat: true,
+				hasTime:  true,
 			},
 		},
 		{
@@ -912,8 +912,8 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A>"1h30m"`,
 			},
 			want: want{
-				val:    `(A > "1h30m")`,
-				hasDur: true,
+				val:         `(A > "1h30m")`,
+				hasDuration: true,
 			},
 		},
 		{
@@ -932,8 +932,8 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A>10s`,
 			},
 			want: want{
-				val:    `(A > 10s)`,
-				hasDur: true,
+				val:         `(A > 10s)`,
+				hasDuration: true,
 			},
 		},
 		{
@@ -981,9 +981,9 @@ func Test_parser_parsePredicate(t *testing.T) {
 				input: `A==1 && B==2`,
 			},
 			want: want{
-				val:     `(A == 1)`,
-				hasNum:  true,
-				hasTime: true,
+				val:      `(A == 1)`,
+				hasFloat: true,
+				hasTime:  true,
 			},
 		},
 		{
@@ -1126,14 +1126,14 @@ func Test_parser_parsePredicate(t *testing.T) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", val, test.want.val)
 			}
 			n := p.node(got)
-			if n.hasNum != test.want.hasNum {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasNum, test.want.hasNum)
+			if n.hasFloat != test.want.hasFloat {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasFloat, test.want.hasFloat)
 			}
 			if n.hasTime != test.want.hasTime {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasTime, test.want.hasTime)
 			}
-			if n.hasDur != test.want.hasDur {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDur, test.want.hasDur)
+			if n.hasDuration != test.want.hasDuration {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDuration, test.want.hasDuration)
 			}
 			if regex := n.re != nil; regex != test.want.regex {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", regex, test.want.regex)
@@ -1281,12 +1281,12 @@ func Test_parser_cacheValues(t *testing.T) {
 		s string
 	}
 	type want struct {
-		hasNum  bool
-		num     float64
-		hasDur  bool
-		dur     time.Duration
-		hasTime bool
-		time    time.Time
+		hasFloat    bool
+		valFloat    float64
+		hasDuration bool
+		valDuration time.Duration
+		hasTime     bool
+		valTime     time.Time
 	}
 	tests := []struct {
 		name string
@@ -1300,10 +1300,10 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "123",
 			},
 			want: want{
-				hasNum:  true,
-				num:     123,
-				hasTime: true,
-				time:    time.Unix(123, 0).UTC(),
+				hasFloat: true,
+				valFloat: 123,
+				hasTime:  true,
+				valTime:  time.Unix(123, 0).UTC(),
 			},
 		},
 		{
@@ -1313,8 +1313,8 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "1.5",
 			},
 			want: want{
-				hasNum: true,
-				num:    1.5,
+				hasFloat: true,
+				valFloat: 1.5,
 			},
 		},
 		{
@@ -1324,8 +1324,8 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: ".5",
 			},
 			want: want{
-				hasNum: true,
-				num:    0.5,
+				hasFloat: true,
+				valFloat: 0.5,
 			},
 		},
 		{
@@ -1335,10 +1335,10 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "+1",
 			},
 			want: want{
-				hasNum:  true,
-				num:     1,
-				hasTime: true,
-				time:    time.Unix(1, 0).UTC(),
+				hasFloat: true,
+				valFloat: 1,
+				hasTime:  true,
+				valTime:  time.Unix(1, 0).UTC(),
 			},
 		},
 		{
@@ -1348,10 +1348,10 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "-1",
 			},
 			want: want{
-				hasNum:  true,
-				num:     -1,
-				hasTime: true,
-				time:    time.Unix(-1, 0).UTC(),
+				hasFloat: true,
+				valFloat: -1,
+				hasTime:  true,
+				valTime:  time.Unix(-1, 0).UTC(),
 			},
 		},
 		{
@@ -1361,10 +1361,10 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "1_000",
 			},
 			want: want{
-				hasNum:  true,
-				num:     1000,
-				hasTime: true,
-				time:    time.Unix(1000, 0).UTC(),
+				hasFloat: true,
+				valFloat: 1000,
+				hasTime:  true,
+				valTime:  time.Unix(1000, 0).UTC(),
 			},
 		},
 		{
@@ -1382,8 +1382,8 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "1h30m",
 			},
 			want: want{
-				hasDur: true,
-				dur:    90 * time.Minute,
+				hasDuration: true,
+				valDuration: 90 * time.Minute,
 			},
 		},
 		{
@@ -1394,7 +1394,7 @@ func Test_parser_cacheValues(t *testing.T) {
 			},
 			want: want{
 				hasTime: true,
-				time:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -1405,7 +1405,7 @@ func Test_parser_cacheValues(t *testing.T) {
 			},
 			want: want{
 				hasTime: true,
-				time:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -1416,7 +1416,7 @@ func Test_parser_cacheValues(t *testing.T) {
 			},
 			want: want{
 				hasTime: true,
-				time:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -1474,10 +1474,10 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "42",
 			},
 			want: want{
-				hasNum:  true,
-				num:     42,
-				hasTime: true,
-				time:    time.Unix(42, 0).UTC(),
+				hasFloat: true,
+				valFloat: 42,
+				hasTime:  true,
+				valTime:  time.Unix(42, 0).UTC(),
 			},
 		},
 	}
@@ -1487,12 +1487,12 @@ func Test_parser_cacheValues(t *testing.T) {
 			p.cacheValues(test.args.i, test.args.s)
 			n := p.node(test.args.i)
 			got := want{
-				hasNum:  n.hasNum,
-				num:     n.num,
-				hasDur:  n.hasDur,
-				dur:     n.dur,
-				hasTime: n.hasTime,
-				time:    n.time,
+				hasFloat:    n.hasFloat,
+				valFloat:    n.valFloat,
+				hasDuration: n.hasDuration,
+				valDuration: n.valDuration,
+				hasTime:     n.hasTime,
+				valTime:     n.valTime,
 			}
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
@@ -1509,7 +1509,7 @@ func Test_parser_cacheTime(t *testing.T) {
 	type want struct {
 		val     bool
 		hasTime bool
-		time    time.Time
+		valTime time.Time
 	}
 	tests := []struct {
 		name string
@@ -1525,7 +1525,7 @@ func Test_parser_cacheTime(t *testing.T) {
 			want: want{
 				val:     true,
 				hasTime: true,
-				time:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -1537,7 +1537,7 @@ func Test_parser_cacheTime(t *testing.T) {
 			want: want{
 				val:     true,
 				hasTime: true,
-				time:    time.Unix(0, 0).UTC(),
+				valTime: time.Unix(0, 0).UTC(),
 			},
 		},
 		{
@@ -1549,7 +1549,7 @@ func Test_parser_cacheTime(t *testing.T) {
 			want: want{
 				val:     true,
 				hasTime: true,
-				time:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
 		{
@@ -1580,8 +1580,8 @@ func Test_parser_cacheTime(t *testing.T) {
 			if n.hasTime != test.want.hasTime {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasTime, test.want.hasTime)
 			}
-			if !n.time.Equal(test.want.time) {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.time, test.want.time)
+			if !n.valTime.Equal(test.want.valTime) {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valTime, test.want.valTime)
 			}
 		})
 	}
@@ -1593,9 +1593,9 @@ func Test_parser_cacheDuration(t *testing.T) {
 		s string
 	}
 	type want struct {
-		val    bool
-		hasDur bool
-		dur    time.Duration
+		val         bool
+		hasDuration bool
+		valDuration time.Duration
 	}
 	tests := []struct {
 		name string
@@ -1609,9 +1609,9 @@ func Test_parser_cacheDuration(t *testing.T) {
 				s: "10s",
 			},
 			want: want{
-				val:    true,
-				hasDur: true,
-				dur:    10 * time.Second,
+				val:         true,
+				hasDuration: true,
+				valDuration: 10 * time.Second,
 			},
 		},
 		{
@@ -1621,9 +1621,9 @@ func Test_parser_cacheDuration(t *testing.T) {
 				s: "1h30.5m",
 			},
 			want: want{
-				val:    true,
-				hasDur: true,
-				dur:    time.Hour + 30*time.Minute + 30*time.Second,
+				val:         true,
+				hasDuration: true,
+				valDuration: time.Hour + 30*time.Minute + 30*time.Second,
 			},
 		},
 		{
@@ -1633,9 +1633,9 @@ func Test_parser_cacheDuration(t *testing.T) {
 				s: "-1ms",
 			},
 			want: want{
-				val:    true,
-				hasDur: true,
-				dur:    -time.Millisecond,
+				val:         true,
+				hasDuration: true,
+				valDuration: -time.Millisecond,
 			},
 		},
 		{
@@ -1645,8 +1645,8 @@ func Test_parser_cacheDuration(t *testing.T) {
 				s: "0",
 			},
 			want: want{
-				val:    true,
-				hasDur: true,
+				val:         true,
+				hasDuration: true,
 			},
 		},
 		{
@@ -1656,9 +1656,9 @@ func Test_parser_cacheDuration(t *testing.T) {
 				s: "1ns",
 			},
 			want: want{
-				val:    true,
-				hasDur: true,
-				dur:    time.Nanosecond,
+				val:         true,
+				hasDuration: true,
+				valDuration: time.Nanosecond,
 			},
 		},
 		{
@@ -1694,11 +1694,11 @@ func Test_parser_cacheDuration(t *testing.T) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 			n := p.node(test.args.i)
-			if n.hasDur != test.want.hasDur {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDur, test.want.hasDur)
+			if n.hasDuration != test.want.hasDuration {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDuration, test.want.hasDuration)
 			}
-			if n.dur != test.want.dur {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.dur, test.want.dur)
+			if n.valDuration != test.want.valDuration {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valDuration, test.want.valDuration)
 			}
 		})
 	}
@@ -1710,9 +1710,9 @@ func Test_parser_cacheNumber(t *testing.T) {
 		s string
 	}
 	type want struct {
-		val    bool
-		hasNum bool
-		num    float64
+		val      bool
+		hasFloat bool
+		valFloat float64
 	}
 	tests := []struct {
 		name string
@@ -1726,9 +1726,9 @@ func Test_parser_cacheNumber(t *testing.T) {
 				s: "42",
 			},
 			want: want{
-				val:    true,
-				hasNum: true,
-				num:    42,
+				val:      true,
+				hasFloat: true,
+				valFloat: 42,
 			},
 		},
 		{
@@ -1738,9 +1738,9 @@ func Test_parser_cacheNumber(t *testing.T) {
 				s: "-1.5",
 			},
 			want: want{
-				val:    true,
-				hasNum: true,
-				num:    -1.5,
+				val:      true,
+				hasFloat: true,
+				valFloat: -1.5,
 			},
 		},
 		{
@@ -1750,9 +1750,9 @@ func Test_parser_cacheNumber(t *testing.T) {
 				s: "1e3",
 			},
 			want: want{
-				val:    true,
-				hasNum: true,
-				num:    1000,
+				val:      true,
+				hasFloat: true,
+				valFloat: 1000,
 			},
 		},
 		{
@@ -1762,9 +1762,9 @@ func Test_parser_cacheNumber(t *testing.T) {
 				s: "1_000",
 			},
 			want: want{
-				val:    true,
-				hasNum: true,
-				num:    1000,
+				val:      true,
+				hasFloat: true,
+				valFloat: 1000,
 			},
 		},
 		{
@@ -1774,9 +1774,9 @@ func Test_parser_cacheNumber(t *testing.T) {
 				s: "7",
 			},
 			want: want{
-				val:    true,
-				hasNum: true,
-				num:    7,
+				val:      true,
+				hasFloat: true,
+				valFloat: 7,
 			},
 		},
 		{
@@ -1820,11 +1820,11 @@ func Test_parser_cacheNumber(t *testing.T) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 			n := p.node(test.args.i)
-			if n.hasNum != test.want.hasNum {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasNum, test.want.hasNum)
+			if n.hasFloat != test.want.hasFloat {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasFloat, test.want.hasFloat)
 			}
-			if n.num != test.want.num {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.num, test.want.num)
+			if n.valFloat != test.want.valFloat {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valFloat, test.want.valFloat)
 			}
 		})
 	}

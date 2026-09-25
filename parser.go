@@ -314,7 +314,7 @@ func (p *parser) cacheTime(i int32, s string) bool {
 	if err != nil {
 		return false
 	}
-	p.node(i).time = t
+	p.node(i).valTime = t
 	p.node(i).hasTime = true
 	return true
 }
@@ -325,8 +325,8 @@ func (p *parser) cacheDuration(i int32, s string) bool {
 	if err != nil {
 		return false
 	}
-	p.node(i).dur = d
-	p.node(i).hasDur = true
+	p.node(i).valDuration = d
+	p.node(i).hasDuration = true
 	return true
 }
 
@@ -336,8 +336,8 @@ func (p *parser) cacheNumber(i int32, s string) bool {
 	if err != nil {
 		return false
 	}
-	p.node(i).num = f
-	p.node(i).hasNum = true
+	p.node(i).valFloat = f
+	p.node(i).hasFloat = true
 	return true
 }
 
