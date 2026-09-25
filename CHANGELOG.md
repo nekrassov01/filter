@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.4.0](https://github.com/nekrassov01/filter/compare/v0.3.2...v0.4.0) - 2026-09-25
+
+- Preserve integer precision in numeric comparisons by @nekrassov01 in https://github.com/nekrassov01/filter/pull/43
+- Reduce memory usage through struct field alignment by @nekrassov01 in https://github.com/nekrassov01/filter/pull/45
+- Reorganize README by @nekrassov01 in https://github.com/nekrassov01/filter/pull/46
+
 ## [v0.3.2](https://github.com/nekrassov01/filter/compare/v0.3.1...v0.3.2) - 2026-09-11
 
 - Restructure README by @nekrassov01 in https://github.com/nekrassov01/filter/pull/34
