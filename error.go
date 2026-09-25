@@ -24,10 +24,10 @@ const (
 // Line and Col locate the offending token in the input (1-based, Col counted in
 // display width); both are 0 when the error has no position, such as empty input.
 type Error struct {
+	Err  error
 	Kind ErrorKind
 	Line int
 	Col  int
-	Err  error
 }
 
 // Error returns the message in the form "<kind> at <line>:<col>: <detail>",

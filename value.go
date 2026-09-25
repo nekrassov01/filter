@@ -23,10 +23,10 @@ const (
 
 // Value is the value of an identifier, as returned by a Resolver.
 type Value struct {
-	kind kind
 	s    string
 	a    int64
 	b    int64
+	kind kind
 }
 
 // String returns a Value holding s.

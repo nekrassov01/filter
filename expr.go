@@ -12,8 +12,8 @@ const cacheSize = 16
 // expr is a parsed expression tree with the bookkeeping eval needs.
 type expr struct {
 	nodes  []node // expression tree nodes
-	root   int32  // index of the root node
 	nident int    // number of distinct identifiers
+	root   int32  // index of the root node
 	shared bool   // some identifier is referenced more than once
 }
 

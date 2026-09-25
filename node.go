@@ -30,28 +30,26 @@ func (t nodeType) String() string {
 
 // node represents a node in the expression tree.
 type node struct {
-	// Node metadata
-	typ   nodeType       // type of the node
-	left  int32          // left child index
-	right int32          // right child index
 	ident token          // identifier token for variable nodes
 	op    token          // operator token for binary and predicate nodes
 	val   token          // value token for literal nodes
 	re    *regexp.Regexp // regular expression for pattern matching
 
-	// Cached values
 	valInt      int64         // cached signed integer
 	valUint     uint64        // cached unsigned integer
 	valFloat    float64       // cached floating-point value
 	valDuration time.Duration // cached duration value
 	valTime     time.Time     // cached time value
 
-	// Cached flags
 	hasInt      bool // indicates if valInt is cached
 	hasUint     bool // indicates if valUint is cached
 	hasFloat    bool // indicates if valFloat is cached
 	hasDuration bool // indicates if valDuration is cached
 	hasTime     bool // indicates if valTime is cached
+
+	typ   nodeType // type of the node
+	left  int32    // left child index
+	right int32    // right child index
 }
 
 // newNodeBinary creates a new binary expression node.
