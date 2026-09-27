@@ -265,14 +265,14 @@ func (p *parser) cacheRegex(i int32, t token) error {
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
 		p.node(i).re = cached.(*regexp.Regexp)
-	} else {
-		re, err := regexp.Compile(t.v)
-		if err != nil {
-			return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
-		}
-		regexMap.Store(t.v, re)
-		p.node(i).re = re
+		return nil
 	}
+	re, err := regexp.Compile(t.v)
+	if err != nil {
+		return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
+	}
+	regexMap.Store(t.v, re)
+	p.node(i).re = re
 	return nil
 }
 

@@ -474,24 +474,12 @@ func (l *lexer) scanDuration() bool {
 		}
 		found := false
 		switch r := l.next(); r {
-		case 'n':
-			if l.accept("s") {
-				found = true
-			}
-		case 'u':
-			if l.accept("s") {
-				found = true
-			}
-		case 'µ', 'μ':
-			if l.accept("s") {
-				found = true
-			}
+		case 'n', 'u', 'µ', 'μ':
+			found = l.accept("s")
 		case 'm':
 			l.accept("s")
 			found = true
-		case 's':
-			found = true
-		case 'h':
+		case 's', 'h':
 			found = true
 		default:
 			l.reset(start)
@@ -501,7 +489,7 @@ func (l *lexer) scanDuration() bool {
 		}
 		valid = true
 		r := l.peek()
-		if r == eof || (!unicode.IsDigit(r) && r != '.') {
+		if !unicode.IsDigit(r) && r != '.' {
 			break
 		}
 	}
