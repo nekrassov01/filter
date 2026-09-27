@@ -1,6 +1,7 @@
 package examples
 
 import (
+	"net/netip"
 	"time"
 
 	"github.com/nekrassov01/filter"
@@ -120,6 +121,56 @@ func (o *LogLine) Resolve(name string) (filter.Value, bool) {
 		return filter.Duration(o.Latency), true
 	case "path":
 		return filter.String(o.Path), true
+	default:
+		return filter.Value{}, false
+	}
+}
+
+// LiteralValues contains the values used by the unquoted literal example.
+type LiteralValues struct {
+	Count     int
+	Latency   time.Duration
+	At        time.Time
+	IPv4      netip.Addr
+	IPv6      netip.Addr
+	LinkLocal netip.Addr
+	Loopback  netip.Addr
+	Enabled   bool
+}
+
+// SampleLiterals returns the input used by the unquoted literal example.
+func SampleLiterals() LiteralValues {
+	return LiteralValues{
+		Count:     42,
+		Latency:   1500 * time.Millisecond,
+		At:        time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		IPv4:      netip.MustParseAddr("192.0.2.1"),
+		IPv6:      netip.MustParseAddr("2001:db8::1"),
+		LinkLocal: netip.MustParseAddr("fe80::1%eth0"),
+		Loopback:  netip.MustParseAddr("::1"),
+		Enabled:   true,
+	}
+}
+
+// Resolve returns the value bound to the identifier.
+func (o *LiteralValues) Resolve(name string) (filter.Value, bool) {
+	switch name {
+	case "Count":
+		return filter.Int(o.Count), true
+	case "Latency":
+		return filter.Duration(o.Latency), true
+	case "At":
+		return filter.Time(o.At), true
+	case "IPv4":
+		return filter.Addr(o.IPv4), true
+	case "IPv6":
+		return filter.Addr(o.IPv6), true
+	case "LinkLocal":
+		return filter.Addr(o.LinkLocal), true
+	case "Loopback":
+		return filter.Addr(o.Loopback), true
+	case "Enabled":
+		return filter.Bool(o.Enabled), true
 	default:
 		return filter.Value{}, false
 	}

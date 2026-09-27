@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"net/netip"
 	"regexp"
 	"time"
 )
@@ -40,12 +41,14 @@ type node struct {
 	valFloat    float64       // cached floating-point value
 	valDuration time.Duration // cached duration value
 	valTime     time.Time     // cached time value
+	valAddr     netip.Addr    // cached IP address
 
 	hasInt      bool // indicates if valInt is cached
 	hasUint     bool // indicates if valUint is cached
 	hasFloat    bool // indicates if valFloat is cached
 	hasDuration bool // indicates if valDuration is cached
 	hasTime     bool // indicates if valTime is cached
+	hasAddr     bool // indicates if valAddr is cached
 
 	typ   nodeType // type of the node
 	left  int32    // left child index

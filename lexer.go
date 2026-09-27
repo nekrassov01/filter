@@ -86,6 +86,8 @@ func (l *lexer) lexStmt() state {
 		return l.lexAND()
 	case r == '|':
 		return l.lexOR()
+	case r == ':':
+		return l.lexAddr()
 	case isNumberStart(r):
 		return l.lexNumber()
 	case unicode.IsLetter(r) || r == '_':
@@ -271,8 +273,20 @@ func (l *lexer) lexRawString() state {
 	}
 }
 
-// lexNumber scans a time, duration, or number literal, trying them in that
-// order, so that 2023-01-02 is a date rather than three numbers.
+// lexAddr scans an address starting with a double colon.
+// The leading colon has already been seen.
+func (l *lexer) lexAddr() state {
+	l.backup()
+	if !strings.HasPrefix(l.input[l.pos:], "::") {
+		return l.errorf("unexpected character %#U", ':')
+	}
+	l.scanAddr()
+	l.emit(tokenAddr)
+	return stateStmt
+}
+
+// lexNumber scans a time, address, duration, or number literal, trying them
+// in that order, so that 2023-01-02 is a date rather than three numbers.
 // The leading digit, sign, or dot has already been seen.
 func (l *lexer) lexNumber() state {
 	l.backup() // rescan the leading character consumed by lexStmt
@@ -282,6 +296,10 @@ func (l *lexer) lexNumber() state {
 		return stateStmt
 	}
 	l.reset(start)
+	if l.scanAddr() {
+		l.emit(tokenAddr)
+		return stateStmt
+	}
 	if l.scanDuration() {
 		l.emit(tokenDuration)
 		return stateStmt
@@ -292,9 +310,16 @@ func (l *lexer) lexNumber() state {
 	return stateStmt
 }
 
-// lexKeywordOrIdent scans an identifier and emits it as a boolean literal
-// when it spells true or false. The leading character has already been seen.
+// lexKeywordOrIdent scans an address, boolean literal, or identifier.
+// The leading character has already been seen.
 func (l *lexer) lexKeywordOrIdent() state {
+	start := l.mark()
+	l.backup()
+	if l.scanAddr() {
+		l.emit(tokenAddr)
+		return stateStmt
+	}
+	l.reset(start)
 	// ASCII bytes advance without decoding; anything else takes the rune path.
 	for int(l.pos) < len(l.input) {
 		c := l.input[l.pos]
@@ -399,6 +424,45 @@ func (l *lexer) scanTime() bool {
 	if l.accept("+-") {
 		if !l.acceptDigits(2) || !l.accept(":") || !l.acceptDigits(2) {
 			l.reset(zone)
+		}
+	}
+	return true
+}
+
+// scanAddr scans an IP address candidate, leaving validation to the parser.
+// Colons distinguish IPv6 from identifiers; three dots distinguish IPv4
+// from numbers. On failure, the input position is restored.
+func (l *lexer) scanAddr() bool {
+	start := l.mark()
+	dots := 0
+	colon := false
+	for int(l.pos) < len(l.input) {
+		c := l.input[l.pos]
+		if c != '.' && c != ':' && !('0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F') {
+			break
+		}
+		switch c {
+		case '.':
+			dots++
+		case ':':
+			colon = true
+		}
+		l.pos++
+		l.col++
+	}
+	if !colon && dots < 3 {
+		l.reset(start)
+		return false
+	}
+	// A zone extends to an expression delimiter. Quote addresses whose zones
+	// contain whitespace, operators, parentheses, or quotes.
+	if l.accept("%") {
+		for {
+			r := l.next()
+			if r == eof || isSpace(r) || strings.ContainsRune("()=!<>&|\"'`", r) {
+				l.backup()
+				break
+			}
 		}
 	}
 	return true

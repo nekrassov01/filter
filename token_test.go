@@ -159,6 +159,13 @@ func Test_tokenType_String(t *testing.T) {
 			},
 		},
 		{
+			name: "address",
+			tr:   tokenAddr,
+			want: want{
+				val: "address",
+			},
+		},
+		{
 			name: "bool",
 			tr:   tokenBool,
 			want: want{
@@ -328,6 +335,13 @@ func Test_tokenType_literal(t *testing.T) {
 		{
 			name: "duration",
 			tr:   tokenDuration,
+			want: want{
+				val: "",
+			},
+		},
+		{
+			name: "address",
+			tr:   tokenAddr,
 			want: want{
 				val: "",
 			},
@@ -514,6 +528,13 @@ func Test_tokenType_isPredicateOperatorType(t *testing.T) {
 			},
 		},
 		{
+			name: "address",
+			tr:   tokenAddr,
+			want: want{
+				val: false,
+			},
+		},
+		{
 			name: "bool",
 			tr:   tokenBool,
 			want: want{
@@ -690,6 +711,13 @@ func Test_tokenType_isRegexOperatorType(t *testing.T) {
 		{
 			name: "time",
 			tr:   tokenTime,
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "address",
+			tr:   tokenAddr,
 			want: want{
 				val: false,
 			},
@@ -876,6 +904,13 @@ func Test_tokenType_isValueType(t *testing.T) {
 			},
 		},
 		{
+			name: "address",
+			tr:   tokenAddr,
+			want: want{
+				val: true,
+			},
+		},
+		{
 			name: "bool",
 			tr:   tokenBool,
 			want: want{
@@ -926,6 +961,13 @@ func Test_tokenType_isStringType(t *testing.T) {
 		{
 			name: "number",
 			tr:   tokenNumber,
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "address",
+			tr:   tokenAddr,
 			want: want{
 				val: false,
 			},

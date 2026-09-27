@@ -1,8 +1,10 @@
 package filter
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
+	"net/netip"
 	"strconv"
 	"time"
 )
@@ -19,6 +21,7 @@ const (
 	kindFloat64              // a holds the float64 bits
 	kindDuration             // a holds the duration
 	kindTime                 // a holds Unix seconds, b the nanoseconds
+	kindAddr                 // a and b hold address bits, s the zone, bits the address family
 )
 
 // Value is the value of an identifier, as returned by a Resolver.
@@ -27,6 +30,24 @@ type Value struct {
 	a    int64
 	b    int64
 	kind kind
+	bits uint8 // Addr only: 0 = invalid, 32 = IPv4, 128 = IPv6
+}
+
+// addr reconstructs an address without conflating IPv4 and mapped IPv6 values.
+func (v Value) addr() netip.Addr {
+	if v.bits == 0 {
+		return netip.Addr{}
+	}
+	var b [16]byte
+	//nolint:gosec // bit pattern conversion
+	binary.BigEndian.PutUint64(b[:8], uint64(v.a))
+	//nolint:gosec // bit pattern conversion
+	binary.BigEndian.PutUint64(b[8:], uint64(v.b))
+	ip := netip.AddrFrom16(b)
+	if v.bits == 32 {
+		return ip.Unmap()
+	}
+	return ip.WithZone(v.s)
 }
 
 // String returns a Value holding s.
@@ -85,6 +106,20 @@ func Time(t time.Time) Value {
 	}
 }
 
+// Addr returns a Value holding ip, preserving its address family and zone.
+// A zero netip.Addr remains invalid and sorts before valid addresses.
+func Addr(ip netip.Addr) Value {
+	b := ip.As16()
+	//nolint:gosec // bit pattern conversion
+	return Value{
+		kind: kindAddr,
+		bits: uint8(ip.BitLen()),
+		s:    ip.Zone(),
+		a:    int64(binary.BigEndian.Uint64(b[:8])),
+		b:    int64(binary.BigEndian.Uint64(b[8:])),
+	}
+}
+
 // Bool returns a Value holding b, which compares as the string "true" or "false".
 func Bool(b bool) Value {
 	return Value{
@@ -94,9 +129,9 @@ func Bool(b bool) Value {
 }
 
 // ValueOf converts a Go value to a Value. Strings, integer and float types,
-// time.Time, and time.Duration keep their kind. Booleans compare as the strings
-// "true" or "false"; any other value is formatted with fmt.Sprint and compared
-// as a string.
+// time.Time, time.Duration, and netip.Addr keep their kind. Booleans compare as
+// the strings "true" or "false"; any other value is formatted with fmt.Sprint
+// and compared as a string.
 func ValueOf(v any) Value {
 	switch v := v.(type) {
 	case string:
@@ -129,6 +164,8 @@ func ValueOf(v any) Value {
 		return Time(v)
 	case time.Duration:
 		return Duration(v)
+	case netip.Addr:
+		return Addr(v)
 	case bool:
 		return Bool(v)
 	default:

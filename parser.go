@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"math"
+	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
@@ -248,6 +249,10 @@ func (p *parser) parsePredicate() (int32, error) {
 		if !p.cacheTime(i, val.v) {
 			return 0, newError(KindParse, val, "invalid time %q", val.v)
 		}
+	case tokenAddr:
+		if !p.cacheAddr(i, val.v) {
+			return 0, newError(KindParse, val, "invalid address %q", val.v)
+		}
 	case tokenDuration:
 		if !p.cacheDuration(i, val.v) {
 			return 0, newError(KindParse, val, "invalid duration %q", val.v)
@@ -279,9 +284,12 @@ func (p *parser) cacheRegex(i int32, t token) error {
 	return nil
 }
 
-// cacheValues stores on node i every time, duration, or number that the
+// cacheValues stores on node i every time, duration, address, or number that the
 // string literal s also spells.
 func (p *parser) cacheValues(i int32, s string) {
+	if strings.ContainsAny(s, ".:") && p.cacheAddr(i, s) {
+		return
+	}
 	r, _ := utf8.DecodeRuneInString(s)
 	switch {
 	case isNumberStart(r):
@@ -320,6 +328,17 @@ func (p *parser) cacheTime(i int32, s string) bool {
 	}
 	p.node(i).valTime = t
 	p.node(i).hasTime = true
+	return true
+}
+
+// cacheAddr stores the IP address that s spells on node i and reports whether it did.
+func (p *parser) cacheAddr(i int32, s string) bool {
+	v, err := netip.ParseAddr(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valAddr = v
+	p.node(i).hasAddr = true
 	return true
 }
 

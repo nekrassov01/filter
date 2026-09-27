@@ -36,6 +36,7 @@ const (
 	tokenNumber                     // number literal
 	tokenDuration                   // duration literal
 	tokenTime                       // time literal
+	tokenAddr                       // IP address literal
 	tokenBool                       // boolean literal
 )
 
@@ -84,6 +85,8 @@ func (t tokenType) String() string {
 		return "duration"
 	case tokenTime:
 		return "time"
+	case tokenAddr:
+		return "address"
 	case tokenBool:
 		return "boolean"
 	default:
@@ -149,7 +152,7 @@ func (t tokenType) isRegexOperatorType() bool {
 // isValueType reports whether the token can be the right-hand side of a predicate.
 func (t tokenType) isValueType() bool {
 	switch t {
-	case tokenString, tokenRawString, tokenNumber, tokenTime, tokenDuration, tokenBool:
+	case tokenString, tokenRawString, tokenNumber, tokenTime, tokenDuration, tokenAddr, tokenBool:
 		return true
 	default:
 		return false
