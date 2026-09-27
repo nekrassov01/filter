@@ -25,11 +25,11 @@ func Test_newLexer(t *testing.T) {
 			want: want{
 				val: lexer{
 					input:     "",
-					state:     stateStmt,
 					line:      1,
 					startLine: 1,
 					col:       1,
 					startCol:  1,
+					state:     stateStmt,
 				},
 			},
 		},
@@ -41,11 +41,11 @@ func Test_newLexer(t *testing.T) {
 			want: want{
 				val: lexer{
 					input:     `Name == "a"`,
-					state:     stateStmt,
 					line:      1,
 					startLine: 1,
 					col:       1,
 					startCol:  1,
+					state:     stateStmt,
 				},
 			},
 		},
@@ -57,11 +57,11 @@ func Test_newLexer(t *testing.T) {
 			want: want{
 				val: lexer{
 					input:     "軍師",
-					state:     stateStmt,
 					line:      1,
 					startLine: 1,
 					col:       1,
 					startCol:  1,
+					state:     stateStmt,
 				},
 			},
 		},
@@ -97,11 +97,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "192.0.2.1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -113,11 +113,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "2001:db8::1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -129,11 +129,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "fe80::1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -145,11 +145,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -161,11 +161,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::ffff:192.0.2.1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -177,11 +177,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "fe80::1%eth0",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -193,11 +193,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "fe80::1%\u7db2",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -209,11 +209,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "fe80::1%eth0",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -225,11 +225,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -241,11 +241,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "999.0.2.1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -257,11 +257,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "2001:::1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -273,11 +273,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "fe80::1%",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -289,11 +289,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenEOF,
 					v:    "",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 			},
 		},
@@ -315,11 +315,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"a"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -331,11 +331,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `'a'`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -347,11 +347,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`a`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -363,11 +363,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLparen,
 					v:    "(",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLparen,
 				},
 			},
 		},
@@ -379,11 +379,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRparen,
 					v:    ")",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRparen,
 				},
 			},
 		},
@@ -395,11 +395,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenEQ,
 					v:    "==",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenEQ,
 				},
 			},
 		},
@@ -411,11 +411,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNOT,
 					v:    "!",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNOT,
 				},
 			},
 		},
@@ -427,11 +427,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLT,
 					v:    "<",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLT,
 				},
 			},
 		},
@@ -443,11 +443,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenGTE,
 					v:    ">=",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenGTE,
 				},
 			},
 		},
@@ -459,11 +459,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAND,
 					v:    "&&",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAND,
 				},
 			},
 		},
@@ -475,11 +475,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenOR,
 					v:    "||",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenOR,
 				},
 			},
 		},
@@ -491,11 +491,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -507,11 +507,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "-1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -523,11 +523,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    ".5",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -539,11 +539,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "+",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -555,11 +555,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "abc",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -571,11 +571,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "_x",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -587,11 +587,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "軍師",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -603,11 +603,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenBool,
 					v:    "true",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenBool,
 				},
 			},
 		},
@@ -619,11 +619,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0023 '#'",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -635,11 +635,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character U+2192 '→'",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -651,11 +651,11 @@ func Test_lexer_lexStmt(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "名前1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -695,11 +695,11 @@ func Test_lexer_lexEOF(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenEOF,
 					v:    "",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 			},
 		},
@@ -711,11 +711,11 @@ func Test_lexer_lexEOF(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenEOF,
 					v:    "",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenEOF,
 				},
 			},
 		},
@@ -727,11 +727,11 @@ func Test_lexer_lexEOF(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenEOF,
 					v:    "",
 					pos:  6,
 					line: 1,
 					col:  5,
+					typ:  tokenEOF,
 				},
 			},
 		},
@@ -895,11 +895,11 @@ func Test_lexer_lexLparen(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLparen,
 					v:    "(",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLparen,
 				},
 			},
 		},
@@ -911,11 +911,11 @@ func Test_lexer_lexLparen(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLparen,
 					v:    "(",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLparen,
 				},
 			},
 		},
@@ -956,11 +956,11 @@ func Test_lexer_lexRparen(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRparen,
 					v:    ")",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRparen,
 				},
 			},
 		},
@@ -972,11 +972,11 @@ func Test_lexer_lexRparen(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRparen,
 					v:    ")",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRparen,
 				},
 			},
 		},
@@ -1017,11 +1017,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenEQ,
 					v:    "==",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenEQ,
 				},
 			},
 		},
@@ -1033,11 +1033,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenREQ,
 					v:    "=~",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenREQ,
 				},
 			},
 		},
@@ -1049,11 +1049,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenEQ,
 					v:    "==",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenEQ,
 				},
 			},
 		},
@@ -1065,11 +1065,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected end of input after '='",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1081,11 +1081,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character 'x' after '='",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1097,11 +1097,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character ' ' after '='",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1113,11 +1113,11 @@ func Test_lexer_lexEQ(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character '軍' after '='",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1158,11 +1158,11 @@ func Test_lexer_lexNOT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNEQ,
 					v:    "!=",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNEQ,
 				},
 			},
 		},
@@ -1174,11 +1174,11 @@ func Test_lexer_lexNOT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNREQ,
 					v:    "!~",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNREQ,
 				},
 			},
 		},
@@ -1190,11 +1190,11 @@ func Test_lexer_lexNOT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNOT,
 					v:    "!",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNOT,
 				},
 			},
 		},
@@ -1206,11 +1206,11 @@ func Test_lexer_lexNOT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNOT,
 					v:    "!",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNOT,
 				},
 			},
 		},
@@ -1222,11 +1222,11 @@ func Test_lexer_lexNOT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNOT,
 					v:    "!",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNOT,
 				},
 			},
 		},
@@ -1238,11 +1238,11 @@ func Test_lexer_lexNOT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNOT,
 					v:    "!",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNOT,
 				},
 			},
 		},
@@ -1283,11 +1283,11 @@ func Test_lexer_lexLT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLTE,
 					v:    "<=",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLTE,
 				},
 			},
 		},
@@ -1299,11 +1299,11 @@ func Test_lexer_lexLT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLT,
 					v:    "<",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLT,
 				},
 			},
 		},
@@ -1315,11 +1315,11 @@ func Test_lexer_lexLT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLT,
 					v:    "<",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLT,
 				},
 			},
 		},
@@ -1331,11 +1331,11 @@ func Test_lexer_lexLT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenLT,
 					v:    "<",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenLT,
 				},
 			},
 		},
@@ -1376,11 +1376,11 @@ func Test_lexer_lexGT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenGTE,
 					v:    ">=",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenGTE,
 				},
 			},
 		},
@@ -1392,11 +1392,11 @@ func Test_lexer_lexGT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenGT,
 					v:    ">",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenGT,
 				},
 			},
 		},
@@ -1408,11 +1408,11 @@ func Test_lexer_lexGT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenGT,
 					v:    ">",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenGT,
 				},
 			},
 		},
@@ -1424,11 +1424,11 @@ func Test_lexer_lexGT(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenGT,
 					v:    ">",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenGT,
 				},
 			},
 		},
@@ -1469,11 +1469,11 @@ func Test_lexer_lexAND(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAND,
 					v:    "&&",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAND,
 				},
 			},
 		},
@@ -1485,11 +1485,11 @@ func Test_lexer_lexAND(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAND,
 					v:    "&&",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenAND,
 				},
 			},
 		},
@@ -1501,11 +1501,11 @@ func Test_lexer_lexAND(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected end of input after '&'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1517,11 +1517,11 @@ func Test_lexer_lexAND(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character 'x' after '&'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1533,11 +1533,11 @@ func Test_lexer_lexAND(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character '|' after '&'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1549,11 +1549,11 @@ func Test_lexer_lexAND(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character '軍' after '&'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1594,11 +1594,11 @@ func Test_lexer_lexOR(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenOR,
 					v:    "||",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenOR,
 				},
 			},
 		},
@@ -1610,11 +1610,11 @@ func Test_lexer_lexOR(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenOR,
 					v:    "||",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenOR,
 				},
 			},
 		},
@@ -1626,11 +1626,11 @@ func Test_lexer_lexOR(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected end of input after '|'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1642,11 +1642,11 @@ func Test_lexer_lexOR(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character 'x' after '|'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1658,11 +1658,11 @@ func Test_lexer_lexOR(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character '&' after '|'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1674,11 +1674,11 @@ func Test_lexer_lexOR(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character '軍' after '|'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1719,11 +1719,11 @@ func Test_lexer_lexDoubleQuotedString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"abc"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1735,11 +1735,11 @@ func Test_lexer_lexDoubleQuotedString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"a'b"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1751,11 +1751,11 @@ func Test_lexer_lexDoubleQuotedString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"a\"b"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1767,11 +1767,11 @@ func Test_lexer_lexDoubleQuotedString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated quoted string",
 					pos:  4,
 					line: 1,
 					col:  5,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1812,11 +1812,11 @@ func Test_lexer_lexSingleQuotedString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `'abc'`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1828,11 +1828,11 @@ func Test_lexer_lexSingleQuotedString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `'a"b'`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1844,11 +1844,11 @@ func Test_lexer_lexSingleQuotedString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `'a\'b'`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1860,11 +1860,11 @@ func Test_lexer_lexSingleQuotedString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated quoted string",
 					pos:  4,
 					line: 1,
 					col:  5,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -1912,11 +1912,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"abc"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1931,11 +1931,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `'abc'`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1950,11 +1950,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `""`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1969,11 +1969,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"a"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -1988,11 +1988,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"軍師"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -2007,11 +2007,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"\n\t\\\"\x41A\0"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -2026,11 +2026,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenString,
 					v:    `"a'b"`,
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenString,
 				},
 			},
 		},
@@ -2045,11 +2045,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated quoted string",
 					pos:  4,
 					line: 1,
 					col:  5,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2064,11 +2064,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated quoted string",
 					pos:  4,
 					line: 1,
 					col:  4,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2083,11 +2083,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated quoted string",
 					pos:  3,
 					line: 2,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2102,11 +2102,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "invalid escape sequence in string",
 					pos:  3,
 					line: 1,
 					col:  4,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2121,11 +2121,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "invalid escape sequence in string",
 					pos:  5,
 					line: 1,
 					col:  6,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2140,11 +2140,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "invalid escape sequence in string",
 					pos:  2,
 					line: 1,
 					col:  3,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2159,11 +2159,11 @@ func Test_lexer_lexString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "invalid utf8 encoding in string",
 					pos:  2,
 					line: 1,
 					col:  3,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2204,11 +2204,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`abc`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2220,11 +2220,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "``",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2236,11 +2236,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`\"'`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2252,11 +2252,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`a\\z`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2268,11 +2268,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`a\nb`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2284,11 +2284,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`a`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2300,11 +2300,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenRawString,
 					v:    "`軍師`",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenRawString,
 				},
 			},
 		},
@@ -2316,11 +2316,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated raw string",
 					pos:  4,
 					line: 1,
 					col:  5,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2332,11 +2332,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unterminated raw string",
 					pos:  3,
 					line: 2,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2348,11 +2348,11 @@ func Test_lexer_lexRawString(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "invalid utf8 encoding in raw string",
 					pos:  2,
 					line: 1,
 					col:  3,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2391,10 +2391,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2406,10 +2406,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2421,10 +2421,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::ffff:192.0.2.1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2436,10 +2436,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::1%eth0",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2451,10 +2451,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "::1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2466,10 +2466,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character U+003A ':'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2481,10 +2481,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character U+003A ':'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2496,10 +2496,10 @@ func Test_lexer_lexAddr(t *testing.T) {
 			want: want{
 				val: stateDone,
 				tok: token{
-					typ:  tokenError,
 					v:    "unexpected character U+003A ':'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 			},
 		},
@@ -2540,10 +2540,10 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "192.0.2.1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2555,10 +2555,10 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "2001:db8::1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2570,10 +2570,10 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "1d::1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -2585,11 +2585,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2601,11 +2601,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "+1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2617,11 +2617,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "-1.5",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2633,11 +2633,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    ".5",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2649,11 +2649,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1e3",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2665,11 +2665,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "0x1f",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2681,11 +2681,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1_000",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2697,11 +2697,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "+",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2713,11 +2713,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    ".",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2729,11 +2729,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2745,11 +2745,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1.2",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2761,11 +2761,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "10s",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2777,11 +2777,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "1h30m",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2793,11 +2793,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "1.5s",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2809,11 +2809,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "-5m",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2825,11 +2825,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "1ms",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2841,11 +2841,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "10s",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2857,11 +2857,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenDuration,
 					v:    "1.5.5s",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenDuration,
 				},
 			},
 		},
@@ -2873,11 +2873,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenTime,
 					v:    "2025-01-01",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenTime,
 				},
 			},
 		},
@@ -2889,11 +2889,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenTime,
 					v:    "2025-01-01T00:00:00Z",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenTime,
 				},
 			},
 		},
@@ -2905,11 +2905,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenTime,
 					v:    "2025-01-01T09:00:00+09:00",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenTime,
 				},
 			},
 		},
@@ -2921,11 +2921,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenTime,
 					v:    "2025-01-01",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenTime,
 				},
 			},
 		},
@@ -2937,11 +2937,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "2025",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -2953,11 +2953,11 @@ func Test_lexer_lexNumber(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenNumber,
 					v:    "1",
 					pos:  4,
 					line: 1,
 					col:  4,
+					typ:  tokenNumber,
 				},
 			},
 		},
@@ -3000,10 +3000,10 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "fe80::1",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -3015,10 +3015,10 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenAddr,
 					v:    "FE80::ABCD",
 					line: 1,
 					col:  1,
+					typ:  tokenAddr,
 				},
 			},
 		},
@@ -3030,11 +3030,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "abc",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3046,11 +3046,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "a1_b2",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3062,11 +3062,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "_",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3078,11 +3078,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenBool,
 					v:    "true",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenBool,
 				},
 			},
 		},
@@ -3094,11 +3094,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenBool,
 					v:    "False",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenBool,
 				},
 			},
 		},
@@ -3110,11 +3110,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenBool,
 					v:    "TRUE",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenBool,
 				},
 			},
 		},
@@ -3126,11 +3126,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "tRUE",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3142,11 +3142,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "trueish",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3158,11 +3158,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "abc",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3174,11 +3174,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "abc",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3190,11 +3190,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenBool,
 					v:    "true",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenBool,
 				},
 			},
 		},
@@ -3206,11 +3206,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "a",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3222,11 +3222,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "軍師",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3238,11 +3238,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "名前1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3254,11 +3254,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "a軍",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3270,11 +3270,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "軍師",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3286,11 +3286,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "軍",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3302,11 +3302,11 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 			want: want{
 				val: stateStmt,
 				tok: token{
-					typ:  tokenIdent,
 					v:    "Ａ1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -5274,53 +5274,53 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenAddr,
 						v:    "fe80::1%eth0",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenAddr,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  12,
 						line: 1,
 						col:  13,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "ip",
 						pos:  14,
 						line: 1,
 						col:  15,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenNEQ,
 						v:    "!=",
 						pos:  16,
 						line: 1,
 						col:  17,
+						typ:  tokenNEQ,
 					},
 					{
-						typ:  tokenAddr,
 						v:    "::1",
 						pos:  18,
 						line: 1,
 						col:  19,
+						typ:  tokenAddr,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  21,
 						line: 1,
 						col:  22,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  22,
 						line: 1,
 						col:  23,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5333,46 +5333,46 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenAddr,
 						v:    "fe80::1%網",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenAddr,
 					},
 					{
-						typ:  tokenOR,
 						v:    "||",
 						pos:  11,
 						line: 1,
 						col:  11,
+						typ:  tokenOR,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "ip",
 						pos:  13,
 						line: 1,
 						col:  13,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  15,
 						line: 1,
 						col:  15,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenAddr,
 						v:    "192.0.2.1",
 						pos:  17,
 						line: 1,
 						col:  17,
+						typ:  tokenAddr,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  26,
 						line: 1,
 						col:  26,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5385,18 +5385,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "1",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5409,18 +5409,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "+1",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5433,18 +5433,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "-1",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5457,18 +5457,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    ".1",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5481,18 +5481,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "0.1",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5505,18 +5505,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "0x1.fp3",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5529,18 +5529,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenDuration,
 						v:    "1h",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5553,32 +5553,32 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "id",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "IDENT_1",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "あいうえお",
 						pos:  11,
 						line: 1,
 						col:  12,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  26,
 						line: 1,
 						col:  22,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5591,39 +5591,39 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenGT,
 						v:    ">",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenGT,
 					},
 					{
-						typ:  tokenGTE,
 						v:    ">=",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenGTE,
 					},
 					{
-						typ:  tokenLT,
 						v:    "<",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenLT,
 					},
 					{
-						typ:  tokenLTE,
 						v:    "<=",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenLTE,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  9,
 						line: 1,
 						col:  10,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5636,24 +5636,24 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenNEQ,
 						v:    "!=",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenNEQ,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5666,25 +5666,25 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenREQ,
 						v:    "=~",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenREQ,
 					},
 					{
-						typ:  tokenNREQ,
 						v:    "!~",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenNREQ,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5697,32 +5697,32 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenOR,
 						v:    "||",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenOR,
 					},
 					{
-						typ:  tokenNOT,
 						v:    "!",
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenNOT,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5735,25 +5735,25 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5766,18 +5766,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenString,
 						v:    "\"abc\"",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5790,18 +5790,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenString,
 						v:    "\"\\n\\t\\\\\\\"\\'\\0\\a\\b\\f\\r\\v\\x41\\u0041\"",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  34,
 						line: 1,
 						col:  35,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5814,11 +5814,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid escape sequence in string",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -5831,11 +5831,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unterminated quoted string",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -5848,18 +5848,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenString,
 						v:    "\"abc\\ndef\"",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5872,18 +5872,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenRawString,
 						v:    "`abc`",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenRawString,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -5896,151 +5896,151 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "0",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "+2",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "-3",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0.4",
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    ".5",
 						pos:  14,
 						line: 1,
 						col:  15,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "+0.6",
 						pos:  17,
 						line: 1,
 						col:  18,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "-0.7",
 						pos:  22,
 						line: 1,
 						col:  23,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "+.8",
 						pos:  27,
 						line: 1,
 						col:  28,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "-.9",
 						pos:  31,
 						line: 1,
 						col:  32,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1.23e4",
 						pos:  35,
 						line: 1,
 						col:  36,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1.23E4",
 						pos:  42,
 						line: 1,
 						col:  43,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1.23e+4",
 						pos:  49,
 						line: 1,
 						col:  50,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1.23e-4",
 						pos:  57,
 						line: 1,
 						col:  58,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0x1A2b",
 						pos:  65,
 						line: 1,
 						col:  66,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0x1.fp3",
 						pos:  72,
 						line: 1,
 						col:  73,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0x1.fp+3",
 						pos:  80,
 						line: 1,
 						col:  81,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0x1.fp-3",
 						pos:  89,
 						line: 1,
 						col:  90,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0o755",
 						pos:  98,
 						line: 1,
 						col:  99,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0b1011",
 						pos:  104,
 						line: 1,
 						col:  105,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  110,
 						line: 1,
 						col:  111,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6053,88 +6053,88 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenDuration,
 						v:    "1h30m",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "+100s",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "+1h",
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "+30m",
 						pos:  13,
 						line: 1,
 						col:  14,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "+15s",
 						pos:  17,
 						line: 1,
 						col:  18,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "-3000ms",
 						pos:  21,
 						line: 1,
 						col:  22,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "-4000us",
 						pos:  28,
 						line: 1,
 						col:  29,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "-5000ns",
 						pos:  35,
 						line: 1,
 						col:  36,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenDuration,
 						v:    "0.1h.5m",
 						pos:  43,
 						line: 1,
 						col:  44,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1",
 						pos:  51,
 						line: 1,
 						col:  52,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "y2m3w4d",
 						pos:  52,
 						line: 1,
 						col:  53,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  59,
 						line: 1,
 						col:  60,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6147,32 +6147,32 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenDuration,
 						v:    "1h",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "x",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6185,60 +6185,60 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenBool,
 						v:    "true",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenBool,
 					},
 					{
-						typ:  tokenBool,
 						v:    "True",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenBool,
 					},
 					{
-						typ:  tokenBool,
 						v:    "TRUE",
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenBool,
 					},
 					{
-						typ:  tokenBool,
 						v:    "false",
 						pos:  15,
 						line: 1,
 						col:  16,
+						typ:  tokenBool,
 					},
 					{
-						typ:  tokenBool,
 						v:    "False",
 						pos:  21,
 						line: 1,
 						col:  22,
+						typ:  tokenBool,
 					},
 					{
-						typ:  tokenBool,
 						v:    "FALSE",
 						pos:  27,
 						line: 1,
 						col:  28,
+						typ:  tokenBool,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "tRue",
 						pos:  33,
 						line: 1,
 						col:  34,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  37,
 						line: 1,
 						col:  38,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6251,17 +6251,17 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "40",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6274,24 +6274,24 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "1.2",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    ".3",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6304,31 +6304,31 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "名前",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  7,
 						line: 1,
 						col:  6,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenNumber,
 						v:    ".",
 						pos:  10,
 						line: 1,
 						col:  9,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  11,
 						line: 1,
 						col:  10,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6341,31 +6341,31 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "a",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  2,
 						line: 2,
 						col:  1,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "-",
 						pos:  5,
 						line: 2,
 						col:  4,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  6,
 						line: 2,
 						col:  5,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6378,17 +6378,17 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    ".",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6401,17 +6401,17 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "+",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6424,24 +6424,24 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "1",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "-",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6454,11 +6454,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected character U+005C '\\'",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6471,24 +6471,24 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6501,24 +6501,24 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6531,45 +6531,45 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6582,45 +6582,45 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6633,11 +6633,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid utf8 encoding in string",
 						pos:  4,
 						line: 1,
 						col:  3,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6650,11 +6650,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unterminated quoted string",
 						pos:  12,
 						line: 1,
 						col:  13,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6667,11 +6667,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unterminated quoted string",
 						pos:  12,
 						line: 1,
 						col:  13,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6684,11 +6684,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid escape sequence in string",
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6701,11 +6701,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid utf8 encoding in raw string",
 						pos:  4,
 						line: 1,
 						col:  3,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6718,11 +6718,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unterminated raw string",
 						pos:  12,
 						line: 1,
 						col:  13,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6735,11 +6735,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected character '!' after '='",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6752,11 +6752,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected character '|' after '&'",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6769,11 +6769,11 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected character '&' after '|'",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -6786,25 +6786,25 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "10",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "abc",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6817,18 +6817,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "_",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6841,18 +6841,18 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "一二三四五六七八九十",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  30,
 						line: 1,
 						col:  21,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -6865,249 +6865,249 @@ func Test_lexer_nextToken(t *testing.T) {
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "Class",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenString,
 						v:    "\"軍師\"",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  15,
 						line: 1,
 						col:  14,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "Name",
 						pos:  17,
 						line: 1,
 						col:  16,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenREQ,
 						v:    "=~",
 						pos:  21,
 						line: 1,
 						col:  20,
+						typ:  tokenREQ,
 					},
 					{
-						typ:  tokenString,
 						v:    "'孔明'",
 						pos:  23,
 						line: 1,
 						col:  22,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  31,
 						line: 1,
 						col:  28,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  33,
 						line: 1,
 						col:  30,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "HP",
 						pos:  34,
 						line: 1,
 						col:  31,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGT,
 						v:    ">",
 						pos:  36,
 						line: 1,
 						col:  33,
+						typ:  tokenGT,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "50",
 						pos:  37,
 						line: 1,
 						col:  34,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  39,
 						line: 1,
 						col:  36,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "MP",
 						pos:  41,
 						line: 1,
 						col:  38,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGTE,
 						v:    ">=",
 						pos:  43,
 						line: 1,
 						col:  40,
+						typ:  tokenGTE,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "100",
 						pos:  45,
 						line: 1,
 						col:  42,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  48,
 						line: 1,
 						col:  45,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "LP",
 						pos:  50,
 						line: 1,
 						col:  47,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenNEQ,
 						v:    "!=",
 						pos:  52,
 						line: 1,
 						col:  49,
+						typ:  tokenNEQ,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0",
 						pos:  54,
 						line: 1,
 						col:  51,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  55,
 						line: 1,
 						col:  52,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  56,
 						line: 1,
 						col:  53,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  58,
 						line: 1,
 						col:  55,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "MAG",
 						pos:  59,
 						line: 1,
 						col:  56,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGTE,
 						v:    ">=",
 						pos:  62,
 						line: 1,
 						col:  59,
+						typ:  tokenGTE,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "20",
 						pos:  64,
 						line: 1,
 						col:  61,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenOR,
 						v:    "||",
 						pos:  66,
 						line: 1,
 						col:  63,
+						typ:  tokenOR,
 					},
 					{
-						typ:  tokenNOT,
 						v:    "!",
 						pos:  68,
 						line: 1,
 						col:  65,
+						typ:  tokenNOT,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  69,
 						line: 1,
 						col:  66,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "SPD",
 						pos:  70,
 						line: 1,
 						col:  67,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenLT,
 						v:    "<",
 						pos:  73,
 						line: 1,
 						col:  70,
+						typ:  tokenLT,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "20",
 						pos:  74,
 						line: 1,
 						col:  71,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  76,
 						line: 1,
 						col:  73,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  77,
 						line: 1,
 						col:  74,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  78,
 						line: 1,
 						col:  75,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7140,249 +7140,249 @@ Name=~'孔明'
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "Class",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenString,
 						v:    "\"軍師\"",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  16,
 						line: 2,
 						col:  1,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "Name",
 						pos:  19,
 						line: 3,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenREQ,
 						v:    "=~",
 						pos:  23,
 						line: 3,
 						col:  5,
+						typ:  tokenREQ,
 					},
 					{
-						typ:  tokenString,
 						v:    "'孔明'",
 						pos:  25,
 						line: 3,
 						col:  7,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  34,
 						line: 4,
 						col:  1,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  37,
 						line: 5,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "HP",
 						pos:  40,
 						line: 6,
 						col:  2,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGT,
 						v:    ">",
 						pos:  42,
 						line: 6,
 						col:  4,
+						typ:  tokenGT,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "50",
 						pos:  43,
 						line: 6,
 						col:  5,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  47,
 						line: 7,
 						col:  2,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "MP",
 						pos:  51,
 						line: 8,
 						col:  2,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGTE,
 						v:    ">=",
 						pos:  53,
 						line: 8,
 						col:  4,
+						typ:  tokenGTE,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "100",
 						pos:  55,
 						line: 8,
 						col:  6,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  60,
 						line: 9,
 						col:  2,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "LP",
 						pos:  64,
 						line: 10,
 						col:  2,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenNEQ,
 						v:    "!=",
 						pos:  66,
 						line: 10,
 						col:  4,
+						typ:  tokenNEQ,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "0",
 						pos:  68,
 						line: 10,
 						col:  6,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  70,
 						line: 11,
 						col:  1,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  72,
 						line: 12,
 						col:  1,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  75,
 						line: 13,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "MAG",
 						pos:  78,
 						line: 14,
 						col:  2,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGTE,
 						v:    ">=",
 						pos:  81,
 						line: 14,
 						col:  5,
+						typ:  tokenGTE,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "20",
 						pos:  83,
 						line: 14,
 						col:  7,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenOR,
 						v:    "||",
 						pos:  87,
 						line: 15,
 						col:  2,
+						typ:  tokenOR,
 					},
 					{
-						typ:  tokenNOT,
 						v:    "!",
 						pos:  91,
 						line: 16,
 						col:  2,
+						typ:  tokenNOT,
 					},
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  94,
 						line: 17,
 						col:  2,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "SPD",
 						pos:  98,
 						line: 18,
 						col:  3,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenLT,
 						v:    "<",
 						pos:  101,
 						line: 18,
 						col:  6,
+						typ:  tokenLT,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "20",
 						pos:  102,
 						line: 18,
 						col:  7,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  106,
 						line: 19,
 						col:  2,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  108,
 						line: 20,
 						col:  1,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  110,
 						line: 21,
 						col:  1,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7406,32 +7406,32 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "test1",
 						pos:  2,
 						line: 3,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "test2",
 						pos:  8,
 						line: 4,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "test3",
 						pos:  19,
 						line: 8,
 						col:  3,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						v:    "",
 						pos:  28,
 						line: 12,
 						col:  1,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7444,18 +7444,18 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenError,
 						v:    "unexpected character U+002A '*'",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7468,11 +7468,11 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected end of input after '='",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7485,11 +7485,11 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected end of input after '&'",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7502,11 +7502,11 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "unexpected end of input after '|'",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7519,18 +7519,18 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenEQ,
 					},
 					{
-						typ:  tokenError,
 						v:    "unexpected end of input after '='",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7543,18 +7543,18 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNEQ,
 						v:    "!=",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNEQ,
 					},
 					{
-						typ:  tokenError,
 						v:    "unexpected character U+007E '~'",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7567,31 +7567,31 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "a",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenLTE,
 						v:    "<=",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenLTE,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "-1",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7604,11 +7604,11 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid escape sequence in string",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7621,11 +7621,11 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid escape sequence in string",
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7638,11 +7638,11 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenError,
 						v:    "invalid escape sequence in string",
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7655,31 +7655,31 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenString,
 						v:    "\"\"",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenString,
 						v:    "''",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenRawString,
 						v:    "``",
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenRawString,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  8,
 						line: 1,
 						col:  9,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7692,24 +7692,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenString,
 						v:    "'it\"s'",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenString,
 						v:    "\"it's\"",
 						pos:  7,
 						line: 1,
 						col:  8,
+						typ:  tokenString,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  13,
 						line: 1,
 						col:  14,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7722,17 +7722,17 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenRawString,
 						v:    "`a\\nb`",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenRawString,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7745,24 +7745,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenRawString,
 						v:    "`a\nb`",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenRawString,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "x",
 						pos:  6,
 						line: 2,
 						col:  4,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  7,
 						line: 2,
 						col:  5,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7775,24 +7775,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "a",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "b",
 						pos:  4,
 						line: 2,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 2,
 						col:  2,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7805,18 +7805,18 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "a",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenError,
 						v:    "unexpected character U+FF03 '＃'",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -7829,17 +7829,17 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02T15:04:05Z",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  20,
 						line: 1,
 						col:  21,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7852,24 +7852,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02T15:04:05.123+09:00",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "x",
 						pos:  30,
 						line: 1,
 						col:  31,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  31,
 						line: 1,
 						col:  32,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7882,17 +7882,17 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02T15:04:05",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  19,
 						line: 1,
 						col:  20,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7905,31 +7905,31 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "T",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGT,
 						v:    ">",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenGT,
 					},
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02T15:04:05Z",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  22,
 						line: 1,
 						col:  23,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7942,45 +7942,45 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "T",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenGTE,
 						v:    ">=",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenGTE,
 					},
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  13,
 						line: 1,
 						col:  14,
+						typ:  tokenAND,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "x",
 						pos:  15,
 						line: 1,
 						col:  16,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  16,
 						line: 1,
 						col:  17,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -7993,24 +7993,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "T",
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  11,
 						line: 1,
 						col:  12,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8023,24 +8023,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02T15:04:05",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "z",
 						pos:  19,
 						line: 1,
 						col:  20,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  20,
 						line: 1,
 						col:  21,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8053,17 +8053,17 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8076,25 +8076,25 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenTime,
 						v:    "2023-01-02",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenTime,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "t15",
 						pos:  10,
 						line: 1,
 						col:  11,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenError,
 						v:    "unexpected character U+003A ':'",
 						pos:  13,
 						line: 1,
 						col:  14,
+						typ:  tokenError,
 					},
 				},
 			},
@@ -8107,17 +8107,17 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenDuration,
 						v:    "1μs",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenDuration,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  4,
 						line: 1,
 						col:  4,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8130,17 +8130,17 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "1_000",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  5,
 						line: 1,
 						col:  6,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8153,24 +8153,24 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenNumber,
 						v:    "1e5",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "s",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8183,31 +8183,31 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "_x",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "a1",
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenIdent,
 						v:    "x_1",
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  9,
 						line: 1,
 						col:  10,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8220,31 +8220,31 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenLparen,
 						v:    "(",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenLparen,
 					},
 					{
-						typ:  tokenNumber,
 						v:    "1",
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenNumber,
 					},
 					{
-						typ:  tokenRparen,
 						v:    ")",
 						pos:  2,
 						line: 1,
 						col:  3,
+						typ:  tokenRparen,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  3,
 						line: 1,
 						col:  4,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8257,23 +8257,23 @@ test2
 			want: want{
 				val: []token{
 					{
-						typ:  tokenIdent,
 						v:    "a",
 						pos:  0,
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
 					},
 					{
-						typ:  tokenEOF,
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
 					},
 				},
 			},
@@ -8302,10 +8302,10 @@ func Test_lexer_next(t *testing.T) {
 	}
 	type want struct {
 		val  rune
+		prev mark
 		pos  int32
 		line int32
 		col  int32
-		prev mark
 	}
 	tests := []struct {
 		name   string
@@ -8320,15 +8320,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  'a',
-				pos:  1,
-				line: 1,
-				col:  2,
+				val: 'a',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  1,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
@@ -8339,15 +8339,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  eof,
-				pos:  0,
-				line: 1,
-				col:  1,
+				val: eof,
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  0,
+				line: 1,
+				col:  1,
 			},
 		},
 		{
@@ -8359,15 +8359,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   2,
 			},
 			want: want{
-				val:  eof,
-				pos:  1,
-				line: 1,
-				col:  2,
+				val: eof,
 				prev: mark{
 					pos:  1,
 					line: 1,
 					col:  2,
 				},
+				pos:  1,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
@@ -8379,15 +8379,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   2,
 			},
 			want: want{
-				val:  '\n',
-				pos:  2,
-				line: 2,
-				col:  1,
+				val: '\n',
 				prev: mark{
 					pos:  1,
 					line: 1,
 					col:  2,
 				},
+				pos:  2,
+				line: 2,
+				col:  1,
 			},
 		},
 		{
@@ -8398,15 +8398,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  '\r',
-				pos:  1,
-				line: 1,
-				col:  2,
+				val: '\r',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  1,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
@@ -8417,15 +8417,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  'é',
-				pos:  2,
-				line: 1,
-				col:  2,
+				val: 'é',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  2,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
@@ -8436,15 +8436,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  '軍',
-				pos:  3,
-				line: 1,
-				col:  3,
+				val: '軍',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  3,
+				line: 1,
+				col:  3,
 			},
 		},
 		{
@@ -8455,15 +8455,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  'Ａ',
-				pos:  3,
-				line: 1,
-				col:  3,
+				val: 'Ａ',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  3,
+				line: 1,
+				col:  3,
 			},
 		},
 		{
@@ -8474,15 +8474,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  '😀',
-				pos:  4,
-				line: 1,
-				col:  3,
+				val: '😀',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  4,
+				line: 1,
+				col:  3,
 			},
 		},
 		{
@@ -8493,15 +8493,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  '\ufffd',
-				pos:  1,
-				line: 1,
-				col:  2,
+				val: '\ufffd',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  1,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
@@ -8512,15 +8512,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   1,
 			},
 			want: want{
-				val:  '\ufffd',
-				pos:  1,
-				line: 1,
-				col:  2,
+				val: '\ufffd',
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos:  1,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
@@ -8532,15 +8532,15 @@ func Test_lexer_next(t *testing.T) {
 				col:   3,
 			},
 			want: want{
-				val:  '軍',
-				pos:  5,
-				line: 1,
-				col:  5,
+				val: '軍',
 				prev: mark{
 					pos:  2,
 					line: 1,
 					col:  3,
 				},
+				pos:  5,
+				line: 1,
+				col:  5,
 			},
 		},
 	}
@@ -8554,10 +8554,10 @@ func Test_lexer_next(t *testing.T) {
 			}
 			got := want{
 				val:  l.next(),
+				prev: l.prev,
 				pos:  l.pos,
 				line: l.line,
 				col:  l.col,
-				prev: l.prev,
 			}
 			if got != test.want {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
@@ -8870,19 +8870,19 @@ func Test_lexer_mark(t *testing.T) {
 
 func Test_lexer_reset(t *testing.T) {
 	type fields struct {
+		prev mark
 		pos  int32
 		line int32
 		col  int32
-		prev mark
 	}
 	type args struct {
 		m mark
 	}
 	type want struct {
+		prev mark
 		pos  int32
 		line int32
 		col  int32
-		prev mark
 	}
 	tests := []struct {
 		name   string
@@ -8893,14 +8893,14 @@ func Test_lexer_reset(t *testing.T) {
 		{
 			name: "moves back to an earlier position on the same line",
 			fields: fields{
-				pos:  5,
-				line: 1,
-				col:  6,
 				prev: mark{
 					pos:  4,
 					line: 1,
 					col:  5,
 				},
+				pos:  5,
+				line: 1,
+				col:  6,
 			},
 			args: args{
 				m: mark{
@@ -8910,27 +8910,27 @@ func Test_lexer_reset(t *testing.T) {
 				},
 			},
 			want: want{
-				pos:  2,
-				line: 1,
-				col:  3,
 				prev: mark{
 					pos:  2,
 					line: 1,
 					col:  3,
 				},
+				pos:  2,
+				line: 1,
+				col:  3,
 			},
 		},
 		{
 			name: "moves back across a newline",
 			fields: fields{
-				pos:  4,
-				line: 2,
-				col:  2,
 				prev: mark{
 					pos:  3,
 					line: 2,
 					col:  1,
 				},
+				pos:  4,
+				line: 2,
+				col:  2,
 			},
 			args: args{
 				m: mark{
@@ -8940,27 +8940,27 @@ func Test_lexer_reset(t *testing.T) {
 				},
 			},
 			want: want{
-				pos:  1,
-				line: 1,
-				col:  2,
 				prev: mark{
 					pos:  1,
 					line: 1,
 					col:  2,
 				},
+				pos:  1,
+				line: 1,
+				col:  2,
 			},
 		},
 		{
 			name: "resetting to the current position only pins prev",
 			fields: fields{
-				pos:  3,
-				line: 1,
-				col:  4,
 				prev: mark{
 					pos:  2,
 					line: 1,
 					col:  3,
 				},
+				pos:  3,
+				line: 1,
+				col:  4,
 			},
 			args: args{
 				m: mark{
@@ -8970,14 +8970,14 @@ func Test_lexer_reset(t *testing.T) {
 				},
 			},
 			want: want{
-				pos:  3,
-				line: 1,
-				col:  4,
 				prev: mark{
 					pos:  3,
 					line: 1,
 					col:  4,
 				},
+				pos:  3,
+				line: 1,
+				col:  4,
 			},
 		},
 		{
@@ -8995,31 +8995,31 @@ func Test_lexer_reset(t *testing.T) {
 				},
 			},
 			want: want{
-				pos:  7,
-				line: 2,
-				col:  3,
 				prev: mark{
 					pos:  7,
 					line: 2,
 					col:  3,
 				},
+				pos:  7,
+				line: 2,
+				col:  3,
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			l := &lexer{
+				prev: test.fields.prev,
 				pos:  test.fields.pos,
 				line: test.fields.line,
 				col:  test.fields.col,
-				prev: test.fields.prev,
 			}
 			l.reset(test.args.m)
 			got := want{
+				prev: l.prev,
 				pos:  l.pos,
 				line: l.line,
 				col:  l.col,
-				prev: l.prev,
 			}
 			if got != test.want {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
@@ -9043,10 +9043,10 @@ func Test_lexer_emit(t *testing.T) {
 	}
 	type want struct {
 		token     token
-		hasNext   bool
 		startPos  int32
 		startLine int32
 		startCol  int32
+		hasNext   bool
 	}
 	tests := []struct {
 		name   string
@@ -9070,16 +9070,16 @@ func Test_lexer_emit(t *testing.T) {
 			},
 			want: want{
 				token: token{
-					typ:  tokenIdent,
 					v:    "abc",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
-				hasNext:   true,
 				startPos:  3,
 				startLine: 1,
 				startCol:  4,
+				hasNext:   true,
 			},
 		},
 		{
@@ -9098,16 +9098,16 @@ func Test_lexer_emit(t *testing.T) {
 			},
 			want: want{
 				token: token{
-					typ:  tokenEQ,
 					v:    "==",
 					pos:  2,
 					line: 1,
 					col:  3,
+					typ:  tokenEQ,
 				},
-				hasNext:   true,
 				startPos:  4,
 				startLine: 1,
 				startCol:  5,
+				hasNext:   true,
 			},
 		},
 		{
@@ -9126,16 +9126,16 @@ func Test_lexer_emit(t *testing.T) {
 			},
 			want: want{
 				token: token{
-					typ:  tokenEOF,
 					v:    "",
 					pos:  3,
 					line: 1,
 					col:  4,
+					typ:  tokenEOF,
 				},
-				hasNext:   true,
 				startPos:  3,
 				startLine: 1,
 				startCol:  4,
+				hasNext:   true,
 			},
 		},
 		{
@@ -9154,16 +9154,16 @@ func Test_lexer_emit(t *testing.T) {
 			},
 			want: want{
 				token: token{
-					typ:  tokenString,
 					v:    "\"x\ny\"",
 					pos:  2,
 					line: 2,
 					col:  1,
+					typ:  tokenString,
 				},
-				hasNext:   true,
 				startPos:  7,
 				startLine: 3,
 				startCol:  3,
+				hasNext:   true,
 			},
 		},
 		{
@@ -9182,16 +9182,16 @@ func Test_lexer_emit(t *testing.T) {
 			},
 			want: want{
 				token: token{
-					typ:  tokenIdent,
 					v:    "軍師",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
-				hasNext:   true,
 				startPos:  6,
 				startLine: 1,
 				startCol:  5,
+				hasNext:   true,
 			},
 		},
 	}
@@ -9209,10 +9209,10 @@ func Test_lexer_emit(t *testing.T) {
 			l.emit(test.args.typ)
 			got := want{
 				token:     l.token,
-				hasNext:   l.hasNext,
 				startPos:  l.startPos,
 				startLine: l.startLine,
 				startCol:  l.startCol,
+				hasNext:   l.hasNext,
 			}
 			if got != test.want {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
@@ -9329,9 +9329,9 @@ func Test_lexer_accept(t *testing.T) {
 	}
 	type want struct {
 		val  bool
+		prev mark
 		pos  int32
 		col  int32
-		prev mark
 	}
 	tests := []struct {
 		name   string
@@ -9351,13 +9351,13 @@ func Test_lexer_accept(t *testing.T) {
 			},
 			want: want{
 				val: true,
-				pos: 1,
-				col: 2,
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos: 1,
+				col: 2,
 			},
 		},
 		{
@@ -9372,13 +9372,13 @@ func Test_lexer_accept(t *testing.T) {
 			},
 			want: want{
 				val: true,
-				pos: 1,
-				col: 2,
 				prev: mark{
 					pos:  0,
 					line: 1,
 					col:  1,
 				},
+				pos: 1,
+				col: 2,
 			},
 		},
 		{
@@ -9459,13 +9459,13 @@ func Test_lexer_accept(t *testing.T) {
 			},
 			want: want{
 				val: true,
-				pos: 2,
-				col: 3,
 				prev: mark{
 					pos:  1,
 					line: 1,
 					col:  2,
 				},
+				pos: 2,
+				col: 3,
 			},
 		},
 	}
@@ -9479,9 +9479,9 @@ func Test_lexer_accept(t *testing.T) {
 			}
 			got := want{
 				val:  l.accept(test.args.valid),
+				prev: l.prev,
 				pos:  l.pos,
 				col:  l.col,
-				prev: l.prev,
 			}
 			if got != test.want {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
@@ -9867,11 +9867,11 @@ func Test_lexer_errorf(t *testing.T) {
 			want: want{
 				val: stateDone,
 				token: token{
-					typ:  tokenError,
 					v:    "unterminated quoted string",
 					pos:  5,
 					line: 1,
 					col:  6,
+					typ:  tokenError,
 				},
 				hasNext: true,
 			},
@@ -9895,11 +9895,11 @@ func Test_lexer_errorf(t *testing.T) {
 			want: want{
 				val: stateDone,
 				token: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0023 '#'",
 					pos:  1,
 					line: 1,
 					col:  2,
+					typ:  tokenError,
 				},
 				hasNext: true,
 			},
@@ -9923,11 +9923,11 @@ func Test_lexer_errorf(t *testing.T) {
 			want: want{
 				val: stateDone,
 				token: token{
-					typ:  tokenError,
 					v:    "unexpected end of input after '&'",
 					pos:  9,
 					line: 3,
 					col:  2,
+					typ:  tokenError,
 				},
 				hasNext: true,
 			},
@@ -9948,11 +9948,11 @@ func Test_lexer_errorf(t *testing.T) {
 			want: want{
 				val: stateDone,
 				token: token{
-					typ:  tokenError,
 					v:    "",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				hasNext: true,
 			},

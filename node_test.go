@@ -72,25 +72,25 @@ func Test_newNodeBinary(t *testing.T) {
 			args: args{
 				left: 0,
 				op: token{
-					typ:  tokenAND,
 					v:    "&&",
 					pos:  8,
 					line: 1,
 					col:  9,
+					typ:  tokenAND,
 				},
 				right: 1,
 			},
 			want: want{
 				val: node{
-					typ:  nodeBinary,
-					left: 0,
 					op: token{
-						typ:  tokenAND,
 						v:    "&&",
 						pos:  8,
 						line: 1,
 						col:  9,
+						typ:  tokenAND,
 					},
+					typ:   nodeBinary,
+					left:  0,
 					right: 1,
 				},
 			},
@@ -100,19 +100,19 @@ func Test_newNodeBinary(t *testing.T) {
 			args: args{
 				left: 3,
 				op: token{
-					typ: tokenOR,
 					v:   "||",
+					typ: tokenOR,
 				},
 				right: 7,
 			},
 			want: want{
 				val: node{
-					typ:  nodeBinary,
-					left: 3,
 					op: token{
-						typ: tokenOR,
 						v:   "||",
+						typ: tokenOR,
 					},
+					typ:   nodeBinary,
+					left:  3,
 					right: 7,
 				},
 			},
@@ -159,24 +159,24 @@ func Test_newNodeUnary(t *testing.T) {
 			args: args{
 				child: 2,
 				op: token{
-					typ:  tokenNOT,
 					v:    "!",
 					pos:  4,
 					line: 1,
 					col:  5,
+					typ:  tokenNOT,
 				},
 			},
 			want: want{
 				val: node{
-					typ:  nodeUnary,
-					left: 2,
 					op: token{
-						typ:  tokenNOT,
 						v:    "!",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenNOT,
 					},
+					typ:  nodeUnary,
+					left: 2,
 				},
 			},
 		},
@@ -190,10 +190,10 @@ func Test_newNodeUnary(t *testing.T) {
 			},
 			want: want{
 				val: node{
-					typ: nodeUnary,
 					op: token{
 						typ: tokenNOT,
 					},
+					typ: nodeUnary,
 				},
 			},
 		},
@@ -226,49 +226,49 @@ func Test_newNodePredicate(t *testing.T) {
 			name: "string predicate",
 			args: args{
 				ident: token{
-					typ:  tokenIdent,
 					v:    "Name",
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 				op: token{
-					typ:  tokenEQ,
 					v:    "==",
 					pos:  4,
 					line: 1,
 					col:  5,
+					typ:  tokenEQ,
 				},
 				val: token{
-					typ:  tokenString,
 					v:    "a",
 					pos:  6,
 					line: 1,
 					col:  7,
+					typ:  tokenString,
 				},
 			},
 			want: want{
 				val: node{
-					typ: nodePredicate,
 					ident: token{
-						typ:  tokenIdent,
 						v:    "Name",
 						line: 1,
 						col:  1,
+						typ:  tokenIdent,
 					},
 					op: token{
-						typ:  tokenEQ,
 						v:    "==",
 						pos:  4,
 						line: 1,
 						col:  5,
+						typ:  tokenEQ,
 					},
 					val: token{
-						typ:  tokenString,
 						v:    "a",
 						pos:  6,
 						line: 1,
 						col:  7,
+						typ:  tokenString,
 					},
+					typ: nodePredicate,
 				},
 			},
 		},
@@ -276,35 +276,35 @@ func Test_newNodePredicate(t *testing.T) {
 			name: "identifier index kept",
 			args: args{
 				ident: token{
-					typ: tokenIdent,
 					v:   "HP",
 					idx: 5,
+					typ: tokenIdent,
 				},
 				op: token{
-					typ: tokenGT,
 					v:   ">",
+					typ: tokenGT,
 				},
 				val: token{
-					typ: tokenNumber,
 					v:   "1",
+					typ: tokenNumber,
 				},
 			},
 			want: want{
 				val: node{
-					typ: nodePredicate,
 					ident: token{
-						typ: tokenIdent,
 						v:   "HP",
 						idx: 5,
+						typ: tokenIdent,
 					},
 					op: token{
-						typ: tokenGT,
 						v:   ">",
+						typ: tokenGT,
 					},
 					val: token{
-						typ: tokenNumber,
 						v:   "1",
+						typ: tokenNumber,
 					},
+					typ: nodePredicate,
 				},
 			},
 		},

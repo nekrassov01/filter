@@ -20,11 +20,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "invalid",
 			tr: Value{
-				kind: kindAddr,
-				bits: 0,
 				s:    "",
 				a:    0,
 				b:    0,
+				kind: kindAddr,
+				bits: 0,
 			},
 			want: want{
 				val: netip.Addr{},
@@ -33,11 +33,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "ipv4",
 			tr: Value{
-				kind: kindAddr,
-				bits: 32,
 				s:    "",
 				a:    0,
 				b:    0x0000ffffc0000201,
+				kind: kindAddr,
+				bits: 32,
 			},
 			want: want{
 				val: netip.MustParseAddr("192.0.2.1"),
@@ -46,11 +46,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "ipv4 unspecified",
 			tr: Value{
-				kind: kindAddr,
-				bits: 32,
 				s:    "",
 				a:    0,
 				b:    0x0000ffff00000000,
+				kind: kindAddr,
+				bits: 32,
 			},
 			want: want{
 				val: netip.MustParseAddr("0.0.0.0"),
@@ -59,11 +59,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "ipv6",
 			tr: Value{
-				kind: kindAddr,
-				bits: 128,
 				s:    "",
 				a:    0x20010db800000000,
 				b:    1,
+				kind: kindAddr,
+				bits: 128,
 			},
 			want: want{
 				val: netip.MustParseAddr("2001:db8::1"),
@@ -72,11 +72,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "ipv6 unspecified",
 			tr: Value{
-				kind: kindAddr,
-				bits: 128,
 				s:    "",
 				a:    0,
 				b:    0,
+				kind: kindAddr,
+				bits: 128,
 			},
 			want: want{
 				val: netip.IPv6Unspecified(),
@@ -85,11 +85,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "mapped ipv4",
 			tr: Value{
-				kind: kindAddr,
-				bits: 128,
 				s:    "",
 				a:    0,
 				b:    0x0000ffffc0000201,
+				kind: kindAddr,
+				bits: 128,
 			},
 			want: want{
 				val: netip.MustParseAddr("::ffff:192.0.2.1"),
@@ -98,11 +98,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "zone",
 			tr: Value{
-				kind: kindAddr,
-				bits: 128,
 				s:    "eth0",
 				a:    -0x0180000000000000,
 				b:    1,
+				kind: kindAddr,
+				bits: 128,
 			},
 			want: want{
 				val: netip.MustParseAddr("fe80::1%eth0"),
@@ -111,11 +111,11 @@ func TestValue_addr(t *testing.T) {
 		{
 			name: "high bits",
 			tr: Value{
-				kind: kindAddr,
-				bits: 128,
 				s:    "",
 				a:    -1,
 				b:    -1,
+				kind: kindAddr,
+				bits: 128,
 			},
 			want: want{
 				val: netip.MustParseAddr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
@@ -151,8 +151,8 @@ func TestString(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindString,
 					s:    "Knight",
+					kind: kindString,
 				},
 			},
 		},
@@ -197,8 +197,8 @@ func TestInt(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    42,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -209,8 +209,8 @@ func TestInt(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    -42,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -221,8 +221,8 @@ func TestInt(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    0,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -256,8 +256,8 @@ func TestInt64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    42,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -268,8 +268,8 @@ func TestInt64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    -42,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -280,8 +280,8 @@ func TestInt64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    0,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -292,8 +292,8 @@ func TestInt64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    9007199254740993,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -304,8 +304,8 @@ func TestInt64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    math.MinInt64,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -316,8 +316,8 @@ func TestInt64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindInt64,
 					a:    math.MaxInt64,
+					kind: kindInt64,
 				},
 			},
 		},
@@ -351,8 +351,8 @@ func TestUint64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindUint64,
 					a:    42,
+					kind: kindUint64,
 				},
 			},
 		},
@@ -363,8 +363,8 @@ func TestUint64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindUint64,
 					a:    0,
+					kind: kindUint64,
 				},
 			},
 		},
@@ -375,8 +375,8 @@ func TestUint64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindUint64,
 					a:    9007199254740993,
+					kind: kindUint64,
 				},
 			},
 		},
@@ -387,8 +387,8 @@ func TestUint64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindUint64,
 					a:    math.MinInt64,
+					kind: kindUint64,
 				},
 			},
 		},
@@ -399,8 +399,8 @@ func TestUint64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindUint64,
 					a:    -1,
+					kind: kindUint64,
 				},
 			},
 		},
@@ -434,8 +434,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(42),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -446,8 +446,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(3.14),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -458,8 +458,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(-1.5),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -470,8 +470,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    0,
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -482,8 +482,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(math.MaxFloat64),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -494,8 +494,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(math.Copysign(0, -1)),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -506,8 +506,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(math.Inf(1)),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -518,8 +518,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(math.NaN()),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -530,8 +530,8 @@ func TestFloat64(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindFloat64,
 					a:    float64Bits(math.SmallestNonzeroFloat64),
+					kind: kindFloat64,
 				},
 			},
 		},
@@ -565,8 +565,8 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    1735689600,
+					kind: kindTime,
 				},
 			},
 		},
@@ -577,9 +577,9 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    1735689600,
 					b:    123456789,
+					kind: kindTime,
 				},
 			},
 		},
@@ -590,8 +590,8 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    1735689600,
+					kind: kindTime,
 				},
 			},
 		},
@@ -602,8 +602,8 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    -1,
+					kind: kindTime,
 				},
 			},
 		},
@@ -614,8 +614,8 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    -62135596800,
+					kind: kindTime,
 				},
 			},
 		},
@@ -626,9 +626,9 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    253402300799,
 					b:    999999999,
+					kind: kindTime,
 				},
 			},
 		},
@@ -639,8 +639,8 @@ func TestTime(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindTime,
 					a:    1735689600,
+					kind: kindTime,
 				},
 			},
 		},
@@ -674,8 +674,8 @@ func TestDuration(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindDuration,
 					a:    int64(1500 * time.Millisecond),
+					kind: kindDuration,
 				},
 			},
 		},
@@ -686,8 +686,8 @@ func TestDuration(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindDuration,
 					a:    int64(-time.Hour),
+					kind: kindDuration,
 				},
 			},
 		},
@@ -709,8 +709,8 @@ func TestDuration(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindDuration,
 					a:    math.MaxInt64,
+					kind: kindDuration,
 				},
 			},
 		},
@@ -744,11 +744,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 0,
 					s:    "",
 					a:    0,
 					b:    0,
+					kind: kindAddr,
+					bits: 0,
 				},
 			},
 		},
@@ -759,11 +759,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 32,
 					s:    "",
 					a:    0,
 					b:    0x0000ffffc0000201,
+					kind: kindAddr,
+					bits: 32,
 				},
 			},
 		},
@@ -774,11 +774,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 32,
 					s:    "",
 					a:    0,
 					b:    0x0000ffff00000000,
+					kind: kindAddr,
+					bits: 32,
 				},
 			},
 		},
@@ -789,11 +789,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    0x20010db800000000,
 					b:    1,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -804,11 +804,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    0,
 					b:    0,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -819,11 +819,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    0,
 					b:    0x0000ffffc0000201,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -834,11 +834,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "eth0",
 					a:    -0x0180000000000000,
 					b:    1,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -849,11 +849,11 @@ func TestAddr(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    -1,
 					b:    -1,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -887,8 +887,8 @@ func TestBool(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindString,
 					s:    "true",
+					kind: kindString,
 				},
 			},
 		},
@@ -899,8 +899,8 @@ func TestBool(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindString,
 					s:    "false",
+					kind: kindString,
 				},
 			},
 		},
@@ -1070,11 +1070,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 0,
 					s:    "",
 					a:    0,
 					b:    0,
+					kind: kindAddr,
+					bits: 0,
 				},
 			},
 		},
@@ -1085,11 +1085,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 32,
 					s:    "",
 					a:    0,
 					b:    0x0000ffffc0000201,
+					kind: kindAddr,
+					bits: 32,
 				},
 			},
 		},
@@ -1100,11 +1100,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 32,
 					s:    "",
 					a:    0,
 					b:    0x0000ffff00000000,
+					kind: kindAddr,
+					bits: 32,
 				},
 			},
 		},
@@ -1115,11 +1115,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    0x20010db800000000,
 					b:    1,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -1130,11 +1130,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    0,
 					b:    0,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -1145,11 +1145,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    0,
 					b:    0x0000ffffc0000201,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -1160,11 +1160,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "eth0",
 					a:    -0x0180000000000000,
 					b:    1,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},
@@ -1175,11 +1175,11 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Value{
-					kind: kindAddr,
-					bits: 128,
 					s:    "",
 					a:    -1,
 					b:    -1,
+					kind: kindAddr,
+					bits: 128,
 				},
 			},
 		},

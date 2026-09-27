@@ -1291,10 +1291,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenRawString,
 					v:    `^Test_[a-z]+$`,
 					line: 1,
 					col:  4,
+					typ:  tokenRawString,
 				},
 			},
 			want: want{
@@ -1309,10 +1309,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenRawString,
 					v:    `^cached$`,
 					line: 1,
 					col:  4,
+					typ:  tokenRawString,
 				},
 			},
 			want: want{
@@ -1325,10 +1325,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 3,
 				t: token{
-					typ:  tokenString,
 					v:    `abc`,
 					line: 1,
 					col:  4,
+					typ:  tokenString,
 				},
 			},
 			want: want{
@@ -1340,10 +1340,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenString,
 					v:    ``,
 					line: 1,
 					col:  4,
+					typ:  tokenString,
 				},
 			},
 			want: want{
@@ -1356,10 +1356,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenString,
 					v:    `(`,
 					line: 2,
 					col:  7,
+					typ:  tokenString,
 				},
 			},
 			want: want{
@@ -2609,9 +2609,9 @@ func Test_parser_identIndex(t *testing.T) {
 	}
 	type want struct {
 		val    int32
+		idents []string
 		nident int32
 		shared bool
-		idents []string
 	}
 	tests := []struct {
 		name   string
@@ -2683,8 +2683,8 @@ func Test_parser_identIndex(t *testing.T) {
 			},
 			want: want{
 				val:    identBufSize,
-				nident: identBufSize + 1,
 				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"},
+				nident: identBufSize + 1,
 			},
 		},
 		{
@@ -2698,8 +2698,8 @@ func Test_parser_identIndex(t *testing.T) {
 			},
 			want: want{
 				val:    identBufSize + 1,
-				nident: identBufSize + 2,
 				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"},
+				nident: identBufSize + 2,
 			},
 		},
 		{
@@ -2713,9 +2713,9 @@ func Test_parser_identIndex(t *testing.T) {
 			},
 			want: want{
 				val:    identBufSize,
+				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"},
 				nident: identBufSize + 1,
 				shared: true,
-				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"},
 			},
 		},
 	}
@@ -2745,16 +2745,16 @@ func Test_parser_identIndex(t *testing.T) {
 
 func Test_parser_addNode(t *testing.T) {
 	type fields struct {
-		nnode int32
 		nodes []node
+		nnode int32
 	}
 	type args struct {
 		n node
 	}
 	type want struct {
 		val   int32
-		nnode int32
 		nodes int
+		nnode int32
 	}
 	tests := []struct {
 		name   string
@@ -2801,15 +2801,15 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			want: want{
 				val:   nodeBufSize,
-				nnode: nodeBufSize + 1,
 				nodes: nodeBufSize + 1,
+				nnode: nodeBufSize + 1,
 			},
 		},
 		{
 			name: "heap nodes grow",
 			fields: fields{
-				nnode: nodeBufSize + 1,
 				nodes: make([]node, nodeBufSize+1),
+				nnode: nodeBufSize + 1,
 			},
 			args: args{
 				n: node{
@@ -2818,16 +2818,16 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			want: want{
 				val:   nodeBufSize + 1,
-				nnode: nodeBufSize + 2,
 				nodes: nodeBufSize + 2,
+				nnode: nodeBufSize + 2,
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := &parser{
-				nnode: test.fields.nnode,
 				nodes: test.fields.nodes,
+				nnode: test.fields.nnode,
 			}
 			got := p.addNode(test.args.n)
 			if got != test.want.val {
@@ -2974,11 +2974,11 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -2992,11 +2992,11 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenRparen,
 					v:    ")",
 					pos:  3,
 					line: 2,
 					col:  3,
+					typ:  tokenRparen,
 				},
 			},
 		},
@@ -3010,11 +3010,11 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenNumber,
 					v:    "1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 				isErr: true,
 				err:   `parse error at 1:1: expected identifier, got number: "1"`,
@@ -3030,9 +3030,9 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenEOF,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 				isErr: true,
 				err:   `parse error at 1:1: expected identifier, got EOF: ""`,
@@ -3048,10 +3048,10 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				isErr: true,
 				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
@@ -3100,11 +3100,11 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3116,11 +3116,11 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3131,9 +3131,9 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenEOF,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 			},
 		},
@@ -3144,10 +3144,10 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				isErr: true,
 				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
@@ -3161,10 +3161,10 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				isErr: true,
 				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
@@ -3216,11 +3216,11 @@ func Test_parser_peek(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 				peeked: true,
 			},
@@ -3232,9 +3232,9 @@ func Test_parser_peek(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenEOF,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 				peeked: true,
 			},
@@ -3246,10 +3246,10 @@ func Test_parser_peek(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				peeked: true,
 			},
@@ -4311,8 +4311,8 @@ func Test_unquote(t *testing.T) {
 			name: "string",
 			args: args{
 				t: token{
-					typ: tokenString,
 					v:   `"abc"`,
+					typ: tokenString,
 				},
 			},
 			want: want{
@@ -4323,8 +4323,8 @@ func Test_unquote(t *testing.T) {
 			name: "raw string",
 			args: args{
 				t: token{
-					typ: tokenRawString,
 					v:   "`abc`",
+					typ: tokenRawString,
 				},
 			},
 			want: want{
@@ -4335,8 +4335,8 @@ func Test_unquote(t *testing.T) {
 			name: "empty string",
 			args: args{
 				t: token{
-					typ: tokenString,
 					v:   `""`,
+					typ: tokenString,
 				},
 			},
 			want: want{
@@ -4347,8 +4347,8 @@ func Test_unquote(t *testing.T) {
 			name: "too short",
 			args: args{
 				t: token{
-					typ: tokenString,
 					v:   `"`,
+					typ: tokenString,
 				},
 			},
 			want: want{
@@ -4359,8 +4359,8 @@ func Test_unquote(t *testing.T) {
 			name: "number",
 			args: args{
 				t: token{
-					typ: tokenNumber,
 					v:   "42",
+					typ: tokenNumber,
 				},
 			},
 			want: want{

@@ -7,10 +7,10 @@ import (
 
 func TestError_Error(t *testing.T) {
 	type fields struct {
+		Err  error
 		Kind ErrorKind
 		Line int
 		Col  int
-		Err  error
 	}
 	type want struct {
 		val string
@@ -23,10 +23,10 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "eval error with position",
 			fields: fields{
+				Err:  errors.New(`unknown identifier "Unknown"`),
 				Kind: KindEval,
 				Line: 1,
 				Col:  15,
-				Err:  errors.New(`unknown identifier "Unknown"`),
 			},
 			want: want{
 				val: `eval error at 1:15: unknown identifier "Unknown"`,
@@ -35,10 +35,10 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "parse error with position",
 			fields: fields{
+				Err:  errors.New(`invalid number "-"`),
 				Kind: KindParse,
 				Line: 2,
 				Col:  4,
-				Err:  errors.New(`invalid number "-"`),
 			},
 			want: want{
 				val: `parse error at 2:4: invalid number "-"`,
@@ -47,10 +47,10 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "lex error with position",
 			fields: fields{
+				Err:  errors.New("unexpected end of input after '='"),
 				Kind: KindLex,
 				Line: 1,
 				Col:  2,
-				Err:  errors.New("unexpected end of input after '='"),
 			},
 			want: want{
 				val: "lex error at 1:2: unexpected end of input after '='",
@@ -59,8 +59,8 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "eval error",
 			fields: fields{
-				Kind: KindEval,
 				Err:  errors.New("some eval error"),
+				Kind: KindEval,
 			},
 			want: want{
 				val: "eval error: some eval error",
@@ -69,8 +69,8 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "parse error",
 			fields: fields{
-				Kind: KindParse,
 				Err:  errors.New("some parse error"),
+				Kind: KindParse,
 			},
 			want: want{
 				val: "parse error: some parse error",
@@ -79,8 +79,8 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "lex error",
 			fields: fields{
-				Kind: KindLex,
 				Err:  errors.New("some lex error"),
+				Kind: KindLex,
 			},
 			want: want{
 				val: "lex error: some lex error",
@@ -89,8 +89,8 @@ func TestError_Error(t *testing.T) {
 		{
 			name: "unknown error",
 			fields: fields{
-				Kind: ErrorKind(999),
 				Err:  errors.New("some unknown error"),
+				Kind: ErrorKind(999),
 			},
 			want: want{
 				val: "unknown error: some unknown error",
@@ -100,10 +100,10 @@ func TestError_Error(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			e := &Error{
+				Err:  test.fields.Err,
 				Kind: test.fields.Kind,
 				Line: test.fields.Line,
 				Col:  test.fields.Col,
-				Err:  test.fields.Err,
 			}
 			got := e.Error()
 			if got != test.want.val {
@@ -115,10 +115,10 @@ func TestError_Error(t *testing.T) {
 
 func TestError_Unwrap(t *testing.T) {
 	type fields struct {
+		Err  error
 		Kind ErrorKind
 		Line int
 		Col  int
-		Err  error
 	}
 	type want struct {
 		val error
@@ -132,8 +132,8 @@ func TestError_Unwrap(t *testing.T) {
 		{
 			name: "unwrap error",
 			fields: fields{
-				Kind: KindEval,
 				Err:  errEval,
+				Kind: KindEval,
 			},
 			want: want{
 				val: errEval,
@@ -143,10 +143,10 @@ func TestError_Unwrap(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			e := &Error{
+				Err:  test.fields.Err,
 				Kind: test.fields.Kind,
 				Line: test.fields.Line,
 				Col:  test.fields.Col,
-				Err:  test.fields.Err,
 			}
 			got := e.Unwrap()
 			if got != test.want.val {
@@ -181,11 +181,11 @@ func Test_newError(t *testing.T) {
 			args: args{
 				kind: KindEval,
 				t: token{
-					typ:  tokenIdent,
 					v:    "Unknown",
 					pos:  14,
 					line: 1,
 					col:  15,
+					typ:  tokenIdent,
 				},
 				format: "unknown identifier %q",
 				args:   []any{"Unknown"},
@@ -202,10 +202,10 @@ func Test_newError(t *testing.T) {
 			args: args{
 				kind: KindParse,
 				t: token{
-					typ:  tokenNumber,
 					v:    "-",
 					line: 2,
 					col:  4,
+					typ:  tokenNumber,
 				},
 				format: "invalid number %q",
 				args:   []any{"-"},
@@ -222,9 +222,9 @@ func Test_newError(t *testing.T) {
 			args: args{
 				kind: KindLex,
 				t: token{
-					typ:  tokenError,
 					line: 1,
 					col:  6,
+					typ:  tokenError,
 				},
 				format: "unclosed left parenthesis",
 			},
