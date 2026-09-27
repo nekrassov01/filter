@@ -90,11 +90,10 @@ func (l *lexer) lexStmt() state {
 		return l.lexAddr()
 	case isNumberStart(r):
 		return l.lexNumber()
-	case unicode.IsLetter(r) || r == '_':
+	case isIdentStart(r):
 		return l.lexKeywordOrIdent()
 	default:
-		l.backup()
-		return l.errorf("unexpected character %#U", r)
+		return l.lexUnexpected(r)
 	}
 }
 
@@ -345,6 +344,12 @@ func (l *lexer) lexKeywordOrIdent() state {
 	}
 	l.emit(tokenIdent)
 	return stateStmt
+}
+
+// lexUnexpected reports the unexpected rune just consumed by lexStmt.
+func (l *lexer) lexUnexpected(r rune) state {
+	l.backup()
+	return l.errorf("unexpected character %#U", r)
 }
 
 // scanEscape consumes the escape sequence following a backslash and reports
@@ -718,6 +723,11 @@ func width(r rune) int32 {
 // isNumberStart reports whether the rune can begin a number, duration, or time literal.
 func isNumberStart(r rune) bool {
 	return unicode.IsDigit(r) || r == '.' || r == '+' || r == '-'
+}
+
+// isIdentStart reports whether the rune can begin an identifier.
+func isIdentStart(r rune) bool {
+	return unicode.IsLetter(r) || r == '_'
 }
 
 // isSpace reports whether the rune is a space, tab, carriage return, or newline.

@@ -3326,6 +3326,93 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 	}
 }
 
+func Test_lexer_lexUnexpected(t *testing.T) {
+	type fields struct {
+		input string
+	}
+	type args struct {
+		r rune
+	}
+	type want struct {
+		val state
+		tok token
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   want
+	}{
+		{
+			name: "ascii",
+			fields: fields{
+				input: "$",
+			},
+			args: args{
+				r: '$',
+			},
+			want: want{
+				val: stateDone,
+				tok: token{
+					v:    "unexpected character U+0024 '$'",
+					line: 1,
+					col:  1,
+					typ:  tokenError,
+				},
+			},
+		},
+		{
+			name: "colon",
+			fields: fields{
+				input: ":",
+			},
+			args: args{
+				r: ':',
+			},
+			want: want{
+				val: stateDone,
+				tok: token{
+					v:    "unexpected character U+003A ':'",
+					line: 1,
+					col:  1,
+					typ:  tokenError,
+				},
+			},
+		},
+		{
+			name: "unicode",
+			fields: fields{
+				input: "。",
+			},
+			args: args{
+				r: '。',
+			},
+			want: want{
+				val: stateDone,
+				tok: token{
+					v:    "unexpected character U+3002 '。'",
+					line: 1,
+					col:  1,
+					typ:  tokenError,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := newLexer(test.fields.input)
+			l.next()
+			got := l.lexUnexpected(test.args.r)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+			if l.token != test.want.tok {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.token, test.want.tok)
+			}
+		})
+	}
+}
+
 func Test_lexer_scanEscape(t *testing.T) {
 	type fields struct {
 		input string
@@ -10225,6 +10312,110 @@ func Test_isNumberStart(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if got := isNumberStart(test.args.r); got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func Test_isIdentStart(t *testing.T) {
+	type args struct {
+		r rune
+	}
+	type want struct {
+		val bool
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "lowercase",
+			args: args{
+				r: 'a',
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uppercase",
+			args: args{
+				r: 'A',
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "underscore",
+			args: args{
+				r: '_',
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "unicode letter",
+			args: args{
+				r: '軍',
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "digit",
+			args: args{
+				r: '1',
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "unicode digit",
+			args: args{
+				r: '１',
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "colon",
+			args: args{
+				r: ':',
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "space",
+			args: args{
+				r: ' ',
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "eof",
+			args: args{
+				r: eof,
+			},
+			want: want{
+				val: false,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := isIdentStart(test.args.r)
+			if got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 		})
