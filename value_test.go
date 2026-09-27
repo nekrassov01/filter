@@ -3,9 +3,134 @@ package filter
 import (
 	"errors"
 	"math"
+	"net/netip"
 	"testing"
 	"time"
 )
+
+func TestValue_addr(t *testing.T) {
+	type want struct {
+		val netip.Addr
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "invalid",
+			tr: Value{
+				kind: kindAddr,
+				bits: 0,
+				s:    "",
+				a:    0,
+				b:    0,
+			},
+			want: want{
+				val: netip.Addr{},
+			},
+		},
+		{
+			name: "ipv4",
+			tr: Value{
+				kind: kindAddr,
+				bits: 32,
+				s:    "",
+				a:    0,
+				b:    0x0000ffffc0000201,
+			},
+			want: want{
+				val: netip.MustParseAddr("192.0.2.1"),
+			},
+		},
+		{
+			name: "ipv4 unspecified",
+			tr: Value{
+				kind: kindAddr,
+				bits: 32,
+				s:    "",
+				a:    0,
+				b:    0x0000ffff00000000,
+			},
+			want: want{
+				val: netip.MustParseAddr("0.0.0.0"),
+			},
+		},
+		{
+			name: "ipv6",
+			tr: Value{
+				kind: kindAddr,
+				bits: 128,
+				s:    "",
+				a:    0x20010db800000000,
+				b:    1,
+			},
+			want: want{
+				val: netip.MustParseAddr("2001:db8::1"),
+			},
+		},
+		{
+			name: "ipv6 unspecified",
+			tr: Value{
+				kind: kindAddr,
+				bits: 128,
+				s:    "",
+				a:    0,
+				b:    0,
+			},
+			want: want{
+				val: netip.IPv6Unspecified(),
+			},
+		},
+		{
+			name: "mapped ipv4",
+			tr: Value{
+				kind: kindAddr,
+				bits: 128,
+				s:    "",
+				a:    0,
+				b:    0x0000ffffc0000201,
+			},
+			want: want{
+				val: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+		},
+		{
+			name: "zone",
+			tr: Value{
+				kind: kindAddr,
+				bits: 128,
+				s:    "eth0",
+				a:    -0x0180000000000000,
+				b:    1,
+			},
+			want: want{
+				val: netip.MustParseAddr("fe80::1%eth0"),
+			},
+		},
+		{
+			name: "high bits",
+			tr: Value{
+				kind: kindAddr,
+				bits: 128,
+				s:    "",
+				a:    -1,
+				b:    -1,
+			},
+			want: want{
+				val: netip.MustParseAddr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.addr()
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
 
 func TestString(t *testing.T) {
 	type args struct {
@@ -600,6 +725,149 @@ func TestTime(t *testing.T) {
 	}
 }
 
+func TestAddr(t *testing.T) {
+	type args struct {
+		ip netip.Addr
+	}
+	type want struct {
+		val Value
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "invalid",
+			args: args{
+				ip: netip.Addr{},
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 0,
+					s:    "",
+					a:    0,
+					b:    0,
+				},
+			},
+		},
+		{
+			name: "ipv4",
+			args: args{
+				ip: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 32,
+					s:    "",
+					a:    0,
+					b:    0x0000ffffc0000201,
+				},
+			},
+		},
+		{
+			name: "ipv4 unspecified",
+			args: args{
+				ip: netip.MustParseAddr("0.0.0.0"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 32,
+					s:    "",
+					a:    0,
+					b:    0x0000ffff00000000,
+				},
+			},
+		},
+		{
+			name: "ipv6",
+			args: args{
+				ip: netip.MustParseAddr("2001:db8::1"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    0x20010db800000000,
+					b:    1,
+				},
+			},
+		},
+		{
+			name: "ipv6 unspecified",
+			args: args{
+				ip: netip.IPv6Unspecified(),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    0,
+					b:    0,
+				},
+			},
+		},
+		{
+			name: "mapped ipv4",
+			args: args{
+				ip: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    0,
+					b:    0x0000ffffc0000201,
+				},
+			},
+		},
+		{
+			name: "zone",
+			args: args{
+				ip: netip.MustParseAddr("fe80::1%eth0"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "eth0",
+					a:    -0x0180000000000000,
+					b:    1,
+				},
+			},
+		},
+		{
+			name: "high bits",
+			args: args{
+				ip: netip.MustParseAddr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    -1,
+					b:    -1,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := Addr(test.args.ip)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
 func TestBool(t *testing.T) {
 	type args struct {
 		b bool
@@ -793,6 +1061,126 @@ func TestValueOf(t *testing.T) {
 			},
 			want: want{
 				val: Duration(1500 * time.Millisecond),
+			},
+		},
+		{
+			name: "addr invalid",
+			args: args{
+				v: netip.Addr{},
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 0,
+					s:    "",
+					a:    0,
+					b:    0,
+				},
+			},
+		},
+		{
+			name: "addr ipv4",
+			args: args{
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 32,
+					s:    "",
+					a:    0,
+					b:    0x0000ffffc0000201,
+				},
+			},
+		},
+		{
+			name: "addr ipv4 unspecified",
+			args: args{
+				v: netip.MustParseAddr("0.0.0.0"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 32,
+					s:    "",
+					a:    0,
+					b:    0x0000ffff00000000,
+				},
+			},
+		},
+		{
+			name: "addr ipv6",
+			args: args{
+				v: netip.MustParseAddr("2001:db8::1"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    0x20010db800000000,
+					b:    1,
+				},
+			},
+		},
+		{
+			name: "addr ipv6 unspecified",
+			args: args{
+				v: netip.IPv6Unspecified(),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    0,
+					b:    0,
+				},
+			},
+		},
+		{
+			name: "addr mapped ipv4",
+			args: args{
+				v: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    0,
+					b:    0x0000ffffc0000201,
+				},
+			},
+		},
+		{
+			name: "addr zone",
+			args: args{
+				v: netip.MustParseAddr("fe80::1%eth0"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "eth0",
+					a:    -0x0180000000000000,
+					b:    1,
+				},
+			},
+		},
+		{
+			name: "addr high bits",
+			args: args{
+				v: netip.MustParseAddr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+			},
+			want: want{
+				val: Value{
+					kind: kindAddr,
+					bits: 128,
+					s:    "",
+					a:    -1,
+					b:    -1,
+				},
 			},
 		},
 		{

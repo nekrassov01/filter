@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"math"
+	"net/netip"
 	"strings"
 	"testing"
 )
@@ -2459,6 +2460,249 @@ func TestExpr_Eval(t *testing.T) {
 			},
 			want: want{
 				val: true,
+			},
+		},
+		// Address comparisons
+		{
+			name: "quoted zone delimiter",
+			fields: fields{
+				expr: MustParse(`ip=="fe80::1%eth 0"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1%eth 0"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address ipv4 eq",
+			fields: fields{
+				expr: MustParse(`ip == "192.0.2.1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address ipv6 normalization",
+			fields: fields{
+				expr: MustParse(`ip == "2001:0db8:0:0:0:0:0:1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("2001:db8::1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address ipv6 letter start",
+			fields: fields{
+				expr: MustParse(`ip == "fe80::1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address ipv6 colon start",
+			fields: fields{
+				expr: MustParse(`ip == "::1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("::1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address zone",
+			fields: fields{
+				expr: MustParse(`ip == "fe80::1%eth-0"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1%eth-0"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address mapped differs",
+			fields: fields{
+				expr: MustParse(`ip != "192.0.2.1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("::ffff:192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address ipv4 range",
+			fields: fields{
+				expr: MustParse(`ip >= "192.0.2.2" && ip < "192.0.2.10"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.9"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address ipv6 range",
+			fields: fields{
+				expr: MustParse(`ip > "2001:db8::1" && ip <= "2001:db8::ffff"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("2001:db8::2"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address raw literal",
+			fields: fields{
+				expr: MustParse("ip == `192.0.2.1`").expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address single quoted literal",
+			fields: fields{
+				expr: MustParse("ip == '192.0.2.1'").expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address invalid sorts first",
+			fields: fields{
+				expr: MustParse(`ip < "0.0.0.0"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.Addr{},
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "address invalid literal",
+			fields: fields{
+				expr: MustParse(`ip == "bad"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:7: invalid address "bad"`,
+			},
+		},
+		{
+			name: "address cidr rejected",
+			fields: fields{
+				expr: MustParse(`ip == "192.0.2.0/24"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:7: invalid address "192.0.2.0/24"`,
+			},
+		},
+		{
+			name: "address regex rejected",
+			fields: fields{
+				expr: MustParse(`ip =~ "192.0.2.1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:4: invalid operator for address value "=~"`,
+			},
+		},
+		{
+			name: "address negated regex rejected",
+			fields: fields{
+				expr: MustParse(`ip !~ "192.0.2.1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:4: invalid operator for address value "!~"`,
+			},
+		},
+		{
+			name: "address-looking string remains a string",
+			fields: fields{
+				expr: MustParse(`ip == "2001:0db8::1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": "2001:db8::1",
+				},
+			},
+			want: want{
+				val: false,
 			},
 		},
 		// Errors

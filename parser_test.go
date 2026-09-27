@@ -2,6 +2,7 @@ package filter
 
 import (
 	"math"
+	"net/netip"
 	"reflect"
 	"regexp"
 	"strings"
@@ -1300,12 +1301,96 @@ func Test_parser_cacheValues(t *testing.T) {
 		valDuration time.Duration
 		hasTime     bool
 		valTime     time.Time
+		hasAddr     bool
+		valAddr     netip.Addr
 	}
 	tests := []struct {
 		name string
 		args args
 		want want
 	}{
+		{
+			name: "ipv4",
+			args: args{
+				i: 0,
+				s: "192.0.2.1",
+			},
+			want: want{
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("192.0.2.1"),
+			},
+		},
+		{
+			name: "ipv6",
+			args: args{
+				i: 0,
+				s: "2001:db8::1",
+			},
+			want: want{
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("2001:db8::1"),
+			},
+		},
+		{
+			name: "ipv6 starts with letter",
+			args: args{
+				i: 0,
+				s: "fe80::1",
+			},
+			want: want{
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1"),
+			},
+		},
+		{
+			name: "ipv6 starts with colon",
+			args: args{
+				i: 0,
+				s: "::1",
+			},
+			want: want{
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::1"),
+			},
+		},
+		{
+			name: "ipv6 with zone",
+			args: args{
+				i: 0,
+				s: "fe80::1%eth0",
+			},
+			want: want{
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1%eth0"),
+			},
+		},
+		{
+			name: "mapped ipv6",
+			args: args{
+				i: 0,
+				s: "::ffff:192.0.2.1",
+			},
+			want: want{
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+		},
+		{
+			name: "invalid address",
+			args: args{
+				i: 0,
+				s: "192.0.2.256",
+			},
+			want: want{},
+		},
+		{
+			name: "prefix",
+			args: args{
+				i: 0,
+				s: "192.0.2.0/24",
+			},
+			want: want{},
+		},
 		{
 			name: "integer spells a number and unix seconds",
 			args: args{
@@ -1510,6 +1595,8 @@ func Test_parser_cacheValues(t *testing.T) {
 				valDuration: n.valDuration,
 				hasTime:     n.hasTime,
 				valTime:     n.valTime,
+				hasAddr:     n.hasAddr,
+				valAddr:     n.valAddr,
 			}
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
@@ -1599,6 +1686,164 @@ func Test_parser_cacheTime(t *testing.T) {
 			}
 			if !n.valTime.Equal(test.want.valTime) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valTime, test.want.valTime)
+			}
+		})
+	}
+}
+
+func Test_parser_cacheAddr(t *testing.T) {
+	type args struct {
+		i int32
+		s string
+	}
+	type want struct {
+		val     bool
+		hasAddr bool
+		valAddr netip.Addr
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "ipv4",
+			args: args{
+				i: 0,
+				s: "192.0.2.1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("192.0.2.1"),
+			},
+		},
+		{
+			name: "ipv6",
+			args: args{
+				i: 0,
+				s: "2001:db8::1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("2001:db8::1"),
+			},
+		},
+		{
+			name: "ipv6 starts with letter",
+			args: args{
+				i: 0,
+				s: "fe80::1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1"),
+			},
+		},
+		{
+			name: "zone",
+			args: args{
+				i: 0,
+				s: "fe80::1%eth0",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1%eth0"),
+			},
+		},
+		{
+			name: "mapped",
+			args: args{
+				i: 0,
+				s: "::ffff:192.0.2.1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+		},
+		{
+			name: "requested node",
+			args: args{
+				i: 2,
+				s: "::1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::1"),
+			},
+		},
+		{
+			name: "unspecified",
+			args: args{
+				i: 0,
+				s: "::",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::"),
+			},
+		},
+		{
+			name: "empty",
+			args: args{
+				i: 0,
+				s: "",
+			},
+			want: want{},
+		},
+		{
+			name: "invalid",
+			args: args{
+				i: 0,
+				s: "192.0.2.999",
+			},
+			want: want{},
+		},
+		{
+			name: "leading zeros",
+			args: args{
+				i: 0,
+				s: "192.000.2.1",
+			},
+			want: want{},
+		},
+		{
+			name: "CIDR",
+			args: args{
+				i: 0,
+				s: "192.0.2.0/24",
+			},
+			want: want{},
+		},
+		{
+			name: "port",
+			args: args{
+				i: 0,
+				s: "192.0.2.1:80",
+			},
+			want: want{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := newParser("")
+			got := p.cacheAddr(test.args.i, test.args.s)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+			n := p.node(test.args.i)
+			if n.hasAddr != test.want.hasAddr {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasAddr, test.want.hasAddr)
+			}
+			if n.valAddr != test.want.valAddr {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valAddr, test.want.valAddr)
 			}
 		})
 	}

@@ -2,6 +2,7 @@ package filter
 
 import (
 	"math"
+	"net/netip"
 	"time"
 )
 
@@ -103,6 +104,8 @@ func evalPredicate(n *node, v Value) (bool, error) {
 		return evalTime(n, time.Unix(v.a, v.b))
 	case kindDuration:
 		return evalDuration(n, time.Duration(v.a))
+	case kindAddr:
+		return evalAddr(n, v.addr())
 	default:
 		return false, newError(KindEval, n.ident, "unknown identifier %q", n.ident.v)
 	}
@@ -228,5 +231,34 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 		return v != d, nil
 	default:
 		return false, newError(KindEval, n.op, "invalid operator for duration value %q", n.op.typ.literal())
+	}
+}
+
+// evalAddr evaluates the predicate against an IP address value.
+func evalAddr(n *node, v netip.Addr) (bool, error) {
+	ip := n.valAddr
+	if !n.hasAddr {
+		parsed, err := netip.ParseAddr(n.val.v)
+		if err != nil {
+			return false, newError(KindEval, n.val, "invalid address %q", n.val.v)
+		}
+		ip = parsed
+	}
+	c := v.Compare(ip)
+	switch n.op.typ {
+	case tokenGT:
+		return c > 0, nil
+	case tokenGTE:
+		return c >= 0, nil
+	case tokenLT:
+		return c < 0, nil
+	case tokenLTE:
+		return c <= 0, nil
+	case tokenEQ:
+		return c == 0, nil
+	case tokenNEQ:
+		return c != 0, nil
+	default:
+		return false, newError(KindEval, n.op, "invalid operator for address value %q", n.op.typ.literal())
 	}
 }

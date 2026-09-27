@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"math"
+	"net/netip"
 	"regexp"
 	"strings"
 	"testing"
@@ -340,6 +341,57 @@ func Test_evalPredicate(t *testing.T) {
 			},
 			want: want{
 				val: false,
+			},
+		},
+		{
+			name: "invalid address",
+			args: args{
+				n: &node{
+					typ: nodePredicate,
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: Addr(netip.Addr{}),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "ipv4 address",
+			args: args{
+				n: &node{
+					typ: nodePredicate,
+					op: token{
+						typ: tokenEQ,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: Addr(netip.MustParseAddr("192.0.2.1")),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "ipv6 address",
+			args: args{
+				n: &node{
+					typ: nodePredicate,
+					op: token{
+						typ: tokenEQ,
+					},
+					valAddr: netip.MustParseAddr("2001:db8::1"),
+					hasAddr: true,
+				},
+				v: Addr(netip.MustParseAddr("2001:db8::1")),
+			},
+			want: want{
+				val: true,
 			},
 		},
 		{
@@ -2694,6 +2746,482 @@ func Test_evalDuration(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := evalDuration(test.args.n, test.args.v)
+			isErr := err != nil
+			if isErr != test.want.isErr {
+				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
+				return
+			}
+			if isErr {
+				if err.Error() != test.want.err {
+					t.Errorf("error mismatch\ngot=%v\nwant=%v\n", err, test.want.err)
+				}
+				return
+			}
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func Test_evalAddr(t *testing.T) {
+	type args struct {
+		n *node
+		v netip.Addr
+	}
+	type want struct {
+		val   bool
+		isErr bool
+		err   string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "eq",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "eq false",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.2"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "neq",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.2"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "neq false",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "gt",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.2"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.10"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "gt false",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGT,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "gte",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "gte false",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenGTE,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.2"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "lt",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.10"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.2"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "lt false",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "lte",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLTE,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "lte false",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLTE,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.2"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "ipv6 equivalent forms",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valAddr: netip.MustParseAddr("2001:0db8:0:0:0:0:0:1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("2001:db8::1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "mapped ipv4 differs",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "ipv4 before ipv6",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("::"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("255.255.255.255"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "zone differs",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenNEQ,
+					},
+					valAddr: netip.MustParseAddr("fe80::1%eth1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("fe80::1%eth0"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "zone order",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("fe80::1%eth1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("fe80::1%eth0"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "unzoned before zoned",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("fe80::1%eth0"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("fe80::1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "invalid before ipv4",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("0.0.0.0"),
+					hasAddr: true,
+				},
+				v: netip.Addr{},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "invalid before ipv6",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenLT,
+					},
+					valAddr: netip.MustParseAddr("::"),
+					hasAddr: true,
+				},
+				v: netip.Addr{},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "uncached valid address",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ: tokenString,
+						v:   "2001:db8::1",
+					},
+				},
+				v: netip.MustParseAddr("2001:db8::1"),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "empty",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ:  tokenString,
+						v:    "",
+						line: 2,
+						col:  6,
+					},
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 2:6: invalid address ""`,
+			},
+		},
+		{
+			name: "invalid literal",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ:  tokenString,
+						v:    "192.0.2.999",
+						line: 2,
+						col:  6,
+					},
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 2:6: invalid address "192.0.2.999"`,
+			},
+		},
+		{
+			name: "CIDR",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						typ:  tokenString,
+						v:    "192.0.2.0/24",
+						line: 2,
+						col:  6,
+					},
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 2:6: invalid address "192.0.2.0/24"`,
+			},
+		},
+		{
+			name: "invalid operator =~",
+			args: args{
+				n: &node{
+					op: token{
+						typ:  tokenREQ,
+						line: 1,
+						col:  4,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:4: invalid operator for address value "=~"`,
+			},
+		},
+		{
+			name: "invalid operator !~",
+			args: args{
+				n: &node{
+					op: token{
+						typ:  tokenNREQ,
+						line: 1,
+						col:  4,
+					},
+					valAddr: netip.MustParseAddr("192.0.2.1"),
+					hasAddr: true,
+				},
+				v: netip.MustParseAddr("192.0.2.1"),
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:4: invalid operator for address value "!~"`,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := evalAddr(test.args.n, test.args.v)
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
