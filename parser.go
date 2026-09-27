@@ -431,7 +431,7 @@ func (p *parser) node(i int32) *node {
 	return &p.nodeBuf[i]
 }
 
-// expect returns the next token and consumes it if it matches the expected type.
+// expect consumes and returns the next token, reporting an error if its type differs.
 func (p *parser) expect(typ tokenType) (token, error) {
 	t, err := p.next()
 	if err != nil {
@@ -447,12 +447,9 @@ func (p *parser) expect(typ tokenType) (token, error) {
 func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
-		if p.current.typ == tokenError {
-			return p.current, newError(KindLex, p.current, "%s", p.current.v)
-		}
-		return p.current, nil
+	} else {
+		p.current = p.lexer.nextToken()
 	}
-	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
 		return p.current, newError(KindLex, p.current, "%s", p.current.v)
 	}

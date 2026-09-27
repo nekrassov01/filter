@@ -638,9 +638,7 @@ func (l *lexer) emit(typ tokenType) {
 		typ:  typ,
 	}
 	l.hasNext = true
-	l.startPos = l.pos
-	l.startLine = l.line
-	l.startCol = l.col
+	l.ignore()
 }
 
 // ignore discards the pending input without emitting a token.
