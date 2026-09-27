@@ -114,20 +114,16 @@ func (p *parser) parseLogicalOr() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	for {
-		if p.peek().typ == tokenOR {
-			t, err := p.next()
-			if err != nil {
-				return 0, err
-			}
-			right, err := p.parseLogicalAnd()
-			if err != nil {
-				return 0, err
-			}
-			left = p.addNode(newNodeBinary(left, t, right))
-			continue
+	for p.peek().typ == tokenOR {
+		t, err := p.next()
+		if err != nil {
+			return 0, err
 		}
-		break
+		right, err := p.parseLogicalAnd()
+		if err != nil {
+			return 0, err
+		}
+		left = p.addNode(newNodeBinary(left, t, right))
 	}
 	return left, nil
 }
@@ -138,20 +134,16 @@ func (p *parser) parseLogicalAnd() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	for {
-		if p.peek().typ == tokenAND {
-			t, err := p.next()
-			if err != nil {
-				return 0, err
-			}
-			right, err := p.parseUnary()
-			if err != nil {
-				return 0, err
-			}
-			left = p.addNode(newNodeBinary(left, t, right))
-			continue
+	for p.peek().typ == tokenAND {
+		t, err := p.next()
+		if err != nil {
+			return 0, err
 		}
-		break
+		right, err := p.parseUnary()
+		if err != nil {
+			return 0, err
+		}
+		left = p.addNode(newNodeBinary(left, t, right))
 	}
 	return left, nil
 }

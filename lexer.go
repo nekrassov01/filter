@@ -357,12 +357,7 @@ func (l *lexer) lexUnexpected(r rune) state {
 func (l *lexer) scanEscape() bool {
 	r := l.next()
 	switch r {
-	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\':
-		return true
-	case '"', '\'':
-		return true
-	case '0':
-		// Simple \0 for null character
+	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\'', '0':
 		return true
 	case 'x':
 		// \xHH - 2 digit hex
@@ -370,8 +365,6 @@ func (l *lexer) scanEscape() bool {
 	case 'u':
 		// \uHHHH - 4 digit unicode
 		return l.scanHexEscape(4)
-	case eof:
-		return false
 	default:
 		return false
 	}
