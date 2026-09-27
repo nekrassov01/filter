@@ -59,10 +59,10 @@ func (e *Error) Unwrap() error {
 // The message is formatted as by fmt.Errorf, so %w wraps a cause.
 func newError(kind ErrorKind, t token, format string, args ...any) *Error {
 	return &Error{
+		Err:  fmt.Errorf(format, args...),
 		Kind: kind,
 		Line: int(t.line),
 		Col:  int(t.col),
-		Err:  fmt.Errorf(format, args...),
 	}
 }
 

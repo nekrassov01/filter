@@ -19,8 +19,8 @@ const (
 	kindInt64                // a holds the signed integer
 	kindUint64               // a holds the unsigned integer bits
 	kindFloat64              // a holds the float64 bits
-	kindDuration             // a holds the duration
 	kindTime                 // a holds Unix seconds, b the nanoseconds
+	kindDuration             // a holds the duration
 	kindAddr                 // a and b hold address bits, s the zone, bits the address family
 )
 
@@ -53,8 +53,8 @@ func (v Value) addr() netip.Addr {
 // String returns a Value holding s.
 func String(s string) Value {
 	return Value{
-		kind: kindString,
 		s:    s,
+		kind: kindString,
 	}
 }
 
@@ -66,8 +66,8 @@ func Int(n int) Value {
 // Int64 returns a Value holding n.
 func Int64(n int64) Value {
 	return Value{
-		kind: kindInt64,
 		a:    n,
+		kind: kindInt64,
 	}
 }
 
@@ -75,8 +75,8 @@ func Int64(n int64) Value {
 func Uint64(n uint64) Value {
 	//nolint:gosec // bit pattern conversion
 	return Value{
-		kind: kindUint64,
 		a:    int64(n),
+		kind: kindUint64,
 	}
 }
 
@@ -84,25 +84,25 @@ func Uint64(n uint64) Value {
 func Float64(n float64) Value {
 	//nolint:gosec // bit pattern conversion
 	return Value{
-		kind: kindFloat64,
 		a:    int64(math.Float64bits(n)),
-	}
-}
-
-// Duration returns a Value holding d.
-func Duration(d time.Duration) Value {
-	return Value{
-		kind: kindDuration,
-		a:    int64(d),
+		kind: kindFloat64,
 	}
 }
 
 // Time returns a Value holding the instant t.
 func Time(t time.Time) Value {
 	return Value{
-		kind: kindTime,
 		a:    t.Unix(),
 		b:    int64(t.Nanosecond()),
+		kind: kindTime,
+	}
+}
+
+// Duration returns a Value holding d.
+func Duration(d time.Duration) Value {
+	return Value{
+		a:    int64(d),
+		kind: kindDuration,
 	}
 }
 
@@ -112,19 +112,19 @@ func Addr(ip netip.Addr) Value {
 	b := ip.As16()
 	//nolint:gosec // bit pattern conversion
 	return Value{
-		kind: kindAddr,
-		bits: uint8(ip.BitLen()),
 		s:    ip.Zone(),
 		a:    int64(binary.BigEndian.Uint64(b[:8])),
 		b:    int64(binary.BigEndian.Uint64(b[8:])),
+		kind: kindAddr,
+		bits: uint8(ip.BitLen()),
 	}
 }
 
 // Bool returns a Value holding b, which compares as the string "true" or "false".
 func Bool(b bool) Value {
 	return Value{
-		kind: kindString,
 		s:    strconv.FormatBool(b),
+		kind: kindString,
 	}
 }
 

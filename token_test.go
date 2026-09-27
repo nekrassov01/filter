@@ -145,17 +145,17 @@ func Test_tokenType_String(t *testing.T) {
 			},
 		},
 		{
-			name: "duration",
-			tr:   tokenDuration,
-			want: want{
-				val: "duration",
-			},
-		},
-		{
 			name: "time",
 			tr:   tokenTime,
 			want: want{
 				val: "time",
+			},
+		},
+		{
+			name: "duration",
+			tr:   tokenDuration,
+			want: want{
+				val: "duration",
 			},
 		},
 		{
@@ -514,15 +514,15 @@ func Test_tokenType_isPredicateOperatorType(t *testing.T) {
 			},
 		},
 		{
-			name: "duration",
-			tr:   tokenDuration,
+			name: "time",
+			tr:   tokenTime,
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "time",
-			tr:   tokenTime,
+			name: "duration",
+			tr:   tokenDuration,
 			want: want{
 				val: false,
 			},
@@ -702,15 +702,15 @@ func Test_tokenType_isRegexOperatorType(t *testing.T) {
 			},
 		},
 		{
-			name: "duration",
-			tr:   tokenDuration,
+			name: "time",
+			tr:   tokenTime,
 			want: want{
 				val: false,
 			},
 		},
 		{
-			name: "time",
-			tr:   tokenTime,
+			name: "duration",
+			tr:   tokenDuration,
 			want: want{
 				val: false,
 			},
@@ -890,15 +890,15 @@ func Test_tokenType_isValueType(t *testing.T) {
 			},
 		},
 		{
-			name: "duration",
-			tr:   tokenDuration,
+			name: "time",
+			tr:   tokenTime,
 			want: want{
 				val: true,
 			},
 		},
 		{
-			name: "time",
-			tr:   tokenTime,
+			name: "duration",
+			tr:   tokenDuration,
 			want: want{
 				val: true,
 			},

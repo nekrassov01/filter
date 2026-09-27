@@ -165,12 +165,12 @@ func Test_repr(t *testing.T) {
 								typ: nodeType(255),
 							},
 							{
-								typ:   nodeBinary,
-								left:  0,
-								right: 0,
 								op: token{
 									typ: tokenAND,
 								},
+								typ:   nodeBinary,
+								left:  0,
+								right: 0,
 							},
 						},
 						root: 1,

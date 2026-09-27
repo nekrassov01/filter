@@ -49,11 +49,11 @@ type lexer struct {
 func newLexer(input string) lexer {
 	return lexer{
 		input:     input,
-		state:     stateStmt,
 		line:      1,
 		startLine: 1,
 		col:       1,
 		startCol:  1,
+		state:     stateStmt,
 	}
 }
 
@@ -90,11 +90,10 @@ func (l *lexer) lexStmt() state {
 		return l.lexAddr()
 	case isNumberStart(r):
 		return l.lexNumber()
-	case unicode.IsLetter(r) || r == '_':
+	case isIdentStart(r):
 		return l.lexKeywordOrIdent()
 	default:
-		l.backup()
-		return l.errorf("unexpected character %#U", r)
+		return l.lexUnexpected(r)
 	}
 }
 
@@ -326,7 +325,7 @@ func (l *lexer) lexKeywordOrIdent() state {
 		if c >= utf8.RuneSelf {
 			for {
 				r := l.next()
-				if !isAlphaNumeric(r) && r != '_' {
+				if !isIdentContinue(r) {
 					l.backup()
 					break
 				}
@@ -347,19 +346,18 @@ func (l *lexer) lexKeywordOrIdent() state {
 	return stateStmt
 }
 
+// lexUnexpected reports the unexpected rune just consumed by lexStmt.
+func (l *lexer) lexUnexpected(r rune) state {
+	l.backup()
+	return l.errorf("unexpected character %#U", r)
+}
+
 // scanEscape consumes the escape sequence following a backslash and reports
 // whether it is valid.
 func (l *lexer) scanEscape() bool {
 	r := l.next()
 	switch r {
-	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\':
-		// These are valid escape sequences
-		return true
-	case '"', '\'':
-		// escaped quotes are valid in strings
-		return true
-	case '0':
-		// Simple \0 for null character
+	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"', '\'', '0':
 		return true
 	case 'x':
 		// \xHH - 2 digit hex
@@ -367,11 +365,7 @@ func (l *lexer) scanEscape() bool {
 	case 'u':
 		// \uHHHH - 4 digit unicode
 		return l.scanHexEscape(4)
-	case eof:
-		// Error if we reach EOF in an escape sequence
-		return false
 	default:
-		// Error for any other escape sequence
 		return false
 	}
 }
@@ -480,24 +474,12 @@ func (l *lexer) scanDuration() bool {
 		}
 		found := false
 		switch r := l.next(); r {
-		case 'n':
-			if l.accept("s") {
-				found = true
-			}
-		case 'u':
-			if l.accept("s") {
-				found = true
-			}
-		case 'µ', 'μ':
-			if l.accept("s") {
-				found = true
-			}
+		case 'n', 'u', 'µ', 'μ':
+			found = l.accept("s")
 		case 'm':
 			l.accept("s")
 			found = true
-		case 's':
-			found = true
-		case 'h':
+		case 's', 'h':
 			found = true
 		default:
 			l.reset(start)
@@ -507,14 +489,11 @@ func (l *lexer) scanDuration() bool {
 		}
 		valid = true
 		r := l.peek()
-		if r == eof || (!unicode.IsDigit(r) && r != '.') {
+		if !unicode.IsDigit(r) && r != '.' {
 			break
 		}
 	}
-	if !valid {
-		return false
-	}
-	return true
+	return valid
 }
 
 // scanDurationNumber scans the signed number before a unit in a duration
@@ -571,10 +550,10 @@ func (l *lexer) nextToken() token {
 		}
 		if l.state == stateDone {
 			return token{
-				typ:  tokenEOF,
 				pos:  l.pos,
 				line: l.line,
 				col:  l.col,
+				typ:  tokenEOF,
 			}
 		}
 		l.state = l.lexStmt()
@@ -640,16 +619,14 @@ func (l *lexer) reset(m mark) {
 // starts the next token after it.
 func (l *lexer) emit(typ tokenType) {
 	l.token = token{
-		typ:  typ,
 		v:    l.input[l.startPos:l.pos],
 		pos:  l.startPos,
 		line: l.startLine,
 		col:  l.startCol,
+		typ:  typ,
 	}
 	l.hasNext = true
-	l.startPos = l.pos
-	l.startLine = l.line
-	l.startCol = l.col
+	l.ignore()
 }
 
 // ignore discards the pending input without emitting a token.
@@ -699,11 +676,11 @@ func (l *lexer) acceptDigits(n int) bool {
 // current token started.
 func (l *lexer) errorf(format string, args ...any) state {
 	l.token = token{
-		typ:  tokenError,
 		v:    fmt.Sprintf(format, args...),
 		pos:  l.pos,
 		line: l.line,
 		col:  l.col,
+		typ:  tokenError,
 	}
 	l.hasNext = true
 	return stateDone
@@ -715,9 +692,14 @@ func width(r rune) int32 {
 	return int32(max(runewidth.RuneWidth(r), 1))
 }
 
-// isNumberStart reports whether the rune can begin a number, duration, or time literal.
+// isNumberStart reports whether the rune can begin a literal scanned by lexNumber.
 func isNumberStart(r rune) bool {
 	return unicode.IsDigit(r) || r == '.' || r == '+' || r == '-'
+}
+
+// isIdentStart reports whether the rune can begin an identifier.
+func isIdentStart(r rune) bool {
+	return unicode.IsLetter(r) || r == '_'
 }
 
 // isSpace reports whether the rune is a space, tab, carriage return, or newline.
@@ -725,8 +707,8 @@ func isSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\r' || r == '\n'
 }
 
-// isAlphaNumeric reports whether the rune is a letter, a digit, or an underscore.
-func isAlphaNumeric(r rune) bool {
+// isIdentContinue reports whether the rune can continue an identifier.
+func isIdentContinue(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 

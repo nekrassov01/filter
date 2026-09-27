@@ -71,8 +71,8 @@ func parse(input string) (expr, error) {
 	}
 	return expr{
 		nodes:  nodes,
-		root:   n,
 		nident: int(p.nident),
+		root:   n,
 		shared: p.shared,
 	}, nil
 }
@@ -114,20 +114,16 @@ func (p *parser) parseLogicalOr() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	for {
-		if p.peek().typ == tokenOR {
-			t, err := p.next()
-			if err != nil {
-				return 0, err
-			}
-			right, err := p.parseLogicalAnd()
-			if err != nil {
-				return 0, err
-			}
-			left = p.addNode(newNodeBinary(left, t, right))
-			continue
+	for p.peek().typ == tokenOR {
+		t, err := p.next()
+		if err != nil {
+			return 0, err
 		}
-		break
+		right, err := p.parseLogicalAnd()
+		if err != nil {
+			return 0, err
+		}
+		left = p.addNode(newNodeBinary(left, t, right))
 	}
 	return left, nil
 }
@@ -138,38 +134,34 @@ func (p *parser) parseLogicalAnd() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	for {
-		if p.peek().typ == tokenAND {
-			t, err := p.next()
-			if err != nil {
-				return 0, err
-			}
-			right, err := p.parseUnary()
-			if err != nil {
-				return 0, err
-			}
-			left = p.addNode(newNodeBinary(left, t, right))
-			continue
+	for p.peek().typ == tokenAND {
+		t, err := p.next()
+		if err != nil {
+			return 0, err
 		}
-		break
+		right, err := p.parseUnary()
+		if err != nil {
+			return 0, err
+		}
+		left = p.addNode(newNodeBinary(left, t, right))
 	}
 	return left, nil
 }
 
 // parseUnary parses an optional NOT prefix followed by a primary expression.
 func (p *parser) parseUnary() (int32, error) {
-	if p.peek().typ == tokenNOT {
-		t, err := p.next()
-		if err != nil {
-			return 0, err
-		}
-		child, err := p.parsePrimary()
-		if err != nil {
-			return 0, err
-		}
-		return p.addNode(newNodeUnary(child, t)), nil
+	if p.peek().typ != tokenNOT {
+		return p.parsePrimary()
 	}
-	return p.parsePrimary()
+	t, err := p.next()
+	if err != nil {
+		return 0, err
+	}
+	child, err := p.parsePrimary()
+	if err != nil {
+		return 0, err
+	}
+	return p.addNode(newNodeUnary(child, t)), nil
 }
 
 // parsePrimary parses a parenthesized expression or a predicate.
@@ -245,23 +237,23 @@ func (p *parser) parsePredicate() (int32, error) {
 	switch val.typ {
 	case tokenString, tokenRawString:
 		p.cacheValues(i, val.v)
-	case tokenTime:
-		if !p.cacheTime(i, val.v) {
-			return 0, newError(KindParse, val, "invalid time %q", val.v)
-		}
-	case tokenAddr:
-		if !p.cacheAddr(i, val.v) {
-			return 0, newError(KindParse, val, "invalid address %q", val.v)
-		}
-	case tokenDuration:
-		if !p.cacheDuration(i, val.v) {
-			return 0, newError(KindParse, val, "invalid duration %q", val.v)
-		}
 	case tokenNumber:
 		if !p.cacheInt(i, val.v) && !p.cacheUint(i, val.v) && !p.cacheFloat(i, val.v) {
 			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
 		p.cacheTime(i, val.v)
+	case tokenTime:
+		if !p.cacheTime(i, val.v) {
+			return 0, newError(KindParse, val, "invalid time %q", val.v)
+		}
+	case tokenDuration:
+		if !p.cacheDuration(i, val.v) {
+			return 0, newError(KindParse, val, "invalid duration %q", val.v)
+		}
+	case tokenAddr:
+		if !p.cacheAddr(i, val.v) {
+			return 0, newError(KindParse, val, "invalid address %q", val.v)
+		}
 	}
 	return i, nil
 }
@@ -273,84 +265,52 @@ func (p *parser) cacheRegex(i int32, t token) error {
 	}
 	if cached, ok := regexMap.Load(t.v); ok {
 		p.node(i).re = cached.(*regexp.Regexp)
-	} else {
-		re, err := regexp.Compile(t.v)
-		if err != nil {
-			return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
-		}
-		regexMap.Store(t.v, re)
-		p.node(i).re = re
+		return nil
 	}
+	re, err := regexp.Compile(t.v)
+	if err != nil {
+		return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
+	}
+	regexMap.Store(t.v, re)
+	p.node(i).re = re
 	return nil
 }
 
-// cacheValues stores on node i every time, duration, address, or number that the
+// cacheValues stores on node i every number, time, duration, or address that the
 // string literal s also spells.
 func (p *parser) cacheValues(i int32, s string) {
 	if strings.ContainsAny(s, ".:") && p.cacheAddr(i, s) {
 		return
 	}
 	r, _ := utf8.DecodeRuneInString(s)
-	switch {
-	case isNumberStart(r):
-		l := newLexer(s)
-		tok := l.nextToken()
-		if l.nextToken().typ != tokenEOF {
-			// A time whose layout contains spaces.
+	if !isNumberStart(r) {
+		if strings.Contains(s, ", ") {
+			// A time whose layout starts with a weekday name.
 			p.cacheTime(i, s)
+		}
+		return
+	}
+	l := newLexer(s)
+	t := l.nextToken()
+	if l.nextToken().typ != tokenEOF {
+		// A time whose layout contains spaces.
+		p.cacheTime(i, s)
+		return
+	}
+	switch t.typ {
+	case tokenNumber:
+		if !strings.ContainsAny(s, "0123456789") {
 			return
 		}
-		switch tok.typ {
-		case tokenTime:
-			p.cacheTime(i, s)
-		case tokenDuration:
-			p.cacheDuration(i, s)
-		case tokenNumber:
-			if !strings.ContainsAny(s, "0123456789") {
-				return
-			}
-			if !p.cacheInt(i, s) && !p.cacheUint(i, s) {
-				p.cacheFloat(i, s)
-			}
-			p.cacheTime(i, s)
+		if !p.cacheInt(i, s) && !p.cacheUint(i, s) {
+			p.cacheFloat(i, s)
 		}
-	case strings.Contains(s, ", "):
-		// A time whose layout starts with a weekday name.
 		p.cacheTime(i, s)
+	case tokenTime:
+		p.cacheTime(i, s)
+	case tokenDuration:
+		p.cacheDuration(i, s)
 	}
-}
-
-// cacheTime stores the time that s spells on node i and reports whether it did.
-func (p *parser) cacheTime(i int32, s string) bool {
-	t, err := parseTime(s)
-	if err != nil {
-		return false
-	}
-	p.node(i).valTime = t
-	p.node(i).hasTime = true
-	return true
-}
-
-// cacheAddr stores the IP address that s spells on node i and reports whether it did.
-func (p *parser) cacheAddr(i int32, s string) bool {
-	v, err := netip.ParseAddr(s)
-	if err != nil {
-		return false
-	}
-	p.node(i).valAddr = v
-	p.node(i).hasAddr = true
-	return true
-}
-
-// cacheDuration stores the duration that s spells on node i and reports whether it did.
-func (p *parser) cacheDuration(i int32, s string) bool {
-	d, err := time.ParseDuration(s)
-	if err != nil {
-		return false
-	}
-	p.node(i).valDuration = d
-	p.node(i).hasDuration = true
-	return true
 }
 
 // cacheInt stores the signed integer that s spells on node i and reports whether it did.
@@ -383,6 +343,39 @@ func (p *parser) cacheFloat(i int32, s string) bool {
 	}
 	p.node(i).valFloat = v
 	p.node(i).hasFloat = true
+	return true
+}
+
+// cacheTime stores the time that s spells on node i and reports whether it did.
+func (p *parser) cacheTime(i int32, s string) bool {
+	t, err := parseTime(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valTime = t
+	p.node(i).hasTime = true
+	return true
+}
+
+// cacheDuration stores the duration that s spells on node i and reports whether it did.
+func (p *parser) cacheDuration(i int32, s string) bool {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valDuration = d
+	p.node(i).hasDuration = true
+	return true
+}
+
+// cacheAddr stores the IP address that s spells on node i and reports whether it did.
+func (p *parser) cacheAddr(i int32, s string) bool {
+	v, err := netip.ParseAddr(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valAddr = v
+	p.node(i).hasAddr = true
 	return true
 }
 
@@ -439,7 +432,7 @@ func (p *parser) node(i int32) *node {
 	return &p.nodeBuf[i]
 }
 
-// expect returns the next token and consumes it if it matches the expected type.
+// expect consumes and returns the next token, reporting an error if its type differs.
 func (p *parser) expect(typ tokenType) (token, error) {
 	t, err := p.next()
 	if err != nil {
@@ -455,12 +448,9 @@ func (p *parser) expect(typ tokenType) (token, error) {
 func (p *parser) next() (token, error) {
 	if p.peeked {
 		p.peeked = false
-		if p.current.typ == tokenError {
-			return p.current, newError(KindLex, p.current, "%s", p.current.v)
-		}
-		return p.current, nil
+	} else {
+		p.current = p.lexer.nextToken()
 	}
-	p.current = p.lexer.nextToken()
 	if p.current.typ == tokenError {
 		return p.current, newError(KindLex, p.current, "%s", p.current.v)
 	}

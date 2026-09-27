@@ -39,15 +39,15 @@ type node struct {
 	valInt      int64         // cached signed integer
 	valUint     uint64        // cached unsigned integer
 	valFloat    float64       // cached floating-point value
-	valDuration time.Duration // cached duration value
 	valTime     time.Time     // cached time value
+	valDuration time.Duration // cached duration value
 	valAddr     netip.Addr    // cached IP address
 
 	hasInt      bool // indicates if valInt is cached
 	hasUint     bool // indicates if valUint is cached
 	hasFloat    bool // indicates if valFloat is cached
-	hasDuration bool // indicates if valDuration is cached
 	hasTime     bool // indicates if valTime is cached
+	hasDuration bool // indicates if valDuration is cached
 	hasAddr     bool // indicates if valAddr is cached
 
 	typ   nodeType // type of the node
@@ -58,28 +58,28 @@ type node struct {
 // newNodeBinary creates a new binary expression node.
 func newNodeBinary(left int32, op token, right int32) node {
 	return node{
+		op:    op,
 		typ:   nodeBinary,
 		left:  left,
 		right: right,
-		op:    op,
 	}
 }
 
 // newNodeUnary creates a new unary NOT node.
 func newNodeUnary(child int32, op token) node {
 	return node{
+		op:   op,
 		typ:  nodeUnary,
 		left: child,
-		op:   op,
 	}
 }
 
 // newNodePredicate creates a new predicate node.
 func newNodePredicate(ident token, op token, val token) node {
 	return node{
-		typ:   nodePredicate,
 		ident: ident,
 		op:    op,
 		val:   val,
+		typ:   nodePredicate,
 	}
 }

@@ -129,8 +129,8 @@ func (o *LogLine) Resolve(name string) (filter.Value, bool) {
 // LiteralValues contains the values used by the unquoted literal example.
 type LiteralValues struct {
 	Count     int
-	Latency   time.Duration
 	At        time.Time
+	Latency   time.Duration
 	IPv4      netip.Addr
 	IPv6      netip.Addr
 	LinkLocal netip.Addr
@@ -142,8 +142,8 @@ type LiteralValues struct {
 func SampleLiterals() LiteralValues {
 	return LiteralValues{
 		Count:     42,
-		Latency:   1500 * time.Millisecond,
 		At:        time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		Latency:   1500 * time.Millisecond,
 		IPv4:      netip.MustParseAddr("192.0.2.1"),
 		IPv6:      netip.MustParseAddr("2001:db8::1"),
 		LinkLocal: netip.MustParseAddr("fe80::1%eth0"),
@@ -157,10 +157,10 @@ func (o *LiteralValues) Resolve(name string) (filter.Value, bool) {
 	switch name {
 	case "Count":
 		return filter.Int(o.Count), true
-	case "Latency":
-		return filter.Duration(o.Latency), true
 	case "At":
 		return filter.Time(o.At), true
+	case "Latency":
+		return filter.Duration(o.Latency), true
 	case "IPv4":
 		return filter.Addr(o.IPv4), true
 	case "IPv6":

@@ -1291,10 +1291,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenRawString,
 					v:    `^Test_[a-z]+$`,
 					line: 1,
 					col:  4,
+					typ:  tokenRawString,
 				},
 			},
 			want: want{
@@ -1309,10 +1309,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenRawString,
 					v:    `^cached$`,
 					line: 1,
 					col:  4,
+					typ:  tokenRawString,
 				},
 			},
 			want: want{
@@ -1325,10 +1325,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 3,
 				t: token{
-					typ:  tokenString,
 					v:    `abc`,
 					line: 1,
 					col:  4,
+					typ:  tokenString,
 				},
 			},
 			want: want{
@@ -1340,10 +1340,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenString,
 					v:    ``,
 					line: 1,
 					col:  4,
+					typ:  tokenString,
 				},
 			},
 			want: want{
@@ -1356,10 +1356,10 @@ func Test_parser_cacheRegex(t *testing.T) {
 			args: args{
 				i: 0,
 				t: token{
-					typ:  tokenString,
 					v:    `(`,
 					line: 2,
 					col:  7,
+					typ:  tokenString,
 				},
 			},
 			want: want{
@@ -1405,18 +1405,19 @@ func Test_parser_cacheValues(t *testing.T) {
 		s string
 	}
 	type want struct {
-		hasInt      bool
-		hasUint     bool
-		hasFloat    bool
 		valInt      int64
 		valUint     uint64
 		valFloat    float64
-		hasDuration bool
-		valDuration time.Duration
-		hasTime     bool
 		valTime     time.Time
-		hasAddr     bool
+		valDuration time.Duration
 		valAddr     netip.Addr
+
+		hasInt      bool
+		hasUint     bool
+		hasFloat    bool
+		hasTime     bool
+		hasDuration bool
+		hasAddr     bool
 	}
 	tests := []struct {
 		name string
@@ -1424,14 +1425,157 @@ func Test_parser_cacheValues(t *testing.T) {
 		want want
 	}{
 		{
+			name: "integer spells a number and unix seconds",
+			args: args{
+				i: 0,
+				s: "123",
+			},
+			want: want{
+				valInt:  123,
+				valTime: time.Unix(123, 0).UTC(),
+
+				hasInt:  true,
+				hasTime: true,
+			},
+		},
+		{
+			name: "fraction spells a number only",
+			args: args{
+				i: 0,
+				s: "1.5",
+			},
+			want: want{
+				valFloat: 1.5,
+
+				hasFloat: true,
+			},
+		},
+		{
+			name: "leading dot",
+			args: args{
+				i: 0,
+				s: ".5",
+			},
+			want: want{
+				valFloat: 0.5,
+
+				hasFloat: true,
+			},
+		},
+		{
+			name: "leading plus",
+			args: args{
+				i: 0,
+				s: "+1",
+			},
+			want: want{
+				valInt:  1,
+				valTime: time.Unix(1, 0).UTC(),
+
+				hasInt:  true,
+				hasTime: true,
+			},
+		},
+		{
+			name: "leading minus",
+			args: args{
+				i: 0,
+				s: "-1",
+			},
+			want: want{
+				valInt:  -1,
+				valTime: time.Unix(-1, 0).UTC(),
+
+				hasInt:  true,
+				hasTime: true,
+			},
+		},
+		{
+			name: "underscore separators",
+			args: args{
+				i: 0,
+				s: "1_000",
+			},
+			want: want{
+				valInt:  1000,
+				valTime: time.Unix(1000, 0).UTC(),
+
+				hasInt:  true,
+				hasTime: true,
+			},
+		},
+		{
+			name: "stores on the requested node",
+			args: args{
+				i: 5,
+				s: "42",
+			},
+			want: want{
+				valInt:  42,
+				valTime: time.Unix(42, 0).UTC(),
+
+				hasInt:  true,
+				hasTime: true,
+			},
+		},
+		{
+			name: "rfc3339 time",
+			args: args{
+				i: 0,
+				s: "2025-01-01T00:00:00Z",
+			},
+			want: want{
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+
+				hasTime: true,
+			},
+		},
+		{
+			name: "time whose layout contains spaces",
+			args: args{
+				i: 0,
+				s: "2025-01-01 00:00:00",
+			},
+			want: want{
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+
+				hasTime: true,
+			},
+		},
+		{
+			name: "time whose layout starts with a weekday",
+			args: args{
+				i: 0,
+				s: "Wed, 01 Jan 2025 00:00:00 UTC",
+			},
+			want: want{
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+
+				hasTime: true,
+			},
+		},
+		{
+			name: "duration",
+			args: args{
+				i: 0,
+				s: "1h30m",
+			},
+			want: want{
+				valDuration: 90 * time.Minute,
+
+				hasDuration: true,
+			},
+		},
+		{
 			name: "ipv4",
 			args: args{
 				i: 0,
 				s: "192.0.2.1",
 			},
 			want: want{
-				hasAddr: true,
 				valAddr: netip.MustParseAddr("192.0.2.1"),
+
+				hasAddr: true,
 			},
 		},
 		{
@@ -1441,8 +1585,9 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "2001:db8::1",
 			},
 			want: want{
-				hasAddr: true,
 				valAddr: netip.MustParseAddr("2001:db8::1"),
+
+				hasAddr: true,
 			},
 		},
 		{
@@ -1452,8 +1597,9 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "fe80::1",
 			},
 			want: want{
-				hasAddr: true,
 				valAddr: netip.MustParseAddr("fe80::1"),
+
+				hasAddr: true,
 			},
 		},
 		{
@@ -1463,8 +1609,9 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "::1",
 			},
 			want: want{
-				hasAddr: true,
 				valAddr: netip.MustParseAddr("::1"),
+
+				hasAddr: true,
 			},
 		},
 		{
@@ -1474,8 +1621,9 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "fe80::1%eth0",
 			},
 			want: want{
-				hasAddr: true,
 				valAddr: netip.MustParseAddr("fe80::1%eth0"),
+
+				hasAddr: true,
 			},
 		},
 		{
@@ -1485,8 +1633,9 @@ func Test_parser_cacheValues(t *testing.T) {
 				s: "::ffff:192.0.2.1",
 			},
 			want: want{
-				hasAddr: true,
 				valAddr: netip.MustParseAddr("::ffff:192.0.2.1"),
+
+				hasAddr: true,
 			},
 		},
 		{
@@ -1506,130 +1655,12 @@ func Test_parser_cacheValues(t *testing.T) {
 			want: want{},
 		},
 		{
-			name: "integer spells a number and unix seconds",
-			args: args{
-				i: 0,
-				s: "123",
-			},
-			want: want{
-				hasInt:  true,
-				valInt:  123,
-				hasTime: true,
-				valTime: time.Unix(123, 0).UTC(),
-			},
-		},
-		{
-			name: "fraction spells a number only",
-			args: args{
-				i: 0,
-				s: "1.5",
-			},
-			want: want{
-				hasFloat: true,
-				valFloat: 1.5,
-			},
-		},
-		{
-			name: "leading dot",
-			args: args{
-				i: 0,
-				s: ".5",
-			},
-			want: want{
-				hasFloat: true,
-				valFloat: 0.5,
-			},
-		},
-		{
-			name: "leading plus",
-			args: args{
-				i: 0,
-				s: "+1",
-			},
-			want: want{
-				hasInt:  true,
-				valInt:  1,
-				hasTime: true,
-				valTime: time.Unix(1, 0).UTC(),
-			},
-		},
-		{
-			name: "leading minus",
-			args: args{
-				i: 0,
-				s: "-1",
-			},
-			want: want{
-				hasInt:  true,
-				valInt:  -1,
-				hasTime: true,
-				valTime: time.Unix(-1, 0).UTC(),
-			},
-		},
-		{
-			name: "underscore separators",
-			args: args{
-				i: 0,
-				s: "1_000",
-			},
-			want: want{
-				hasInt:  true,
-				valInt:  1000,
-				hasTime: true,
-				valTime: time.Unix(1000, 0).UTC(),
-			},
-		},
-		{
 			name: "sign only",
 			args: args{
 				i: 0,
 				s: "-",
 			},
 			want: want{},
-		},
-		{
-			name: "duration",
-			args: args{
-				i: 0,
-				s: "1h30m",
-			},
-			want: want{
-				hasDuration: true,
-				valDuration: 90 * time.Minute,
-			},
-		},
-		{
-			name: "rfc3339 time",
-			args: args{
-				i: 0,
-				s: "2025-01-01T00:00:00Z",
-			},
-			want: want{
-				hasTime: true,
-				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "time whose layout contains spaces",
-			args: args{
-				i: 0,
-				s: "2025-01-01 00:00:00",
-			},
-			want: want{
-				hasTime: true,
-				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "time whose layout starts with a weekday",
-			args: args{
-				i: 0,
-				s: "Wed, 01 Jan 2025 00:00:00 UTC",
-			},
-			want: want{
-				hasTime: true,
-				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
 		},
 		{
 			name: "weekday layout that is not a time",
@@ -1679,19 +1710,6 @@ func Test_parser_cacheValues(t *testing.T) {
 			},
 			want: want{},
 		},
-		{
-			name: "stores on the requested node",
-			args: args{
-				i: 5,
-				s: "42",
-			},
-			want: want{
-				hasInt:  true,
-				valInt:  42,
-				hasTime: true,
-				valTime: time.Unix(42, 0).UTC(),
-			},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1699,382 +1717,22 @@ func Test_parser_cacheValues(t *testing.T) {
 			p.cacheValues(test.args.i, test.args.s)
 			n := p.node(test.args.i)
 			got := want{
-				hasInt:      n.hasInt,
-				hasUint:     n.hasUint,
-				hasFloat:    n.hasFloat,
 				valInt:      n.valInt,
 				valUint:     n.valUint,
 				valFloat:    n.valFloat,
-				hasDuration: n.hasDuration,
-				valDuration: n.valDuration,
-				hasTime:     n.hasTime,
 				valTime:     n.valTime,
-				hasAddr:     n.hasAddr,
+				valDuration: n.valDuration,
 				valAddr:     n.valAddr,
+
+				hasInt:      n.hasInt,
+				hasUint:     n.hasUint,
+				hasFloat:    n.hasFloat,
+				hasTime:     n.hasTime,
+				hasDuration: n.hasDuration,
+				hasAddr:     n.hasAddr,
 			}
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want)
-			}
-		})
-	}
-}
-
-func Test_parser_cacheTime(t *testing.T) {
-	type args struct {
-		i int32
-		s string
-	}
-	type want struct {
-		val     bool
-		hasTime bool
-		valTime time.Time
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "rfc3339",
-			args: args{
-				i: 0,
-				s: "2025-01-01T09:00:00+09:00",
-			},
-			want: want{
-				val:     true,
-				hasTime: true,
-				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "unix seconds",
-			args: args{
-				i: 0,
-				s: "0",
-			},
-			want: want{
-				val:     true,
-				hasTime: true,
-				valTime: time.Unix(0, 0).UTC(),
-			},
-		},
-		{
-			name: "stores on the requested node",
-			args: args{
-				i: 2,
-				s: "2025-01-01",
-			},
-			want: want{
-				val:     true,
-				hasTime: true,
-				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "invalid",
-			args: args{
-				i: 0,
-				s: "2025-13-01",
-			},
-			want: want{},
-		},
-		{
-			name: "empty",
-			args: args{
-				i: 0,
-				s: "",
-			},
-			want: want{},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := newParser("")
-			got := p.cacheTime(test.args.i, test.args.s)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-			n := p.node(test.args.i)
-			if n.hasTime != test.want.hasTime {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasTime, test.want.hasTime)
-			}
-			if !n.valTime.Equal(test.want.valTime) {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valTime, test.want.valTime)
-			}
-		})
-	}
-}
-
-func Test_parser_cacheAddr(t *testing.T) {
-	type args struct {
-		i int32
-		s string
-	}
-	type want struct {
-		val     bool
-		hasAddr bool
-		valAddr netip.Addr
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "ipv4",
-			args: args{
-				i: 0,
-				s: "192.0.2.1",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("192.0.2.1"),
-			},
-		},
-		{
-			name: "ipv6",
-			args: args{
-				i: 0,
-				s: "2001:db8::1",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("2001:db8::1"),
-			},
-		},
-		{
-			name: "ipv6 starts with letter",
-			args: args{
-				i: 0,
-				s: "fe80::1",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("fe80::1"),
-			},
-		},
-		{
-			name: "zone",
-			args: args{
-				i: 0,
-				s: "fe80::1%eth0",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("fe80::1%eth0"),
-			},
-		},
-		{
-			name: "mapped",
-			args: args{
-				i: 0,
-				s: "::ffff:192.0.2.1",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("::ffff:192.0.2.1"),
-			},
-		},
-		{
-			name: "requested node",
-			args: args{
-				i: 2,
-				s: "::1",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("::1"),
-			},
-		},
-		{
-			name: "unspecified",
-			args: args{
-				i: 0,
-				s: "::",
-			},
-			want: want{
-				val:     true,
-				hasAddr: true,
-				valAddr: netip.MustParseAddr("::"),
-			},
-		},
-		{
-			name: "empty",
-			args: args{
-				i: 0,
-				s: "",
-			},
-			want: want{},
-		},
-		{
-			name: "invalid",
-			args: args{
-				i: 0,
-				s: "192.0.2.999",
-			},
-			want: want{},
-		},
-		{
-			name: "leading zeros",
-			args: args{
-				i: 0,
-				s: "192.000.2.1",
-			},
-			want: want{},
-		},
-		{
-			name: "CIDR",
-			args: args{
-				i: 0,
-				s: "192.0.2.0/24",
-			},
-			want: want{},
-		},
-		{
-			name: "port",
-			args: args{
-				i: 0,
-				s: "192.0.2.1:80",
-			},
-			want: want{},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := newParser("")
-			got := p.cacheAddr(test.args.i, test.args.s)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-			n := p.node(test.args.i)
-			if n.hasAddr != test.want.hasAddr {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasAddr, test.want.hasAddr)
-			}
-			if n.valAddr != test.want.valAddr {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valAddr, test.want.valAddr)
-			}
-		})
-	}
-}
-
-func Test_parser_cacheDuration(t *testing.T) {
-	type args struct {
-		i int32
-		s string
-	}
-	type want struct {
-		val         bool
-		hasDuration bool
-		valDuration time.Duration
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "seconds",
-			args: args{
-				i: 0,
-				s: "10s",
-			},
-			want: want{
-				val:         true,
-				hasDuration: true,
-				valDuration: 10 * time.Second,
-			},
-		},
-		{
-			name: "compound with fraction",
-			args: args{
-				i: 0,
-				s: "1h30.5m",
-			},
-			want: want{
-				val:         true,
-				hasDuration: true,
-				valDuration: time.Hour + 30*time.Minute + 30*time.Second,
-			},
-		},
-		{
-			name: "negative",
-			args: args{
-				i: 0,
-				s: "-1ms",
-			},
-			want: want{
-				val:         true,
-				hasDuration: true,
-				valDuration: -time.Millisecond,
-			},
-		},
-		{
-			name: "zero",
-			args: args{
-				i: 0,
-				s: "0",
-			},
-			want: want{
-				val:         true,
-				hasDuration: true,
-			},
-		},
-		{
-			name: "stores on the requested node",
-			args: args{
-				i: 2,
-				s: "1ns",
-			},
-			want: want{
-				val:         true,
-				hasDuration: true,
-				valDuration: time.Nanosecond,
-			},
-		},
-		{
-			name: "missing unit",
-			args: args{
-				i: 0,
-				s: "10",
-			},
-			want: want{},
-		},
-		{
-			name: "unknown unit",
-			args: args{
-				i: 0,
-				s: "10d",
-			},
-			want: want{},
-		},
-		{
-			name: "empty",
-			args: args{
-				i: 0,
-				s: "",
-			},
-			want: want{},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := newParser("")
-			got := p.cacheDuration(test.args.i, test.args.s)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-			n := p.node(test.args.i)
-			if n.hasDuration != test.want.hasDuration {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDuration, test.want.hasDuration)
-			}
-			if n.valDuration != test.want.valDuration {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valDuration, test.want.valDuration)
 			}
 		})
 	}
@@ -2579,6 +2237,367 @@ func Test_parser_cacheFloat(t *testing.T) {
 	}
 }
 
+func Test_parser_cacheTime(t *testing.T) {
+	type args struct {
+		i int32
+		s string
+	}
+	type want struct {
+		val     bool
+		hasTime bool
+		valTime time.Time
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "rfc3339",
+			args: args{
+				i: 0,
+				s: "2025-01-01T09:00:00+09:00",
+			},
+			want: want{
+				val:     true,
+				hasTime: true,
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			name: "unix seconds",
+			args: args{
+				i: 0,
+				s: "0",
+			},
+			want: want{
+				val:     true,
+				hasTime: true,
+				valTime: time.Unix(0, 0).UTC(),
+			},
+		},
+		{
+			name: "stores on the requested node",
+			args: args{
+				i: 2,
+				s: "2025-01-01",
+			},
+			want: want{
+				val:     true,
+				hasTime: true,
+				valTime: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			name: "invalid",
+			args: args{
+				i: 0,
+				s: "2025-13-01",
+			},
+			want: want{},
+		},
+		{
+			name: "empty",
+			args: args{
+				i: 0,
+				s: "",
+			},
+			want: want{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := newParser("")
+			got := p.cacheTime(test.args.i, test.args.s)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+			n := p.node(test.args.i)
+			if n.hasTime != test.want.hasTime {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasTime, test.want.hasTime)
+			}
+			if !n.valTime.Equal(test.want.valTime) {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valTime, test.want.valTime)
+			}
+		})
+	}
+}
+
+func Test_parser_cacheDuration(t *testing.T) {
+	type args struct {
+		i int32
+		s string
+	}
+	type want struct {
+		val         bool
+		hasDuration bool
+		valDuration time.Duration
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "seconds",
+			args: args{
+				i: 0,
+				s: "10s",
+			},
+			want: want{
+				val:         true,
+				hasDuration: true,
+				valDuration: 10 * time.Second,
+			},
+		},
+		{
+			name: "compound with fraction",
+			args: args{
+				i: 0,
+				s: "1h30.5m",
+			},
+			want: want{
+				val:         true,
+				hasDuration: true,
+				valDuration: time.Hour + 30*time.Minute + 30*time.Second,
+			},
+		},
+		{
+			name: "negative",
+			args: args{
+				i: 0,
+				s: "-1ms",
+			},
+			want: want{
+				val:         true,
+				hasDuration: true,
+				valDuration: -time.Millisecond,
+			},
+		},
+		{
+			name: "zero",
+			args: args{
+				i: 0,
+				s: "0",
+			},
+			want: want{
+				val:         true,
+				hasDuration: true,
+			},
+		},
+		{
+			name: "stores on the requested node",
+			args: args{
+				i: 2,
+				s: "1ns",
+			},
+			want: want{
+				val:         true,
+				hasDuration: true,
+				valDuration: time.Nanosecond,
+			},
+		},
+		{
+			name: "missing unit",
+			args: args{
+				i: 0,
+				s: "10",
+			},
+			want: want{},
+		},
+		{
+			name: "unknown unit",
+			args: args{
+				i: 0,
+				s: "10d",
+			},
+			want: want{},
+		},
+		{
+			name: "empty",
+			args: args{
+				i: 0,
+				s: "",
+			},
+			want: want{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := newParser("")
+			got := p.cacheDuration(test.args.i, test.args.s)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+			n := p.node(test.args.i)
+			if n.hasDuration != test.want.hasDuration {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDuration, test.want.hasDuration)
+			}
+			if n.valDuration != test.want.valDuration {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valDuration, test.want.valDuration)
+			}
+		})
+	}
+}
+
+func Test_parser_cacheAddr(t *testing.T) {
+	type args struct {
+		i int32
+		s string
+	}
+	type want struct {
+		val     bool
+		hasAddr bool
+		valAddr netip.Addr
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "ipv4",
+			args: args{
+				i: 0,
+				s: "192.0.2.1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("192.0.2.1"),
+			},
+		},
+		{
+			name: "ipv6",
+			args: args{
+				i: 0,
+				s: "2001:db8::1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("2001:db8::1"),
+			},
+		},
+		{
+			name: "ipv6 starts with letter",
+			args: args{
+				i: 0,
+				s: "fe80::1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1"),
+			},
+		},
+		{
+			name: "zone",
+			args: args{
+				i: 0,
+				s: "fe80::1%eth0",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1%eth0"),
+			},
+		},
+		{
+			name: "mapped",
+			args: args{
+				i: 0,
+				s: "::ffff:192.0.2.1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+		},
+		{
+			name: "requested node",
+			args: args{
+				i: 2,
+				s: "::1",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::1"),
+			},
+		},
+		{
+			name: "unspecified",
+			args: args{
+				i: 0,
+				s: "::",
+			},
+			want: want{
+				val:     true,
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::"),
+			},
+		},
+		{
+			name: "empty",
+			args: args{
+				i: 0,
+				s: "",
+			},
+			want: want{},
+		},
+		{
+			name: "invalid",
+			args: args{
+				i: 0,
+				s: "192.0.2.999",
+			},
+			want: want{},
+		},
+		{
+			name: "leading zeros",
+			args: args{
+				i: 0,
+				s: "192.000.2.1",
+			},
+			want: want{},
+		},
+		{
+			name: "CIDR",
+			args: args{
+				i: 0,
+				s: "192.0.2.0/24",
+			},
+			want: want{},
+		},
+		{
+			name: "port",
+			args: args{
+				i: 0,
+				s: "192.0.2.1:80",
+			},
+			want: want{},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := newParser("")
+			got := p.cacheAddr(test.args.i, test.args.s)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+			n := p.node(test.args.i)
+			if n.hasAddr != test.want.hasAddr {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasAddr, test.want.hasAddr)
+			}
+			if n.valAddr != test.want.valAddr {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valAddr, test.want.valAddr)
+			}
+		})
+	}
+}
+
 func Test_parser_identIndex(t *testing.T) {
 	type fields struct {
 		identBuf [identBufSize]string
@@ -2590,9 +2609,9 @@ func Test_parser_identIndex(t *testing.T) {
 	}
 	type want struct {
 		val    int32
+		idents []string
 		nident int32
 		shared bool
-		idents []string
 	}
 	tests := []struct {
 		name   string
@@ -2664,8 +2683,8 @@ func Test_parser_identIndex(t *testing.T) {
 			},
 			want: want{
 				val:    identBufSize,
-				nident: identBufSize + 1,
 				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"},
+				nident: identBufSize + 1,
 			},
 		},
 		{
@@ -2679,8 +2698,8 @@ func Test_parser_identIndex(t *testing.T) {
 			},
 			want: want{
 				val:    identBufSize + 1,
-				nident: identBufSize + 2,
 				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"},
+				nident: identBufSize + 2,
 			},
 		},
 		{
@@ -2694,9 +2713,9 @@ func Test_parser_identIndex(t *testing.T) {
 			},
 			want: want{
 				val:    identBufSize,
+				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"},
 				nident: identBufSize + 1,
 				shared: true,
-				idents: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"},
 			},
 		},
 	}
@@ -2726,16 +2745,16 @@ func Test_parser_identIndex(t *testing.T) {
 
 func Test_parser_addNode(t *testing.T) {
 	type fields struct {
-		nnode int32
 		nodes []node
+		nnode int32
 	}
 	type args struct {
 		n node
 	}
 	type want struct {
 		val   int32
-		nnode int32
 		nodes int
+		nnode int32
 	}
 	tests := []struct {
 		name   string
@@ -2782,15 +2801,15 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			want: want{
 				val:   nodeBufSize,
-				nnode: nodeBufSize + 1,
 				nodes: nodeBufSize + 1,
+				nnode: nodeBufSize + 1,
 			},
 		},
 		{
 			name: "heap nodes grow",
 			fields: fields{
-				nnode: nodeBufSize + 1,
 				nodes: make([]node, nodeBufSize+1),
+				nnode: nodeBufSize + 1,
 			},
 			args: args{
 				n: node{
@@ -2799,16 +2818,16 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			want: want{
 				val:   nodeBufSize + 1,
-				nnode: nodeBufSize + 2,
 				nodes: nodeBufSize + 2,
+				nnode: nodeBufSize + 2,
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := &parser{
-				nnode: test.fields.nnode,
 				nodes: test.fields.nodes,
+				nnode: test.fields.nnode,
 			}
 			got := p.addNode(test.args.n)
 			if got != test.want.val {
@@ -2955,11 +2974,11 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -2973,11 +2992,11 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenRparen,
 					v:    ")",
 					pos:  3,
 					line: 2,
 					col:  3,
+					typ:  tokenRparen,
 				},
 			},
 		},
@@ -2991,11 +3010,11 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenNumber,
 					v:    "1",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenNumber,
 				},
 				isErr: true,
 				err:   `parse error at 1:1: expected identifier, got number: "1"`,
@@ -3011,9 +3030,9 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenEOF,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 				isErr: true,
 				err:   `parse error at 1:1: expected identifier, got EOF: ""`,
@@ -3029,10 +3048,10 @@ func Test_parser_expect(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				isErr: true,
 				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
@@ -3081,11 +3100,11 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3097,11 +3116,11 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 			},
 		},
@@ -3112,9 +3131,9 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenEOF,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 			},
 		},
@@ -3125,10 +3144,10 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				isErr: true,
 				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
@@ -3142,10 +3161,10 @@ func Test_parser_next(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				isErr: true,
 				err:   `lex error at 1:1: unexpected character U+0024 '$'`,
@@ -3197,11 +3216,11 @@ func Test_parser_peek(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenIdent,
 					v:    "A",
 					pos:  0,
 					line: 1,
 					col:  1,
+					typ:  tokenIdent,
 				},
 				peeked: true,
 			},
@@ -3213,9 +3232,9 @@ func Test_parser_peek(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenEOF,
 					line: 1,
 					col:  1,
+					typ:  tokenEOF,
 				},
 				peeked: true,
 			},
@@ -3227,10 +3246,10 @@ func Test_parser_peek(t *testing.T) {
 			},
 			want: want{
 				val: token{
-					typ:  tokenError,
 					v:    "unexpected character U+0024 '$'",
 					line: 1,
 					col:  1,
+					typ:  tokenError,
 				},
 				peeked: true,
 			},
@@ -4292,8 +4311,8 @@ func Test_unquote(t *testing.T) {
 			name: "string",
 			args: args{
 				t: token{
-					typ: tokenString,
 					v:   `"abc"`,
+					typ: tokenString,
 				},
 			},
 			want: want{
@@ -4304,8 +4323,8 @@ func Test_unquote(t *testing.T) {
 			name: "raw string",
 			args: args{
 				t: token{
-					typ: tokenRawString,
 					v:   "`abc`",
+					typ: tokenRawString,
 				},
 			},
 			want: want{
@@ -4316,8 +4335,8 @@ func Test_unquote(t *testing.T) {
 			name: "empty string",
 			args: args{
 				t: token{
-					typ: tokenString,
 					v:   `""`,
+					typ: tokenString,
 				},
 			},
 			want: want{
@@ -4328,8 +4347,8 @@ func Test_unquote(t *testing.T) {
 			name: "too short",
 			args: args{
 				t: token{
-					typ: tokenString,
 					v:   `"`,
+					typ: tokenString,
 				},
 			},
 			want: want{
@@ -4340,8 +4359,8 @@ func Test_unquote(t *testing.T) {
 			name: "number",
 			args: args{
 				t: token{
-					typ: tokenNumber,
 					v:   "42",
+					typ: tokenNumber,
 				},
 			},
 			want: want{
