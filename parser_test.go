@@ -213,7 +213,8 @@ func Test_newParser(t *testing.T) {
 			},
 			want: want{
 				val: parser{
-					lexer: newLexer(`A == 1`),
+					lexer:    newLexer(`A == 1`),
+					inputLen: 6,
 				},
 			},
 		},
@@ -1710,6 +1711,46 @@ func Test_parser_cacheValues(t *testing.T) {
 			},
 			want: want{},
 		},
+		{
+			name: "leading space before duration",
+			args: args{
+				i: 0,
+				s: " 1s",
+			},
+			want: want{},
+		},
+		{
+			name: "boolean text",
+			args: args{
+				i: 0,
+				s: "true",
+			},
+			want: want{},
+		},
+		{
+			name: "embedded quotes",
+			args: args{
+				i: 0,
+				s: "\"42\"",
+			},
+			want: want{},
+		},
+		{
+			name: "non-ascii digits",
+			args: args{
+				i: 0,
+				s: "１２３",
+			},
+			want: want{},
+		},
+		{
+			name: "non-ascii digit before weekday separator",
+			args: args{
+				i: 0,
+				s: "１, 2025",
+			},
+			want: want{},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -2745,16 +2786,19 @@ func Test_parser_identIndex(t *testing.T) {
 
 func Test_parser_addNode(t *testing.T) {
 	type fields struct {
-		nodes []node
-		nnode int32
+		current  token
+		inputLen int32
+		nodes    []node
+		nnode    int32
 	}
 	type args struct {
 		n node
 	}
 	type want struct {
-		val   int32
-		nodes int
-		nnode int32
+		val      int32
+		capacity int
+		nodes    int
+		nnode    int32
 	}
 	tests := []struct {
 		name   string
@@ -2800,9 +2844,33 @@ func Test_parser_addNode(t *testing.T) {
 				},
 			},
 			want: want{
-				val:   nodeBufSize,
-				nodes: nodeBufSize + 1,
-				nnode: nodeBufSize + 1,
+				val:      nodeBufSize,
+				capacity: 2 * nodeBufSize,
+				nodes:    nodeBufSize + 1,
+				nnode:    nodeBufSize + 1,
+			},
+		},
+		{
+			name: "capacity estimate uses the current token end in bytes",
+			fields: fields{
+				current: token{
+					v:   `"軍師"`,
+					pos: 32,
+					typ: tokenString,
+				},
+				inputLen: 400,
+				nnode:    nodeBufSize,
+			},
+			args: args{
+				n: node{
+					typ: nodePredicate,
+				},
+			},
+			want: want{
+				val:      nodeBufSize,
+				capacity: 61,
+				nodes:    nodeBufSize + 1,
+				nnode:    nodeBufSize + 1,
 			},
 		},
 		{
@@ -2826,8 +2894,10 @@ func Test_parser_addNode(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := &parser{
-				nodes: test.fields.nodes,
-				nnode: test.fields.nnode,
+				current:  test.fields.current,
+				inputLen: test.fields.inputLen,
+				nodes:    test.fields.nodes,
+				nnode:    test.fields.nnode,
 			}
 			got := p.addNode(test.args.n)
 			if got != test.want.val {
@@ -2835,6 +2905,9 @@ func Test_parser_addNode(t *testing.T) {
 			}
 			if p.nnode != test.want.nnode {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", p.nnode, test.want.nnode)
+			}
+			if test.fields.nodes == nil && cap(p.nodes) != test.want.capacity {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", cap(p.nodes), test.want.capacity)
 			}
 			if len(p.nodes) != test.want.nodes {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", len(p.nodes), test.want.nodes)
