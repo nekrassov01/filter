@@ -19,8 +19,8 @@ const (
 	kindInt64                // a holds the signed integer
 	kindUint64               // a holds the unsigned integer bits
 	kindFloat64              // a holds the float64 bits
-	kindDuration             // a holds the duration
 	kindTime                 // a holds Unix seconds, b the nanoseconds
+	kindDuration             // a holds the duration
 	kindAddr                 // a and b hold address bits, s the zone, bits the address family
 )
 
@@ -89,20 +89,20 @@ func Float64(n float64) Value {
 	}
 }
 
-// Duration returns a Value holding d.
-func Duration(d time.Duration) Value {
-	return Value{
-		kind: kindDuration,
-		a:    int64(d),
-	}
-}
-
 // Time returns a Value holding the instant t.
 func Time(t time.Time) Value {
 	return Value{
 		kind: kindTime,
 		a:    t.Unix(),
 		b:    int64(t.Nanosecond()),
+	}
+}
+
+// Duration returns a Value holding d.
+func Duration(d time.Duration) Value {
+	return Value{
+		kind: kindDuration,
+		a:    int64(d),
 	}
 }
 

@@ -34,8 +34,8 @@ const (
 	tokenString                     // string literal
 	tokenRawString                  // raw string literal
 	tokenNumber                     // number literal
-	tokenDuration                   // duration literal
 	tokenTime                       // time literal
+	tokenDuration                   // duration literal
 	tokenAddr                       // IP address literal
 	tokenBool                       // boolean literal
 )
@@ -81,10 +81,10 @@ func (t tokenType) String() string {
 		return "raw string"
 	case tokenNumber:
 		return "number"
-	case tokenDuration:
-		return "duration"
 	case tokenTime:
 		return "time"
+	case tokenDuration:
+		return "duration"
 	case tokenAddr:
 		return "address"
 	case tokenBool:

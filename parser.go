@@ -245,23 +245,23 @@ func (p *parser) parsePredicate() (int32, error) {
 	switch val.typ {
 	case tokenString, tokenRawString:
 		p.cacheValues(i, val.v)
-	case tokenTime:
-		if !p.cacheTime(i, val.v) {
-			return 0, newError(KindParse, val, "invalid time %q", val.v)
-		}
-	case tokenAddr:
-		if !p.cacheAddr(i, val.v) {
-			return 0, newError(KindParse, val, "invalid address %q", val.v)
-		}
-	case tokenDuration:
-		if !p.cacheDuration(i, val.v) {
-			return 0, newError(KindParse, val, "invalid duration %q", val.v)
-		}
 	case tokenNumber:
 		if !p.cacheInt(i, val.v) && !p.cacheUint(i, val.v) && !p.cacheFloat(i, val.v) {
 			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
 		p.cacheTime(i, val.v)
+	case tokenTime:
+		if !p.cacheTime(i, val.v) {
+			return 0, newError(KindParse, val, "invalid time %q", val.v)
+		}
+	case tokenDuration:
+		if !p.cacheDuration(i, val.v) {
+			return 0, newError(KindParse, val, "invalid duration %q", val.v)
+		}
+	case tokenAddr:
+		if !p.cacheAddr(i, val.v) {
+			return 0, newError(KindParse, val, "invalid address %q", val.v)
+		}
 	}
 	return i, nil
 }
@@ -284,7 +284,7 @@ func (p *parser) cacheRegex(i int32, t token) error {
 	return nil
 }
 
-// cacheValues stores on node i every time, duration, address, or number that the
+// cacheValues stores on node i every number, time, duration, or address that the
 // string literal s also spells.
 func (p *parser) cacheValues(i int32, s string) {
 	if strings.ContainsAny(s, ".:") && p.cacheAddr(i, s) {
@@ -301,10 +301,6 @@ func (p *parser) cacheValues(i int32, s string) {
 			return
 		}
 		switch tok.typ {
-		case tokenTime:
-			p.cacheTime(i, s)
-		case tokenDuration:
-			p.cacheDuration(i, s)
 		case tokenNumber:
 			if !strings.ContainsAny(s, "0123456789") {
 				return
@@ -313,44 +309,15 @@ func (p *parser) cacheValues(i int32, s string) {
 				p.cacheFloat(i, s)
 			}
 			p.cacheTime(i, s)
+		case tokenTime:
+			p.cacheTime(i, s)
+		case tokenDuration:
+			p.cacheDuration(i, s)
 		}
 	case strings.Contains(s, ", "):
 		// A time whose layout starts with a weekday name.
 		p.cacheTime(i, s)
 	}
-}
-
-// cacheTime stores the time that s spells on node i and reports whether it did.
-func (p *parser) cacheTime(i int32, s string) bool {
-	t, err := parseTime(s)
-	if err != nil {
-		return false
-	}
-	p.node(i).valTime = t
-	p.node(i).hasTime = true
-	return true
-}
-
-// cacheAddr stores the IP address that s spells on node i and reports whether it did.
-func (p *parser) cacheAddr(i int32, s string) bool {
-	v, err := netip.ParseAddr(s)
-	if err != nil {
-		return false
-	}
-	p.node(i).valAddr = v
-	p.node(i).hasAddr = true
-	return true
-}
-
-// cacheDuration stores the duration that s spells on node i and reports whether it did.
-func (p *parser) cacheDuration(i int32, s string) bool {
-	d, err := time.ParseDuration(s)
-	if err != nil {
-		return false
-	}
-	p.node(i).valDuration = d
-	p.node(i).hasDuration = true
-	return true
 }
 
 // cacheInt stores the signed integer that s spells on node i and reports whether it did.
@@ -383,6 +350,39 @@ func (p *parser) cacheFloat(i int32, s string) bool {
 	}
 	p.node(i).valFloat = v
 	p.node(i).hasFloat = true
+	return true
+}
+
+// cacheTime stores the time that s spells on node i and reports whether it did.
+func (p *parser) cacheTime(i int32, s string) bool {
+	t, err := parseTime(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valTime = t
+	p.node(i).hasTime = true
+	return true
+}
+
+// cacheDuration stores the duration that s spells on node i and reports whether it did.
+func (p *parser) cacheDuration(i int32, s string) bool {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valDuration = d
+	p.node(i).hasDuration = true
+	return true
+}
+
+// cacheAddr stores the IP address that s spells on node i and reports whether it did.
+func (p *parser) cacheAddr(i int32, s string) bool {
+	v, err := netip.ParseAddr(s)
+	if err != nil {
+		return false
+	}
+	p.node(i).valAddr = v
+	p.node(i).hasAddr = true
 	return true
 }
 

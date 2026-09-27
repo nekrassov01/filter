@@ -133,6 +133,25 @@ func TestParse(t *testing.T) {
 				val: `(X == 0x1.fp3)`,
 			},
 		},
+		// Times
+		{
+			name: "time before",
+			args: args{
+				input: `Time>=2023-01-02T15:04:05Z`,
+			},
+			want: want{
+				val: `(Time >= "2023-01-02T15:04:05Z")`,
+			},
+		},
+		{
+			name: "time after",
+			args: args{
+				input: `Time<2023-01-02T15:04:05Z`,
+			},
+			want: want{
+				val: `(Time < "2023-01-02T15:04:05Z")`,
+			},
+		},
 		// Durations
 		{
 			name: "duration gte",
@@ -159,25 +178,6 @@ func TestParse(t *testing.T) {
 			},
 			want: want{
 				val: `(Mic == 4000μs)`,
-			},
-		},
-		// Times
-		{
-			name: "time before",
-			args: args{
-				input: `Time>=2023-01-02T15:04:05Z`,
-			},
-			want: want{
-				val: `(Time >= "2023-01-02T15:04:05Z")`,
-			},
-		},
-		{
-			name: "time after",
-			args: args{
-				input: `Time<2023-01-02T15:04:05Z`,
-			},
-			want: want{
-				val: `(Time < "2023-01-02T15:04:05Z")`,
 			},
 		},
 		// Booleans
@@ -1839,6 +1839,151 @@ func TestExpr_Eval(t *testing.T) {
 				val: true,
 			},
 		},
+		// Time
+		{
+			name: "time gt",
+			fields: fields{
+				expr: MustParse(`Time>'2024-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "time gt false",
+			fields: fields{
+				expr: MustParse(`Time>'2026-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "time gte",
+			fields: fields{
+				expr: MustParse(`Time>='2025-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "time gte false",
+			fields: fields{
+				expr: MustParse(`Time>='2026-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "time lt",
+			fields: fields{
+				expr: MustParse(`Time<'2026-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "time lt false",
+			fields: fields{
+				expr: MustParse(`Time<'2024-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "time lte",
+			fields: fields{
+				expr: MustParse(`Time<='2025-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "time lte false",
+			fields: fields{
+				expr: MustParse(`Time<='2024-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "time eq",
+			fields: fields{
+				expr: MustParse(`Time=='2025-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "time eq false",
+			fields: fields{
+				expr: MustParse(`Time=='2024-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "time neq",
+			fields: fields{
+				expr: MustParse(`Time!='2024-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "time neq false",
+			fields: fields{
+				expr: MustParse(`Time!='2025-01-01T00:00:00Z'`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
 		// Duration
 		{
 			name: "duration gt",
@@ -2037,423 +2182,6 @@ func TestExpr_Eval(t *testing.T) {
 			name: "number string converted at eval",
 			fields: fields{
 				expr: MustParse(`Float64<'Inf'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		// Time
-		{
-			name: "time gt",
-			fields: fields{
-				expr: MustParse(`Time>'2024-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "time gt false",
-			fields: fields{
-				expr: MustParse(`Time>'2026-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "time gte",
-			fields: fields{
-				expr: MustParse(`Time>='2025-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "time gte false",
-			fields: fields{
-				expr: MustParse(`Time>='2026-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "time lt",
-			fields: fields{
-				expr: MustParse(`Time<'2026-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "time lt false",
-			fields: fields{
-				expr: MustParse(`Time<'2024-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "time lte",
-			fields: fields{
-				expr: MustParse(`Time<='2025-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "time lte false",
-			fields: fields{
-				expr: MustParse(`Time<='2024-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "time eq",
-			fields: fields{
-				expr: MustParse(`Time=='2025-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "time eq false",
-			fields: fields{
-				expr: MustParse(`Time=='2024-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "time neq",
-			fields: fields{
-				expr: MustParse(`Time!='2024-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "time neq false",
-			fields: fields{
-				expr: MustParse(`Time!='2025-01-01T00:00:00Z'`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		// Combined logicals
-		{
-			name: "combined logicals",
-			fields: fields{
-				expr: MustParse(`String=="HelloWorld" && Int==42 || Float64<3.0`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "combined logicals false",
-			fields: fields{
-				expr: MustParse(`String=="HelloWorld" && Int==41 || Float64<3.0`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "combined logicals with parens",
-			fields: fields{
-				expr: MustParse(`(String=="HelloWorld" && Int==41) || (Float64<3.2 && Bool==true)`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "combined logicals with parens false",
-			fields: fields{
-				expr: MustParse(`(String=="HelloWorld" && Int==41) || (Float64<3.0 && Bool==true)`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		// Bool
-		{
-			name: "bool eq",
-			fields: fields{
-				expr: MustParse(`Bool==true`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "bool eq uppercase literal",
-			fields: fields{
-				expr: MustParse(`Bool==TRUE`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "bool neq capitalized literal",
-			fields: fields{
-				expr: MustParse(`Bool!=False`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "duration with micro sign",
-			fields: fields{
-				expr: MustParse(`Duration>1500000µs`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "bool neq",
-			fields: fields{
-				expr: MustParse(`Bool!=false`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "and true",
-			fields: fields{
-				expr: MustParse(`Int>40&&Float64<4`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "and false",
-			fields: fields{
-				expr: MustParse(`Int>40&&Float64>4`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "or true",
-			fields: fields{
-				expr: MustParse(`Int>100||Float64<4`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "or short-circuit left true",
-			fields: fields{
-				expr: MustParse(`Bool==true || Invalid==1`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "or left error",
-			fields: fields{
-				expr: MustParse(`Invalid==1 || Bool==true`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				isErr: true,
-				err:   `eval error at 1:1: unknown identifier "Invalid"`,
-			},
-		},
-		{
-			name: "same identifier referenced twice",
-			fields: fields{
-				expr: MustParse(`Int>40 && Int<50`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "more identifiers than the inline cache",
-			fields: fields{
-				expr: MustParse(func() string {
-					var b strings.Builder
-					for i := range 17 {
-						if i > 0 {
-							b.WriteString(" && ")
-						}
-						fmt.Fprintf(&b, "F%d == %d", i, i)
-					}
-					return b.String() + " && F0 == 0"
-				}()).expr,
-			},
-			args: args{
-				r: func() testResolver {
-					t := testResolver{}
-					for i := range 17 {
-						t[fmt.Sprintf("F%d", i)] = i
-					}
-					return t
-				}(),
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "not true->false",
-			fields: fields{
-				expr: MustParse(`!(Int>40)`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "not false->true",
-			fields: fields{
-				expr: MustParse(`!(Int<40)`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: true,
-			},
-		},
-		{
-			name: "and short-circuit left false",
-			fields: fields{
-				expr: MustParse(`Int>100 && Invalid==1`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				val: false,
-			},
-		},
-		{
-			name: "not inner eval error",
-			fields: fields{
-				expr: MustParse(`!(Invalid==1)`).expr,
-			},
-			args: args{
-				r: testObject,
-			},
-			want: want{
-				isErr: true,
-				err:   `eval error at 1:3: unknown identifier "Invalid"`,
-			},
-		},
-		// Mixed
-		{
-			name: "precedence",
-			fields: fields{
-				expr: MustParse(`Int>40&&Float64<4||Bool==false`).expr,
 			},
 			args: args{
 				r: testObject,
@@ -2871,6 +2599,278 @@ func TestExpr_Eval(t *testing.T) {
 			},
 			want: want{
 				val: false,
+			},
+		},
+		// Combined logicals
+		{
+			name: "combined logicals",
+			fields: fields{
+				expr: MustParse(`String=="HelloWorld" && Int==42 || Float64<3.0`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "combined logicals false",
+			fields: fields{
+				expr: MustParse(`String=="HelloWorld" && Int==41 || Float64<3.0`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "combined logicals with parens",
+			fields: fields{
+				expr: MustParse(`(String=="HelloWorld" && Int==41) || (Float64<3.2 && Bool==true)`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "combined logicals with parens false",
+			fields: fields{
+				expr: MustParse(`(String=="HelloWorld" && Int==41) || (Float64<3.0 && Bool==true)`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		// Bool
+		{
+			name: "bool eq",
+			fields: fields{
+				expr: MustParse(`Bool==true`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bool eq uppercase literal",
+			fields: fields{
+				expr: MustParse(`Bool==TRUE`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bool neq capitalized literal",
+			fields: fields{
+				expr: MustParse(`Bool!=False`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "duration with micro sign",
+			fields: fields{
+				expr: MustParse(`Duration>1500000µs`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "bool neq",
+			fields: fields{
+				expr: MustParse(`Bool!=false`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "and true",
+			fields: fields{
+				expr: MustParse(`Int>40&&Float64<4`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "and false",
+			fields: fields{
+				expr: MustParse(`Int>40&&Float64>4`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "or true",
+			fields: fields{
+				expr: MustParse(`Int>100||Float64<4`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "or short-circuit left true",
+			fields: fields{
+				expr: MustParse(`Bool==true || Invalid==1`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "or left error",
+			fields: fields{
+				expr: MustParse(`Invalid==1 || Bool==true`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:1: unknown identifier "Invalid"`,
+			},
+		},
+		{
+			name: "same identifier referenced twice",
+			fields: fields{
+				expr: MustParse(`Int>40 && Int<50`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "more identifiers than the inline cache",
+			fields: fields{
+				expr: MustParse(func() string {
+					var b strings.Builder
+					for i := range 17 {
+						if i > 0 {
+							b.WriteString(" && ")
+						}
+						fmt.Fprintf(&b, "F%d == %d", i, i)
+					}
+					return b.String() + " && F0 == 0"
+				}()).expr,
+			},
+			args: args{
+				r: func() testResolver {
+					t := testResolver{}
+					for i := range 17 {
+						t[fmt.Sprintf("F%d", i)] = i
+					}
+					return t
+				}(),
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "not true->false",
+			fields: fields{
+				expr: MustParse(`!(Int>40)`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "not false->true",
+			fields: fields{
+				expr: MustParse(`!(Int<40)`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "and short-circuit left false",
+			fields: fields{
+				expr: MustParse(`Int>100 && Invalid==1`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: false,
+			},
+		},
+		{
+			name: "not inner eval error",
+			fields: fields{
+				expr: MustParse(`!(Invalid==1)`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:3: unknown identifier "Invalid"`,
+			},
+		},
+		// Mixed
+		{
+			name: "precedence",
+			fields: fields{
+				expr: MustParse(`Int>40&&Float64<4||Bool==false`).expr,
+			},
+			args: args{
+				r: testObject,
+			},
+			want: want{
+				val: true,
 			},
 		},
 		// Errors

@@ -39,15 +39,15 @@ type node struct {
 	valInt      int64         // cached signed integer
 	valUint     uint64        // cached unsigned integer
 	valFloat    float64       // cached floating-point value
-	valDuration time.Duration // cached duration value
 	valTime     time.Time     // cached time value
+	valDuration time.Duration // cached duration value
 	valAddr     netip.Addr    // cached IP address
 
 	hasInt      bool // indicates if valInt is cached
 	hasUint     bool // indicates if valUint is cached
 	hasFloat    bool // indicates if valFloat is cached
-	hasDuration bool // indicates if valDuration is cached
 	hasTime     bool // indicates if valTime is cached
+	hasDuration bool // indicates if valDuration is cached
 	hasAddr     bool // indicates if valAddr is cached
 
 	typ   nodeType // type of the node

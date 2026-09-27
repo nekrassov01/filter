@@ -546,76 +546,6 @@ func TestFloat64(t *testing.T) {
 	}
 }
 
-func TestDuration(t *testing.T) {
-	type args struct {
-		d time.Duration
-	}
-	type want struct {
-		val Value
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "positive",
-			args: args{
-				d: 1500 * time.Millisecond,
-			},
-			want: want{
-				val: Value{
-					kind: kindDuration,
-					a:    int64(1500 * time.Millisecond),
-				},
-			},
-		},
-		{
-			name: "negative",
-			args: args{
-				d: -time.Hour,
-			},
-			want: want{
-				val: Value{
-					kind: kindDuration,
-					a:    int64(-time.Hour),
-				},
-			},
-		},
-		{
-			name: "zero",
-			args: args{
-				d: 0,
-			},
-			want: want{
-				val: Value{
-					kind: kindDuration,
-				},
-			},
-		},
-		{
-			name: "largest",
-			args: args{
-				d: time.Duration(math.MaxInt64),
-			},
-			want: want{
-				val: Value{
-					kind: kindDuration,
-					a:    math.MaxInt64,
-				},
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got := Duration(test.args.d)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-		})
-	}
-}
-
 func TestTime(t *testing.T) {
 	type args struct {
 		t time.Time
@@ -718,6 +648,76 @@ func TestTime(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got := Time(test.args.t)
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestDuration(t *testing.T) {
+	type args struct {
+		d time.Duration
+	}
+	type want struct {
+		val Value
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "positive",
+			args: args{
+				d: 1500 * time.Millisecond,
+			},
+			want: want{
+				val: Value{
+					kind: kindDuration,
+					a:    int64(1500 * time.Millisecond),
+				},
+			},
+		},
+		{
+			name: "negative",
+			args: args{
+				d: -time.Hour,
+			},
+			want: want{
+				val: Value{
+					kind: kindDuration,
+					a:    int64(-time.Hour),
+				},
+			},
+		},
+		{
+			name: "zero",
+			args: args{
+				d: 0,
+			},
+			want: want{
+				val: Value{
+					kind: kindDuration,
+				},
+			},
+		},
+		{
+			name: "largest",
+			args: args{
+				d: time.Duration(math.MaxInt64),
+			},
+			want: want{
+				val: Value{
+					kind: kindDuration,
+					a:    math.MaxInt64,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := Duration(test.args.d)
 			if got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}

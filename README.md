@@ -148,8 +148,8 @@ Match the constructor to the Go value's type:
 | `int64`         | `filter.Int64(v)`    |
 | `uint64`        | `filter.Uint64(v)`   |
 | `float64`       | `filter.Float64(v)`  |
-| `time.Duration` | `filter.Duration(v)` |
 | `time.Time`     | `filter.Time(v)`     |
+| `time.Duration` | `filter.Duration(v)` |
 | `netip.Addr`    | `filter.Addr(v)`     |
 | `bool`          | `filter.Bool(v)`     |
 | `any`           | `filter.ValueOf(v)`  |
