@@ -10534,7 +10534,7 @@ func Test_isSpace(t *testing.T) {
 	}
 }
 
-func Test_isAlphaNumeric(t *testing.T) {
+func Test_isIdentContinue(t *testing.T) {
 	type args struct {
 		r rune
 	}
@@ -10666,7 +10666,7 @@ func Test_isAlphaNumeric(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := isAlphaNumeric(test.args.r); got != test.want.val {
+			if got := isIdentContinue(test.args.r); got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 		})

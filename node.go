@@ -58,28 +58,28 @@ type node struct {
 // newNodeBinary creates a new binary expression node.
 func newNodeBinary(left int32, op token, right int32) node {
 	return node{
+		op:    op,
 		typ:   nodeBinary,
 		left:  left,
 		right: right,
-		op:    op,
 	}
 }
 
 // newNodeUnary creates a new unary NOT node.
 func newNodeUnary(child int32, op token) node {
 	return node{
+		op:   op,
 		typ:  nodeUnary,
 		left: child,
-		op:   op,
 	}
 }
 
 // newNodePredicate creates a new predicate node.
 func newNodePredicate(ident token, op token, val token) node {
 	return node{
-		typ:   nodePredicate,
 		ident: ident,
 		op:    op,
 		val:   val,
+		typ:   nodePredicate,
 	}
 }

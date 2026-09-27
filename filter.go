@@ -12,6 +12,12 @@ type Expr struct {
 	expr
 }
 
+// Eval evaluates the expression against the values provided by r.
+// An Expr can be evaluated by multiple goroutines at the same time.
+func (e *Expr) Eval(r Resolver) (bool, error) {
+	return eval(&e.expr, r)
+}
+
 // Parse parses input into an Expr that can be evaluated repeatedly.
 func Parse(input string) (*Expr, error) {
 	e, err := parse(input)
@@ -22,16 +28,12 @@ func Parse(input string) (*Expr, error) {
 }
 
 // MustParse is like Parse but panics if the input cannot be parsed.
+//
+//nolint:funcorder // Parsing entry point, not a constructor; keep it next to Parse.
 func MustParse(input string) *Expr {
 	e, err := parse(input)
 	if err != nil {
 		panic(err)
 	}
 	return &Expr{expr: e}
-}
-
-// Eval evaluates the expression against the values provided by r.
-// An Expr can be evaluated by multiple goroutines at the same time.
-func (e *Expr) Eval(r Resolver) (bool, error) {
-	return eval(&e.expr, r)
 }

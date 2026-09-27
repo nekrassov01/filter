@@ -71,8 +71,8 @@ func parse(input string) (expr, error) {
 	}
 	return expr{
 		nodes:  nodes,
-		root:   n,
 		nident: int(p.nident),
+		root:   n,
 		shared: p.shared,
 	}, nil
 }
