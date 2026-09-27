@@ -150,18 +150,18 @@ func (p *parser) parseLogicalAnd() (int32, error) {
 
 // parseUnary parses an optional NOT prefix followed by a primary expression.
 func (p *parser) parseUnary() (int32, error) {
-	if p.peek().typ == tokenNOT {
-		t, err := p.next()
-		if err != nil {
-			return 0, err
-		}
-		child, err := p.parsePrimary()
-		if err != nil {
-			return 0, err
-		}
-		return p.addNode(newNodeUnary(child, t)), nil
+	if p.peek().typ != tokenNOT {
+		return p.parsePrimary()
 	}
-	return p.parsePrimary()
+	t, err := p.next()
+	if err != nil {
+		return 0, err
+	}
+	child, err := p.parsePrimary()
+	if err != nil {
+		return 0, err
+	}
+	return p.addNode(newNodeUnary(child, t)), nil
 }
 
 // parsePrimary parses a parenthesized expression or a predicate.
@@ -283,32 +283,33 @@ func (p *parser) cacheValues(i int32, s string) {
 		return
 	}
 	r, _ := utf8.DecodeRuneInString(s)
-	switch {
-	case isNumberStart(r):
-		l := newLexer(s)
-		tok := l.nextToken()
-		if l.nextToken().typ != tokenEOF {
-			// A time whose layout contains spaces.
+	if !isNumberStart(r) {
+		if strings.Contains(s, ", ") {
+			// A time whose layout starts with a weekday name.
 			p.cacheTime(i, s)
+		}
+		return
+	}
+	l := newLexer(s)
+	t := l.nextToken()
+	if l.nextToken().typ != tokenEOF {
+		// A time whose layout contains spaces.
+		p.cacheTime(i, s)
+		return
+	}
+	switch t.typ {
+	case tokenNumber:
+		if !strings.ContainsAny(s, "0123456789") {
 			return
 		}
-		switch tok.typ {
-		case tokenNumber:
-			if !strings.ContainsAny(s, "0123456789") {
-				return
-			}
-			if !p.cacheInt(i, s) && !p.cacheUint(i, s) {
-				p.cacheFloat(i, s)
-			}
-			p.cacheTime(i, s)
-		case tokenTime:
-			p.cacheTime(i, s)
-		case tokenDuration:
-			p.cacheDuration(i, s)
+		if !p.cacheInt(i, s) && !p.cacheUint(i, s) {
+			p.cacheFloat(i, s)
 		}
-	case strings.Contains(s, ", "):
-		// A time whose layout starts with a weekday name.
 		p.cacheTime(i, s)
+	case tokenTime:
+		p.cacheTime(i, s)
+	case tokenDuration:
+		p.cacheDuration(i, s)
 	}
 }
 
