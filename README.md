@@ -35,6 +35,7 @@ Start with [Quick start](#quick-start) for usage or [Syntax](#syntax) for expres
   - [Numbers](#numbers)
   - [Times](#times)
   - [Durations](#durations)
+  - [IP addresses](#ip-addresses)
   - [Booleans](#booleans)
   - [Operators](#operators)
 - [Author](#author)
@@ -149,6 +150,7 @@ Match the constructor to the Go value's type:
 | `float64`       | `filter.Float64(v)`  |
 | `time.Duration` | `filter.Duration(v)` |
 | `time.Time`     | `filter.Time(v)`     |
+| `netip.Addr`    | `filter.Addr(v)`     |
 | `bool`          | `filter.Bool(v)`     |
 | `any`           | `filter.ValueOf(v)`  |
 
@@ -184,10 +186,10 @@ Parsed data is reused across evaluations; lookup results are cached only within 
 | Input                                         | Preparation                                                       |
 | --------------------------------------------- | ----------------------------------------------------------------- |
 | Regular expressions                           | Compile once; reuse through a process-wide cache                  |
-| Number, time, and duration literals           | Validate and convert; report errors with positions                |
+| Number, time, duration, and IP literals       | Validate and convert; report errors with positions                |
 | Quoted literals such as `"42"` and `"1500ms"` | Convert when recognized; otherwise defer conversion to evaluation |
 
-Deferred conversion applies when comparing with a number, time, or duration.
+Deferred conversion applies when comparing with a number, time, duration, or IP address.
 
 ### Evaluation
 
@@ -367,6 +369,27 @@ Interpretation rules:
 
 Duration literals use `time.ParseDuration` syntax. Examples: `1500ms`, `2s`, `1h30m`, or `4000μs`.
 
+### IP addresses
+
+Use `filter.Addr` or `filter.ValueOf` for `netip.Addr` values. IP literals accept IPv4, IPv6, and IPv6 zones:
+
+```text
+IP == 192.0.2.1
+IP >= 2001:db8::1 && IP < 2001:db8::100
+IP == fe80::1%eth0
+```
+
+Quotes are optional unless the zone contains whitespace, operators, parentheses, or quotes.
+
+Comparisons follow `netip.Addr.Compare`:
+
+- IPv4 sorts before IPv6; IPv4-mapped IPv6 remains distinct from IPv4.
+- IPv6 zones participate in equality and ordering.
+- An invalid Go address sorts before valid addresses.
+- Invalid unquoted literals fail during parsing; quoted literals are validated when compared as addresses.
+
+A Go `string` containing an IP address still uses string comparison. Convert `net.IP` with `netip.AddrFromSlice` before building a value.
+
 ### Booleans
 
 Boolean literals accept these three case forms:
@@ -383,7 +406,7 @@ Combine comparisons into boolean conditions with these operators:
 
 | Category | Operators         | Supported values                                                |
 | -------- | ----------------- | --------------------------------------------------------------- |
-| Ordering | `>` `>=` `<` `<=` | Numbers, times, and durations                                   |
+| Ordering | `>` `>=` `<` `<=` | Numbers, times, durations, and IP addresses                     |
 | Equality | `==` `!=`         | All types; see [Numbers](#numbers) for floating-point tolerance |
 | Regex    | `=~` `!~`         | Strings; the pattern must be a string literal                   |
 | Logical  | `&&` `\|\|` `!`   | Boolean expressions; short-circuit evaluation                   |

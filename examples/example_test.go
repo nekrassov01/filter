@@ -121,3 +121,53 @@ func Example_logLine() {
 	// error 200 /api/orders
 	// warn 503 /api/search
 }
+
+func Example_literals() {
+	values := SampleLiterals()
+	inputs := []string{
+		`Count == 42`,
+		`Count == 0x1.5p5`,
+		`Count > 1.5`,
+		`Latency == 1.5s`,
+		`At == 2026-01-01T00:00:00Z`,
+		`IPv4 == 192.0.2.1`,
+		`IPv6 == 2001:db8::1`,
+		`LinkLocal == fe80::1%eth0`,
+		`Loopback == ::1`,
+		`Enabled == true`,
+		`IPv4 == ::ffff:192.0.2.1`,
+		`IPv4 == 192.0.2.2`,
+		`Enabled == false`,
+		`IPv4==192.0.2.1&&IPv6==2001:db8::1&&LinkLocal==fe80::1%eth0&&Loopback==::1`,
+		`Count == 42 && Latency == 1.5s && At == 2026-01-01T00:00:00Z && Enabled == true`,
+	}
+	for _, input := range inputs {
+		expr, err := filter.Parse(input)
+		if err != nil {
+			fmt.Printf("%s: %v\n", input, err)
+			continue
+		}
+		ok, err := expr.Eval(&values)
+		if err != nil {
+			fmt.Printf("%s: %v\n", input, err)
+			continue
+		}
+		fmt.Printf("%s: %v\n", input, ok)
+	}
+	// Output:
+	// Count == 42: true
+	// Count == 0x1.5p5: true
+	// Count > 1.5: true
+	// Latency == 1.5s: true
+	// At == 2026-01-01T00:00:00Z: true
+	// IPv4 == 192.0.2.1: true
+	// IPv6 == 2001:db8::1: true
+	// LinkLocal == fe80::1%eth0: true
+	// Loopback == ::1: true
+	// Enabled == true: true
+	// IPv4 == ::ffff:192.0.2.1: false
+	// IPv4 == 192.0.2.2: false
+	// Enabled == false: false
+	// IPv4==192.0.2.1&&IPv6==2001:db8::1&&LinkLocal==fe80::1%eth0&&Loopback==::1: true
+	// Count == 42 && Latency == 1.5s && At == 2026-01-01T00:00:00Z && Enabled == true: true
+}
