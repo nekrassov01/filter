@@ -249,6 +249,10 @@ func (p *parser) parsePredicate() (int32, error) {
 		if !p.cacheTime(i, val.v) {
 			return 0, newError(KindParse, val, "invalid time %q", val.v)
 		}
+	case tokenAddr:
+		if !p.cacheAddr(i, val.v) {
+			return 0, newError(KindParse, val, "invalid address %q", val.v)
+		}
 	case tokenDuration:
 		if !p.cacheDuration(i, val.v) {
 			return 0, newError(KindParse, val, "invalid duration %q", val.v)

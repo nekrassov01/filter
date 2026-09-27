@@ -830,6 +830,8 @@ func Test_parser_parsePredicate(t *testing.T) {
 		hasFloat    bool
 		hasTime     bool
 		hasDuration bool
+		hasAddr     bool
+		valAddr     netip.Addr
 		regex       bool
 		isErr       bool
 		err         string
@@ -839,6 +841,112 @@ func Test_parser_parsePredicate(t *testing.T) {
 		fields fields
 		want   want
 	}{
+		{
+			name: "ipv4",
+			fields: fields{
+				input: "A==192.0.2.1",
+			},
+			want: want{
+				val:     "(A == \"192.0.2.1\")",
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("192.0.2.1"),
+			},
+		},
+		{
+			name: "ipv6",
+			fields: fields{
+				input: "A==2001:db8::1",
+			},
+			want: want{
+				val:     "(A == \"2001:db8::1\")",
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("2001:db8::1"),
+			},
+		},
+		{
+			name: "ipv6 letter start",
+			fields: fields{
+				input: "A==fe80::1",
+			},
+			want: want{
+				val:     "(A == \"fe80::1\")",
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1"),
+			},
+		},
+		{
+			name: "ipv6 colon start",
+			fields: fields{
+				input: "A==::1",
+			},
+			want: want{
+				val:     "(A == \"::1\")",
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::1"),
+			},
+		},
+		{
+			name: "mapped ipv4",
+			fields: fields{
+				input: "A==::ffff:192.0.2.1",
+			},
+			want: want{
+				val:     "(A == \"::ffff:192.0.2.1\")",
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("::ffff:192.0.2.1"),
+			},
+		},
+		{
+			name: "zone",
+			fields: fields{
+				input: "A==fe80::1%eth0",
+			},
+			want: want{
+				val:     "(A == \"fe80::1%eth0\")",
+				hasAddr: true,
+				valAddr: netip.MustParseAddr("fe80::1%eth0"),
+			},
+		},
+		{
+			name: "invalid ipv4",
+			fields: fields{
+				input: "A==999.0.2.1",
+			},
+			want: want{
+				isErr: true,
+				err:   "parse error at 1:4: invalid address \"999.0.2.1\"",
+			},
+		},
+		{
+			name: "invalid ipv6",
+			fields: fields{
+				input: "A==2001:::1",
+			},
+			want: want{
+				isErr: true,
+				err:   "parse error at 1:4: invalid address \"2001:::1\"",
+			},
+		},
+		{
+			name: "empty zone",
+			fields: fields{
+				input: "A==fe80::1%",
+			},
+			want: want{
+				isErr: true,
+				err:   "parse error at 1:4: invalid address \"fe80::1%\"",
+			},
+		},
+		{
+			name: "ipv4 zone",
+			fields: fields{
+				input: "A==192.0.2.1%eth0",
+			},
+			want: want{
+				isErr: true,
+				err:   "parse error at 1:4: invalid address \"192.0.2.1%eth0\"",
+			},
+		},
 		{
 			name: "number caches the number and the unix time",
 			fields: fields{
@@ -1144,6 +1252,12 @@ func Test_parser_parsePredicate(t *testing.T) {
 			}
 			if n.hasDuration != test.want.hasDuration {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasDuration, test.want.hasDuration)
+			}
+			if n.hasAddr != test.want.hasAddr {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasAddr, test.want.hasAddr)
+			}
+			if n.valAddr != test.want.valAddr {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valAddr, test.want.valAddr)
 			}
 			if regex := n.re != nil; regex != test.want.regex {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", regex, test.want.regex)

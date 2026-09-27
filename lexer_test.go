@@ -90,6 +90,198 @@ func Test_lexer_lexStmt(t *testing.T) {
 		want   want
 	}{
 		{
+			name: "address ipv4",
+			fields: fields{
+				input: "192.0.2.1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "192.0.2.1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address ipv6 digit start",
+			fields: fields{
+				input: "2001:db8::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "2001:db8::1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address ipv6 letter start",
+			fields: fields{
+				input: "fe80::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "fe80::1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address ipv6 colon start",
+			fields: fields{
+				input: "::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address mapped ipv4",
+			fields: fields{
+				input: "::ffff:192.0.2.1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::ffff:192.0.2.1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address zone",
+			fields: fields{
+				input: "fe80::1%eth0",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "fe80::1%eth0",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address unicode zone",
+			fields: fields{
+				input: "fe80::1%\u7db2",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "fe80::1%\u7db2",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address and boundary",
+			fields: fields{
+				input: "fe80::1%eth0&&x",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "fe80::1%eth0",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address parenthesis boundary",
+			fields: fields{
+				input: "::1)",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address invalid ipv4",
+			fields: fields{
+				input: "999.0.2.1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "999.0.2.1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address invalid ipv6",
+			fields: fields{
+				input: "2001:::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "2001:::1",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "address empty zone",
+			fields: fields{
+				input: "fe80::1%",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "fe80::1%",
+					pos:  0,
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
 			name: "empty input emits EOF",
 			fields: fields{
 				input: "",
@@ -2180,6 +2372,153 @@ func Test_lexer_lexRawString(t *testing.T) {
 	}
 }
 
+func Test_lexer_lexAddr(t *testing.T) {
+	type fields struct{ input string }
+	type want struct {
+		val state
+		tok token
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
+			name: "loopback",
+			fields: fields{
+				input: "::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "unspecified",
+			fields: fields{
+				input: "::",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "mapped ipv4",
+			fields: fields{
+				input: "::ffff:192.0.2.1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::ffff:192.0.2.1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "zone",
+			fields: fields{
+				input: "::1%eth0",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::1%eth0",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "boundary",
+			fields: fields{
+				input: "::1)",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "::1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "single colon",
+			fields: fields{
+				input: ":",
+			},
+			want: want{
+				val: stateDone,
+				tok: token{
+					typ:  tokenError,
+					v:    "unexpected character U+003A ':'",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "colon then digit",
+			fields: fields{
+				input: ":1",
+			},
+			want: want{
+				val: stateDone,
+				tok: token{
+					typ:  tokenError,
+					v:    "unexpected character U+003A ':'",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "colon then letter",
+			fields: fields{
+				input: ":f",
+			},
+			want: want{
+				val: stateDone,
+				tok: token{
+					typ:  tokenError,
+					v:    "unexpected character U+003A ':'",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := newLexer(test.fields.input)
+			l.next()
+			got := l.lexAddr()
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+			if l.token != test.want.tok {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.token, test.want.tok)
+			}
+		})
+	}
+}
+
 func Test_lexer_lexNumber(t *testing.T) {
 	type fields struct {
 		input string
@@ -2193,6 +2532,51 @@ func Test_lexer_lexNumber(t *testing.T) {
 		fields fields
 		want   want
 	}{
+		{
+			name: "ipv4",
+			fields: fields{
+				input: "192.0.2.1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "192.0.2.1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "ipv6",
+			fields: fields{
+				input: "2001:db8::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "2001:db8::1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "duration-like ipv6",
+			fields: fields{
+				input: "1d::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "1d::1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
 		{
 			name: "integer",
 			fields: fields{
@@ -2608,6 +2992,36 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 		fields fields
 		want   want
 	}{
+		{
+			name: "ipv6",
+			fields: fields{
+				input: "fe80::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "fe80::1",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
+		{
+			name: "uppercase ipv6",
+			fields: fields{
+				input: "FE80::ABCD",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					typ:  tokenAddr,
+					v:    "FE80::ABCD",
+					line: 1,
+					col:  1,
+				},
+			},
+		},
 		{
 			name: "identifier",
 			fields: fields{
@@ -3524,6 +3938,372 @@ func Test_lexer_scanTime(t *testing.T) {
 				if matched := test.fields.input[l.startPos:l.pos]; matched != test.want.matched {
 					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", matched, test.want.matched)
 				}
+			}
+		})
+	}
+}
+
+func Test_lexer_scanAddr(t *testing.T) {
+	type fields struct{ input string }
+	type want struct {
+		ok      bool
+		matched string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
+			name: "zone boundary space",
+			fields: fields{
+				input: "fe80::1%eth0 x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary tab",
+			fields: fields{
+				input: "fe80::1%eth0\tx",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary newline",
+			fields: fields{
+				input: "fe80::1%eth0\nx",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary carriage return",
+			fields: fields{
+				input: "fe80::1%eth0\rx",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary left parenthesis",
+			fields: fields{
+				input: "fe80::1%eth0(x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary right parenthesis",
+			fields: fields{
+				input: "fe80::1%eth0)x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary equal",
+			fields: fields{
+				input: "fe80::1%eth0=x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary not",
+			fields: fields{
+				input: "fe80::1%eth0!x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary less",
+			fields: fields{
+				input: "fe80::1%eth0<x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary greater",
+			fields: fields{
+				input: "fe80::1%eth0>x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary and",
+			fields: fields{
+				input: "fe80::1%eth0&x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary or",
+			fields: fields{
+				input: "fe80::1%eth0|x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary double quote",
+			fields: fields{
+				input: "fe80::1%eth0\"x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary single quote",
+			fields: fields{
+				input: "fe80::1%eth0'x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "zone boundary backtick",
+			fields: fields{
+				input: "fe80::1%eth0`x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "ipv4",
+			fields: fields{
+				input: "192.0.2.1",
+			},
+			want: want{
+				ok:      true,
+				matched: "192.0.2.1",
+			},
+		},
+		{
+			name: "ipv6 digit start",
+			fields: fields{
+				input: "2001:db8::1",
+			},
+			want: want{
+				ok:      true,
+				matched: "2001:db8::1",
+			},
+		},
+		{
+			name: "ipv6 letter start",
+			fields: fields{
+				input: "fe80::1",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1",
+			},
+		},
+		{
+			name: "ipv6 colon start",
+			fields: fields{
+				input: "::1",
+			},
+			want: want{
+				ok:      true,
+				matched: "::1",
+			},
+		},
+		{
+			name: "mapped ipv4",
+			fields: fields{
+				input: "::ffff:192.0.2.1",
+			},
+			want: want{
+				ok:      true,
+				matched: "::ffff:192.0.2.1",
+			},
+		},
+		{
+			name: "zone",
+			fields: fields{
+				input: "fe80::1%eth0",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "unicode zone",
+			fields: fields{
+				input: "fe80::1%\u7db2",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%\u7db2",
+			},
+		},
+		{
+			name: "and boundary",
+			fields: fields{
+				input: "fe80::1%eth0&&x",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%eth0",
+			},
+		},
+		{
+			name: "parenthesis boundary",
+			fields: fields{
+				input: "::1)",
+			},
+			want: want{
+				ok:      true,
+				matched: "::1",
+			},
+		},
+		{
+			name: "invalid ipv4",
+			fields: fields{
+				input: "999.0.2.1",
+			},
+			want: want{
+				ok:      true,
+				matched: "999.0.2.1",
+			},
+		},
+		{
+			name: "invalid ipv6",
+			fields: fields{
+				input: "2001:::1",
+			},
+			want: want{
+				ok:      true,
+				matched: "2001:::1",
+			},
+		},
+		{
+			name: "empty zone",
+			fields: fields{
+				input: "fe80::1%",
+			},
+			want: want{
+				ok:      true,
+				matched: "fe80::1%",
+			},
+		},
+		{
+			name: "float",
+			fields: fields{
+				input: "1.5",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "exponent",
+			fields: fields{
+				input: "1e3",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "hex",
+			fields: fields{
+				input: "0xff",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "duration",
+			fields: fields{
+				input: "1h30m",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "time",
+			fields: fields{
+				input: "2026-01-01T00:00:00Z",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "identifier",
+			fields: fields{
+				input: "face",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "empty",
+			fields: fields{
+				input: "",
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			l := &lexer{input: test.fields.input}
+			got := l.scanAddr()
+			if got != test.want.ok {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.ok)
+			}
+			if matched := test.fields.input[l.startPos:l.pos]; matched != test.want.matched {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", matched, test.want.matched)
 			}
 		})
 	}
@@ -4486,6 +5266,117 @@ func Test_lexer_nextToken(t *testing.T) {
 		fields fields
 		want   want
 	}{
+		{
+			name: "zone followed by operators",
+			fields: fields{
+				input: "fe80::1%eth0&&ip!=::1)",
+			},
+			want: want{
+				val: []token{
+					{
+						typ:  tokenAddr,
+						v:    "fe80::1%eth0",
+						pos:  0,
+						line: 1,
+						col:  1,
+					},
+					{
+						typ:  tokenAND,
+						v:    "&&",
+						pos:  12,
+						line: 1,
+						col:  13,
+					},
+					{
+						typ:  tokenIdent,
+						v:    "ip",
+						pos:  14,
+						line: 1,
+						col:  15,
+					},
+					{
+						typ:  tokenNEQ,
+						v:    "!=",
+						pos:  16,
+						line: 1,
+						col:  17,
+					},
+					{
+						typ:  tokenAddr,
+						v:    "::1",
+						pos:  18,
+						line: 1,
+						col:  19,
+					},
+					{
+						typ:  tokenRparen,
+						v:    ")",
+						pos:  21,
+						line: 1,
+						col:  22,
+					},
+					{
+						typ:  tokenEOF,
+						v:    "",
+						pos:  22,
+						line: 1,
+						col:  23,
+					},
+				},
+			},
+		},
+		{
+			name: "unicode zone followed by operator",
+			fields: fields{
+				input: "fe80::1%網||ip==192.0.2.1",
+			},
+			want: want{
+				val: []token{
+					{
+						typ:  tokenAddr,
+						v:    "fe80::1%網",
+						pos:  0,
+						line: 1,
+						col:  1,
+					},
+					{
+						typ:  tokenOR,
+						v:    "||",
+						pos:  11,
+						line: 1,
+						col:  11,
+					},
+					{
+						typ:  tokenIdent,
+						v:    "ip",
+						pos:  13,
+						line: 1,
+						col:  13,
+					},
+					{
+						typ:  tokenEQ,
+						v:    "==",
+						pos:  15,
+						line: 1,
+						col:  15,
+					},
+					{
+						typ:  tokenAddr,
+						v:    "192.0.2.1",
+						pos:  17,
+						line: 1,
+						col:  17,
+					},
+					{
+						typ:  tokenEOF,
+						v:    "",
+						pos:  26,
+						line: 1,
+						col:  26,
+					},
+				},
+			},
+		},
 		{
 			name: "simple number 1",
 			fields: fields{

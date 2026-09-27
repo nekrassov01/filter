@@ -2464,6 +2464,34 @@ func TestExpr_Eval(t *testing.T) {
 		},
 		// Address comparisons
 		{
+			name: "adjacent zone predicates",
+			fields: fields{
+				expr: MustParse(`(ip==fe80::1%eth0&&ip!=::1)||ip==192.0.2.1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1%eth0"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "adjacent ipv4 range",
+			fields: fields{
+				expr: MustParse(`ip>=192.0.2.1&&ip<=192.0.2.9`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.5"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
 			name: "quoted zone delimiter",
 			fields: fields{
 				expr: MustParse(`ip=="fe80::1%eth 0"`).expr,
@@ -2471,6 +2499,146 @@ func TestExpr_Eval(t *testing.T) {
 			args: args{
 				r: testResolver{
 					"ip": netip.MustParseAddr("fe80::1%eth 0"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare mapped ipv6",
+			fields: fields{
+				expr: MustParse(`ip==::ffff:192.0.2.1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("::ffff:192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare unicode zone",
+			fields: fields{
+				expr: MustParse(`ip==fe80::1%網`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1%網"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address ipv4 eq",
+			fields: fields{
+				expr: MustParse(`ip == 192.0.2.1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address ipv6 normalization",
+			fields: fields{
+				expr: MustParse(`ip == 2001:0db8:0:0:0:0:0:1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("2001:db8::1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address ipv6 letter start",
+			fields: fields{
+				expr: MustParse(`ip == fe80::1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address ipv6 colon start",
+			fields: fields{
+				expr: MustParse(`ip == ::1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("::1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address zone",
+			fields: fields{
+				expr: MustParse(`ip == fe80::1%eth-0`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("fe80::1%eth-0"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address mapped differs",
+			fields: fields{
+				expr: MustParse(`ip != 192.0.2.1`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("::ffff:192.0.2.1"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address ipv4 range",
+			fields: fields{
+				expr: MustParse(`ip >= 192.0.2.2 && ip < 192.0.2.10`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("192.0.2.9"),
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
+		{
+			name: "bare address ipv6 range",
+			fields: fields{
+				expr: MustParse(`ip > 2001:db8::1 && ip <= 2001:db8::ffff`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"ip": netip.MustParseAddr("2001:db8::2"),
 				},
 			},
 			want: want{
