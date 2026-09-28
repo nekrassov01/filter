@@ -47,12 +47,12 @@ func (zeroResolver) Resolve(string) (Value, bool) {
 
 // repr renders the expression tree of e as nested prefix groups for assertions.
 func repr(e *Expr) string {
-	val := func(t token) string {
-		switch t.typ {
+	val := func(n node) string {
+		switch n.val.typ {
 		case tokenNumber, tokenDuration, tokenBool:
-			return t.v
+			return n.s
 		default:
-			return "\"" + t.v + "\""
+			return "\"" + n.s + "\""
 		}
 	}
 	var walk func(int32) string
@@ -64,7 +64,7 @@ func repr(e *Expr) string {
 		case nodeUnary:
 			return "(! " + walk(n.left) + ")"
 		case nodePredicate:
-			return "(" + n.ident.v + " " + n.op.typ.literal() + " " + val(n.val) + ")"
+			return "(" + n.ident.v + " " + n.op.typ.literal() + " " + val(n) + ")"
 		default:
 			return "<unknown>"
 		}

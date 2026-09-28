@@ -204,60 +204,52 @@ func (p *parser) parsePredicate() (int32, error) {
 	if op.typ.isRegexOperatorType() && !val.typ.isStringType() {
 		return 0, newError(KindParse, val, "expected string pattern, got %s: %q", val.typ, val.v)
 	}
-	switch val.typ {
-	case tokenString, tokenRawString:
-		val.v = unquote(val)
-	case tokenBool:
-		if val.v[0] == 't' || val.v[0] == 'T' {
-			val.v = "true"
-		} else {
-			val.v = "false"
-		}
-	}
 	i := p.addNode(newNodePredicate(ident, op, val, identIdx))
+	s := p.node(i).s
 	if op.typ.isRegexOperatorType() {
-		if err := p.cacheRegex(i, val); err != nil {
+		if err := p.cacheRegex(i, s); err != nil {
 			return 0, err
 		}
 	}
 	switch val.typ {
 	case tokenString, tokenRawString:
-		p.cacheValues(i, val.v)
+		p.cacheValues(i, s)
 	case tokenNumber:
-		if !p.cacheNumber(i, val.v) {
-			return 0, newError(KindParse, val, "invalid number %q", val.v)
+		if !p.cacheNumber(i, s) {
+			return 0, newError(KindParse, val, "invalid number %q", s)
 		}
-		p.cacheTime(i, val.v)
+		p.cacheTime(i, s)
 	case tokenTime:
-		if !p.cacheTime(i, val.v) {
-			return 0, newError(KindParse, val, "invalid time %q", val.v)
+		if !p.cacheTime(i, s) {
+			return 0, newError(KindParse, val, "invalid time %q", s)
 		}
 	case tokenDuration:
-		if !p.cacheDuration(i, val.v) {
-			return 0, newError(KindParse, val, "invalid duration %q", val.v)
+		if !p.cacheDuration(i, s) {
+			return 0, newError(KindParse, val, "invalid duration %q", s)
 		}
 	case tokenAddr:
-		if !p.cacheAddr(i, val.v) {
-			return 0, newError(KindParse, val, "invalid address %q", val.v)
+		if !p.cacheAddr(i, s) {
+			return 0, newError(KindParse, val, "invalid address %q", s)
 		}
 	}
 	return i, nil
 }
 
-// cacheRegex compiles the pattern in t through regexMap and stores it on node i.
-func (p *parser) cacheRegex(i int32, t token) error {
-	if t.v == "" {
-		return newError(KindParse, t, "invalid regex %q: empty pattern", t.v)
+// cacheRegex compiles s through regexMap and stores it on node i.
+func (p *parser) cacheRegex(i int32, s string) error {
+	t := p.node(i).val
+	if s == "" {
+		return newError(KindParse, t, "invalid regex %q: empty pattern", s)
 	}
-	if cached, ok := regexMap.Load(t.v); ok {
+	if cached, ok := regexMap.Load(s); ok {
 		p.node(i).re = cached.(*regexp.Regexp)
 		return nil
 	}
-	re, err := regexp.Compile(t.v)
+	re, err := regexp.Compile(s)
 	if err != nil {
-		return newError(KindParse, t, "invalid regex %q: %w", t.v, err)
+		return newError(KindParse, t, "invalid regex %q: %w", s, err)
 	}
-	regexMap.Store(t.v, re)
+	regexMap.Store(s, re)
 	p.node(i).re = re
 	return nil
 }
@@ -436,13 +428,4 @@ func (p *parser) peek() token {
 		p.peeked = true
 	}
 	return p.current
-}
-
-// unquote returns the text of a string token without its surrounding quotes.
-func unquote(t token) string {
-	n := len(t.v)
-	if t.typ.isStringType() && n >= 2 {
-		return t.v[1 : n-1]
-	}
-	return t.v
 }

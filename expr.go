@@ -113,9 +113,9 @@ func evalPredicate(n *node, v *Value) (bool, error) {
 func evalString(n *node, v string) (bool, error) {
 	switch n.op.typ {
 	case tokenEQ:
-		return v == n.val.v, nil
+		return v == n.s, nil
 	case tokenNEQ:
-		return v != n.val.v, nil
+		return v != n.s, nil
 	case tokenREQ:
 		return n.re.MatchString(v), nil
 	case tokenNREQ:
@@ -138,17 +138,17 @@ func evalNumber[T int64 | uint64 | float64](n *node, v T) (bool, error) {
 	case n.hasFloat:
 		c, equal, ordered = compareNumber(v, n.valFloat)
 	default:
-		if right, err := parseNumber[int64](n.val.v); err == nil {
+		if right, err := parseNumber[int64](n.s); err == nil {
 			c, equal, ordered = compareNumber(v, right)
 			break
 		}
-		if right, err := parseNumber[uint64](n.val.v); err == nil {
+		if right, err := parseNumber[uint64](n.s); err == nil {
 			c, equal, ordered = compareNumber(v, right)
 			break
 		}
-		right, err := parseNumber[float64](n.val.v)
+		right, err := parseNumber[float64](n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid number %q", n.s)
 		}
 		c, equal, ordered = compareNumber(v, right)
 	}
@@ -174,9 +174,9 @@ func evalNumber[T int64 | uint64 | float64](n *node, v T) (bool, error) {
 func evalTime(n *node, v time.Time) (bool, error) {
 	t := n.valTime
 	if !n.hasTime {
-		parsed, err := parseTime(n.val.v)
+		parsed, err := parseTime(n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid time %q", n.s)
 		}
 		t = parsed
 	}
@@ -202,9 +202,9 @@ func evalTime(n *node, v time.Time) (bool, error) {
 func evalDuration(n *node, v time.Duration) (bool, error) {
 	d := n.valDuration
 	if !n.hasDuration {
-		parsed, err := time.ParseDuration(n.val.v)
+		parsed, err := time.ParseDuration(n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid duration %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid duration %q", n.s)
 		}
 		d = parsed
 	}
@@ -230,9 +230,9 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 func evalAddr(n *node, v netip.Addr) (bool, error) {
 	ip := n.valAddr
 	if !n.hasAddr {
-		parsed, err := netip.ParseAddr(n.val.v)
+		parsed, err := netip.ParseAddr(n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid address %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid address %q", n.s)
 		}
 		ip = parsed
 	}

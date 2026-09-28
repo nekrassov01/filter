@@ -310,9 +310,10 @@ func Test_evalPredicate(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "a",
+						v:   "\"a\"",
 						typ: tokenString,
 					},
+					s:   "a",
 					typ: nodePredicate,
 				},
 				v: new(String("a")),
@@ -434,6 +435,7 @@ func Test_evalPredicate(t *testing.T) {
 						v:   "true",
 						typ: tokenBool,
 					},
+					s:   "true",
 					typ: nodePredicate,
 				},
 				v: new(Bool(true)),
@@ -533,9 +535,10 @@ func Test_evalString(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "Knight",
+						v:   "\"Knight\"",
 						typ: tokenString,
 					},
+					s: "Knight",
 				},
 				v: "Knight",
 			},
@@ -551,9 +554,10 @@ func Test_evalString(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "Knight",
+						v:   "\"Knight\"",
 						typ: tokenString,
 					},
+					s: "Knight",
 				},
 				v: "knight",
 			},
@@ -586,9 +590,10 @@ func Test_evalString(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "軍師",
+						v:   "\"軍師\"",
 						typ: tokenString,
 					},
+					s: "軍師",
 				},
 				v: "軍師",
 			},
@@ -604,9 +609,10 @@ func Test_evalString(t *testing.T) {
 						typ: tokenNEQ,
 					},
 					val: token{
-						v:   "Knight",
+						v:   "\"Knight\"",
 						typ: tokenString,
 					},
+					s: "Knight",
 				},
 				v: "Mage",
 			},
@@ -622,9 +628,10 @@ func Test_evalString(t *testing.T) {
 						typ: tokenNEQ,
 					},
 					val: token{
-						v:   "",
+						v:   "\"\"",
 						typ: tokenString,
 					},
+					s: "",
 				},
 				v: "",
 			},
@@ -732,9 +739,10 @@ func Test_evalString(t *testing.T) {
 						typ:  tokenGT,
 					},
 					val: token{
-						v:   "a",
+						v:   "\"a\"",
 						typ: tokenString,
 					},
+					s: "a",
 				},
 				v: "b",
 			},
@@ -1111,9 +1119,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "42",
+						v:   "\"42\"",
 						typ: tokenString,
 					},
+					s: "42",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[int64](n, 42)
@@ -1131,9 +1140,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "42.0",
+						v:   "\"42.0\"",
 						typ: tokenString,
 					},
+					s: "42.0",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[int64](n, 42)
@@ -1151,11 +1161,12 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "bad",
+						v:    "\"bad\"",
 						line: 1,
 						col:  6,
 						typ:  tokenString,
 					},
+					s: "bad",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[int64](n, 1)
@@ -1501,9 +1512,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "42",
+						v:   "\"42\"",
 						typ: tokenString,
 					},
+					s: "42",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[uint64](n, 42)
@@ -1521,9 +1533,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "42.0",
+						v:   "\"42.0\"",
 						typ: tokenString,
 					},
+					s: "42.0",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[uint64](n, 42)
@@ -1541,11 +1554,12 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "bad",
+						v:    "\"bad\"",
 						line: 1,
 						col:  6,
 						typ:  tokenString,
 					},
+					s: "bad",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[uint64](n, 1)
@@ -1729,9 +1743,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "1.5",
+						v:   "\"1.5\"",
 						typ: tokenString,
 					},
+					s: "1.5",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber(n, 1.5)
@@ -1749,9 +1764,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenGT,
 					},
 					val: token{
-						v:   "1e3",
+						v:   "\"1e3\"",
 						typ: tokenString,
 					},
+					s: "1e3",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[float64](n, 1001)
@@ -1769,11 +1785,12 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "abc",
+						v:    "\"abc\"",
 						line: 1,
 						col:  6,
 						typ:  tokenString,
 					},
+					s: "abc",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[float64](n, 1)
@@ -2069,9 +2086,10 @@ func Test_evalNumber(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "18446744073709551615",
+						v:   "\"18446744073709551615\"",
 						typ: tokenString,
 					},
+					s: "18446744073709551615",
 				},
 				eval: func(n *node) (bool, error) {
 					return evalNumber[uint64](n, math.MaxUint64)
@@ -2127,9 +2145,10 @@ func Test_evalTime(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "2025-01-01T00:00:00Z",
+						v:   "\"2025-01-01T00:00:00Z\"",
 						typ: tokenString,
 					},
+					s: "2025-01-01T00:00:00Z",
 				},
 				v: epoch,
 			},
@@ -2145,11 +2164,12 @@ func Test_evalTime(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "yesterday",
+						v:    "\"yesterday\"",
 						line: 1,
 						col:  8,
 						typ:  tokenString,
 					},
+					s: "yesterday",
 				},
 				v: epoch,
 			},
@@ -2702,9 +2722,10 @@ func Test_evalDuration(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "1h30m",
+						v:   "\"1h30m\"",
 						typ: tokenString,
 					},
+					s: "1h30m",
 				},
 				v: 90 * time.Minute,
 			},
@@ -2720,9 +2741,10 @@ func Test_evalDuration(t *testing.T) {
 						typ: tokenLT,
 					},
 					val: token{
-						v:   "1.5s",
+						v:   "\"1.5s\"",
 						typ: tokenString,
 					},
+					s: "1.5s",
 				},
 				v: time.Second,
 			},
@@ -2738,11 +2760,12 @@ func Test_evalDuration(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "bad",
+						v:    "\"bad\"",
 						line: 1,
 						col:  10,
 						typ:  tokenString,
 					},
+					s: "bad",
 				},
 				v: time.Second,
 			},
@@ -2759,11 +2782,12 @@ func Test_evalDuration(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "10",
+						v:    "\"10\"",
 						line: 1,
 						col:  10,
 						typ:  tokenString,
 					},
+					s: "10",
 				},
 				v: 10,
 			},
@@ -3156,9 +3180,10 @@ func Test_evalAddr(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:   "2001:db8::1",
+						v:   "\"2001:db8::1\"",
 						typ: tokenString,
 					},
+					s: "2001:db8::1",
 				},
 				v: netip.MustParseAddr("2001:db8::1"),
 			},
@@ -3174,11 +3199,12 @@ func Test_evalAddr(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "",
+						v:    "\"\"",
 						line: 2,
 						col:  6,
 						typ:  tokenString,
 					},
+					s: "",
 				},
 				v: netip.MustParseAddr("192.0.2.1"),
 			},
@@ -3195,11 +3221,12 @@ func Test_evalAddr(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "192.0.2.999",
+						v:    "\"192.0.2.999\"",
 						line: 2,
 						col:  6,
 						typ:  tokenString,
 					},
+					s: "192.0.2.999",
 				},
 				v: netip.MustParseAddr("192.0.2.1"),
 			},
@@ -3216,11 +3243,12 @@ func Test_evalAddr(t *testing.T) {
 						typ: tokenEQ,
 					},
 					val: token{
-						v:    "192.0.2.0/24",
+						v:    "\"192.0.2.0/24\"",
 						line: 2,
 						col:  6,
 						typ:  tokenString,
 					},
+					s: "192.0.2.0/24",
 				},
 				v: netip.MustParseAddr("192.0.2.1"),
 			},

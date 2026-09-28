@@ -1270,10 +1270,11 @@ func Test_parser_parsePredicate(t *testing.T) {
 func Test_parser_cacheRegex(t *testing.T) {
 	type fields struct {
 		cached string
+		val    token
 	}
 	type args struct {
 		i int32
-		t token
+		s string
 	}
 	type want struct {
 		val    string
@@ -1289,79 +1290,98 @@ func Test_parser_cacheRegex(t *testing.T) {
 	}{
 		{
 			name: "compiles and stores the pattern",
-			args: args{
-				i: 0,
-				t: token{
-					v:    `^Test_[a-z]+$`,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "`^Test_[a-z]+$`",
 					line: 1,
 					col:  4,
 					typ:  tokenRawString,
 				},
 			},
+			args: args{
+				i: 0,
+				s: "^Test_[a-z]+$",
+			},
 			want: want{
-				val: `^Test_[a-z]+$`,
+				val:    "^Test_[a-z]+$",
+				cached: false,
 			},
 		},
 		{
 			name: "reuses the compiled pattern from regexMap",
 			fields: fields{
-				cached: `^cached$`,
-			},
-			args: args{
-				i: 0,
-				t: token{
-					v:    `^cached$`,
+				cached: "^cached$",
+				val: token{
+					v:    "`^cached$`",
 					line: 1,
 					col:  4,
 					typ:  tokenRawString,
 				},
 			},
+			args: args{
+				i: 0,
+				s: "^cached$",
+			},
 			want: want{
-				val:    `^cached$`,
+				val:    "^cached$",
 				cached: true,
 			},
 		},
 		{
 			name: "stores on the requested node",
-			args: args{
-				i: 3,
-				t: token{
-					v:    `abc`,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "\"abc\"",
 					line: 1,
 					col:  4,
 					typ:  tokenString,
 				},
 			},
+			args: args{
+				i: 3,
+				s: "abc",
+			},
 			want: want{
-				val: `abc`,
+				val:    "abc",
+				cached: false,
 			},
 		},
 		{
 			name: "empty pattern",
-			args: args{
-				i: 0,
-				t: token{
-					v:    ``,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "\"\"",
 					line: 1,
 					col:  4,
 					typ:  tokenString,
 				},
 			},
+			args: args{
+				i: 0,
+				s: "",
+			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:4: invalid regex "": empty pattern`,
+				err:   "parse error at 1:4: invalid regex \"\": empty pattern",
 			},
 		},
 		{
 			name: "invalid pattern",
-			args: args{
-				i: 0,
-				t: token{
-					v:    `(`,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "\"(\"",
 					line: 2,
 					col:  7,
 					typ:  tokenString,
 				},
+			},
+			args: args{
+				i: 0,
+				s: "(",
 			},
 			want: want{
 				isErr: true,
@@ -1377,7 +1397,8 @@ func Test_parser_cacheRegex(t *testing.T) {
 				regexMap.Store(test.fields.cached, stored)
 			}
 			p := newParser("")
-			err := p.cacheRegex(test.args.i, test.args.t)
+			p.node(test.args.i).val = test.fields.val
+			err := p.cacheRegex(test.args.i, test.args.s)
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
@@ -2954,89 +2975,6 @@ func Test_parser_peek(t *testing.T) {
 			}
 			if again := p.peek(); !reflect.DeepEqual(again, got) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", again, got)
-			}
-		})
-	}
-}
-
-func Test_unquote(t *testing.T) {
-	type args struct {
-		t token
-	}
-	type want struct {
-		val string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "string",
-			args: args{
-				t: token{
-					v:   `"abc"`,
-					typ: tokenString,
-				},
-			},
-			want: want{
-				val: "abc",
-			},
-		},
-		{
-			name: "raw string",
-			args: args{
-				t: token{
-					v:   "`abc`",
-					typ: tokenRawString,
-				},
-			},
-			want: want{
-				val: "abc",
-			},
-		},
-		{
-			name: "empty string",
-			args: args{
-				t: token{
-					v:   `""`,
-					typ: tokenString,
-				},
-			},
-			want: want{
-				val: "",
-			},
-		},
-		{
-			name: "too short",
-			args: args{
-				t: token{
-					v:   `"`,
-					typ: tokenString,
-				},
-			},
-			want: want{
-				val: `"`,
-			},
-		},
-		{
-			name: "number",
-			args: args{
-				t: token{
-					v:   "42",
-					typ: tokenNumber,
-				},
-			},
-			want: want{
-				val: "42",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got := unquote(test.args.t)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 		})
 	}

@@ -33,7 +33,8 @@ func (t nodeType) String() string {
 type node struct {
 	ident token          // identifier token for variable nodes
 	op    token          // operator token for binary and predicate nodes
-	val   token          // value token for literal nodes
+	val   token          // original value token for literal nodes
+	s     string         // literal text used for evaluation
 	re    *regexp.Regexp // regular expression for pattern matching
 
 	valInt      int64         // cached signed integer
@@ -77,10 +78,24 @@ func newNodeUnary(child int32, op token) node {
 
 // newNodePredicate creates a new predicate node.
 func newNodePredicate(ident token, op token, val token, identIdx int32) node {
+	s := val.v
+	switch val.typ {
+	case tokenString, tokenRawString:
+		if len(s) >= 2 {
+			s = s[1 : len(s)-1]
+		}
+	case tokenBool:
+		if s[0] == 't' || s[0] == 'T' {
+			s = "true"
+		} else {
+			s = "false"
+		}
+	}
 	return node{
 		ident:    ident,
 		op:       op,
 		val:      val,
+		s:        s,
 		typ:      nodePredicate,
 		identIdx: identIdx,
 	}
