@@ -210,6 +210,7 @@ func (p *parser) parsePredicate() (int32, error) {
 		if err := p.cacheRegex(i, s); err != nil {
 			return 0, err
 		}
+		return i, nil
 	}
 	switch val.typ {
 	case tokenString, tokenRawString:

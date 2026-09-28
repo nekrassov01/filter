@@ -1219,6 +1219,46 @@ func Test_parser_parsePredicate(t *testing.T) {
 				err:   `lex error at 1:4: unexpected character U+0024 '$'`,
 			},
 		},
+		{
+			name: "numeric regex skips value caches",
+			fields: fields{
+				input: `A=~"42"`,
+			},
+			want: want{
+				val:   `(A =~ "42")`,
+				regex: true,
+			},
+		},
+		{
+			name: "time regex skips value caches",
+			fields: fields{
+				input: `A=~"2025-01-01"`,
+			},
+			want: want{
+				val:   `(A =~ "2025-01-01")`,
+				regex: true,
+			},
+		},
+		{
+			name: "duration regex skips value caches",
+			fields: fields{
+				input: `A!~"1s"`,
+			},
+			want: want{
+				val:   `(A !~ "1s")`,
+				regex: true,
+			},
+		},
+		{
+			name: "address regex skips value caches",
+			fields: fields{
+				input: `A!~"::1"`,
+			},
+			want: want{
+				val:   `(A !~ "::1")`,
+				regex: true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
