@@ -289,12 +289,10 @@ func (l *lexer) lexAddr() state {
 // The leading digit, sign, or dot has already been seen.
 func (l *lexer) lexNumber() state {
 	l.backup() // rescan the leading character consumed by lexStmt
-	start := l.mark()
 	if l.scanTime() {
 		l.emit(tokenTime)
 		return stateStmt
 	}
-	l.reset(start)
 	if l.scanAddr() {
 		l.emit(tokenAddr)
 		return stateStmt
@@ -303,7 +301,6 @@ func (l *lexer) lexNumber() state {
 		l.emit(tokenDuration)
 		return stateStmt
 	}
-	l.reset(start)
 	l.scanNumber()
 	l.emit(tokenNumber)
 	return stateStmt
@@ -384,10 +381,12 @@ func (l *lexer) scanHexEscape(digits int) bool {
 
 // scanTime scans a time literal and reports whether one was found: a date
 // (YYYY-MM-DD) optionally followed by 'T' and an RFC 3339 clock time whose
-// zone may be omitted.
+// zone may be omitted. On failure, the input position is restored.
 func (l *lexer) scanTime() bool {
+	start := l.mark()
 	// Date: YYYY-MM-DD
 	if !l.acceptDigits(4) || !l.accept("-") || !l.acceptDigits(2) || !l.accept("-") || !l.acceptDigits(2) {
+		l.reset(start)
 		return false
 	}
 	// A date alone is a complete literal. Each further part is taken only
@@ -464,11 +463,12 @@ func (l *lexer) scanAddr() bool {
 
 // scanDuration scans a duration literal made of number and unit pairs and
 // reports whether one was found. It takes the longest match; the remainder
-// becomes the next token.
+// becomes the next token. On failure, the input position is restored.
 func (l *lexer) scanDuration() bool {
+	start := l.mark()
 	valid := false
 	for {
-		start := l.mark()
+		part := l.mark()
 		if !l.scanDurationNumber() {
 			break
 		}
@@ -482,7 +482,7 @@ func (l *lexer) scanDuration() bool {
 		case 's', 'h':
 			found = true
 		default:
-			l.reset(start)
+			l.reset(part)
 		}
 		if !found {
 			break
@@ -492,6 +492,9 @@ func (l *lexer) scanDuration() bool {
 		if !unicode.IsDigit(r) && r != '.' {
 			break
 		}
+	}
+	if !valid {
+		l.reset(start)
 	}
 	return valid
 }

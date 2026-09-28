@@ -3821,6 +3821,9 @@ func Test_lexer_scanHexEscape(t *testing.T) {
 func Test_lexer_scanTime(t *testing.T) {
 	type fields struct {
 		input string
+		pos   int32
+		line  int32
+		col   int32
 	}
 	type want struct {
 		ok      bool
@@ -4011,27 +4014,81 @@ func Test_lexer_scanTime(t *testing.T) {
 				matched: "",
 			},
 		},
+		{
+			name: "short year at nonzero position",
+			fields: fields{
+				input: "A\n123",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "missing month at nonzero position",
+			fields: fields{
+				input: "A\n2023-",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "short day at nonzero position",
+			fields: fields{
+				input: "A\n2023-01-0",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			l := &lexer{
 				input: test.fields.input,
+				pos:   test.fields.pos,
+				line:  test.fields.line,
+				col:   test.fields.col,
 			}
 			got := l.scanTime()
 			if got != test.want.ok {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.ok)
 			}
-			if got {
-				if matched := test.fields.input[l.startPos:l.pos]; matched != test.want.matched {
-					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", matched, test.want.matched)
+			if !got {
+				want := mark{pos: test.fields.pos, line: test.fields.line, col: test.fields.col}
+				if got := l.mark(); got != want {
+					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, want)
 				}
+				if l.prev != want {
+					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.prev, want)
+				}
+			}
+			if matched := test.fields.input[test.fields.pos:l.pos]; matched != test.want.matched {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", matched, test.want.matched)
 			}
 		})
 	}
 }
 
 func Test_lexer_scanAddr(t *testing.T) {
-	type fields struct{ input string }
+	type fields struct {
+		input string
+		pos   int32
+		line  int32
+		col   int32
+	}
 	type want struct {
 		ok      bool
 		matched string
@@ -4381,15 +4438,55 @@ func Test_lexer_scanAddr(t *testing.T) {
 				matched: "",
 			},
 		},
+		{
+			name: "partial address at nonzero position",
+			fields: fields{
+				input: "A\n1.2",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "partial hexadecimal address at nonzero position",
+			fields: fields{
+				input: "A\nabc",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			l := &lexer{input: test.fields.input}
+			l := &lexer{
+				input: test.fields.input,
+				pos:   test.fields.pos,
+				line:  test.fields.line,
+				col:   test.fields.col,
+			}
 			got := l.scanAddr()
 			if got != test.want.ok {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.ok)
 			}
-			if matched := test.fields.input[l.startPos:l.pos]; matched != test.want.matched {
+			if !got {
+				want := mark{pos: test.fields.pos, line: test.fields.line, col: test.fields.col}
+				if got := l.mark(); got != want {
+					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, want)
+				}
+				if l.prev != want {
+					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.prev, want)
+				}
+			}
+			if matched := test.fields.input[test.fields.pos:l.pos]; matched != test.want.matched {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", matched, test.want.matched)
 			}
 		})
@@ -4399,6 +4496,9 @@ func Test_lexer_scanAddr(t *testing.T) {
 func Test_lexer_scanDuration(t *testing.T) {
 	type fields struct {
 		input string
+		pos   int32
+		line  int32
+		col   int32
 	}
 	type want struct {
 		ok      bool
@@ -4949,17 +5049,107 @@ func Test_lexer_scanDuration(t *testing.T) {
 				matched: "",
 			},
 		},
+		{
+			name: "incomplete nanosecond unit at nonzero position",
+			fields: fields{
+				input: "A\n1n",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "incomplete microsecond unit at nonzero position",
+			fields: fields{
+				input: "A\n1u",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "incomplete micro sign unit at nonzero position",
+			fields: fields{
+				input: "A\n1µ",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "incomplete Greek mu unit at nonzero position",
+			fields: fields{
+				input: "A\n1μ",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "newline after number at nonzero position",
+			fields: fields{
+				input: "A\n1\n",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
+		{
+			name: "multibyte invalid unit at nonzero position",
+			fields: fields{
+				input: "A\n1界",
+				pos:   2,
+				line:  2,
+				col:   1,
+			},
+			want: want{
+				ok:      false,
+				matched: "",
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			l := &lexer{
 				input: test.fields.input,
+				pos:   test.fields.pos,
+				line:  test.fields.line,
+				col:   test.fields.col,
 			}
 			got := l.scanDuration()
 			if got != test.want.ok {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.ok)
 			}
-			if matched := test.fields.input[l.startPos:l.pos]; matched != test.want.matched {
+			if !got {
+				want := mark{pos: test.fields.pos, line: test.fields.line, col: test.fields.col}
+				if got := l.mark(); got != want {
+					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, want)
+				}
+				if l.prev != want {
+					t.Errorf("value mismatch\ngot=%v\nwant=%v\n", l.prev, want)
+				}
+			}
+			if matched := test.fields.input[test.fields.pos:l.pos]; matched != test.want.matched {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", matched, test.want.matched)
 			}
 		})
