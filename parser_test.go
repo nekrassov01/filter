@@ -1860,6 +1860,17 @@ func Test_parser_cacheNumber(t *testing.T) {
 		want want
 	}{
 		{
+			name: "signed integer is preferred",
+			args: args{
+				s: "1_000",
+			},
+			want: want{
+				valInt: 1000,
+				hasInt: true,
+				val:    true,
+			},
+		},
+		{
 			name: "signed minimum",
 			args: args{
 				s: "-9223372036854775808",

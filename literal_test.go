@@ -108,7 +108,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"-9223372036854775809\": value out of range",
+				err:   "value out of range",
 			},
 		},
 		{
@@ -118,7 +118,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"9223372036854775808\": value out of range",
+				err:   "value out of range",
 			},
 		},
 		{
@@ -128,7 +128,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"1.5\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -138,7 +138,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"1e3\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -148,7 +148,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -158,7 +158,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"-\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -168,7 +168,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"abc\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -178,7 +178,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"0x1f\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -188,7 +188,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"0b10\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -198,7 +198,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseInt: parsing \"0o10\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -208,7 +208,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1__0\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -218,7 +218,7 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"_1\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -228,7 +228,95 @@ func Test_parseNumber_int64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1_\": invalid syntax",
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "minimum separators",
+			args: args{
+				s: "-9_223_372_036_854_775_808",
+			},
+			want: want{
+				val: math.MinInt64,
+			},
+		},
+		{
+			name: "leading zeros and separators",
+			args: args{
+				s: "0_0_8",
+			},
+			want: want{
+				val: 8,
+			},
+		},
+		{
+			name: "positive sign only",
+			args: args{
+				s: "+",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "only separator",
+			args: args{
+				s: "_",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "separator after sign",
+			args: args{
+				s: "+_1",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "overflow cannot wrap",
+			args: args{
+				s: "184467440737095516160000",
+			},
+			want: want{
+				isErr: true,
+				err:   "value out of range",
+			},
+		},
+		{
+			name: "unsigned maximum rejected",
+			args: args{
+				s: "18446744073709551615",
+			},
+			want: want{
+				isErr: true,
+				err:   "value out of range",
+			},
+		},
+		{
+			name: "unicode digit",
+			args: args{
+				s: "１",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "invalid separator before exponent",
+			args: args{
+				s: "1__0e2",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
 			},
 		},
 	}
@@ -328,7 +416,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"-1\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -338,7 +426,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"-0\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -348,7 +436,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"18446744073709551616\": value out of range",
+				err:   "value out of range",
 			},
 		},
 		{
@@ -358,7 +446,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"1.5\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -368,7 +456,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"1e3\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -378,7 +466,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -388,7 +476,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"-\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -398,7 +486,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"abc\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -408,7 +496,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"0x1f\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -418,7 +506,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"0b10\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -428,7 +516,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseUint: parsing \"0o10\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -438,7 +526,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1__0\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -448,7 +536,7 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"_1\": invalid syntax",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -458,7 +546,85 @@ func Test_parseNumber_uint64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1_\": invalid syntax",
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "unsigned sign and separators",
+			args: args{
+				s: "+18_446_744_073_709_551_615",
+			},
+			want: want{
+				val: math.MaxUint64,
+			},
+		},
+		{
+			name: "leading zeros and separators",
+			args: args{
+				s: "0_0_8",
+			},
+			want: want{
+				val: 8,
+			},
+		},
+		{
+			name: "overflow cannot wrap",
+			args: args{
+				s: "184467440737095516160000",
+			},
+			want: want{
+				isErr: true,
+				err:   "value out of range",
+			},
+		},
+		{
+			name: "overflow separators",
+			args: args{
+				s: "18_446_744_073_709_551_616",
+			},
+			want: want{
+				isErr: true,
+				err:   "value out of range",
+			},
+		},
+		{
+			name: "positive sign only",
+			args: args{
+				s: "+",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "only separator",
+			args: args{
+				s: "_",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "separator after sign",
+			args: args{
+				s: "+_1",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "unicode digit",
+			args: args{
+				s: "１",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
 			},
 		},
 	}
@@ -711,7 +877,7 @@ func Test_parseNumber_float64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "invalid floating-point literal \"1\"",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -721,7 +887,7 @@ func Test_parseNumber_float64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "invalid floating-point literal \"-1\"",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -731,7 +897,7 @@ func Test_parseNumber_float64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "invalid floating-point literal \"1_000\"",
+				err:   "invalid syntax",
 			},
 		},
 		{
@@ -741,7 +907,186 @@ func Test_parseNumber_float64(t *testing.T) {
 			},
 			want: want{
 				isErr: true,
-				err:   "invalid floating-point literal \"18446744073709551616\"",
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "fraction without integer",
+			args: args{
+				s: ".5",
+			},
+			want: want{
+				val: 0.5,
+			},
+		},
+		{
+			name: "fraction without digits",
+			args: args{
+				s: "1.",
+			},
+			want: want{
+				val: 1,
+			},
+		},
+		{
+			name: "negative exponent",
+			args: args{
+				s: "1e-3",
+			},
+			want: want{
+				val: 0.001,
+			},
+		},
+		{
+			name: "hex separators",
+			args: args{
+				s: "0x_1.fp3",
+			},
+			want: want{
+				val: 15.5,
+			},
+		},
+		{
+			name: "explicit positive infinity",
+			args: args{
+				s: "+Inf",
+			},
+			want: want{
+				val: math.Inf(1),
+			},
+		},
+		{
+			name: "long infinity",
+			args: args{
+				s: "Infinity",
+			},
+			want: want{
+				val: math.Inf(1),
+			},
+		},
+		{
+			name: "lowercase nan",
+			args: args{
+				s: "nan",
+			},
+			want: want{
+				val: math.NaN(),
+			},
+		},
+		{
+			name: "integer overflow followed by exponent",
+			args: args{
+				s: "18446744073709551616e0",
+			},
+			want: want{
+				val: 0x1p64,
+			},
+		},
+		{
+			name: "integer overflow followed by fraction",
+			args: args{
+				s: "18446744073709551616.0",
+			},
+			want: want{
+				val: 0x1p64,
+			},
+		},
+		{
+			name: "long integer followed by exponent",
+			args: args{
+				s: "1000000000000000000000000000000000000000e-37",
+			},
+			want: want{
+				val: 100,
+			},
+		},
+		{
+			name: "negative integer overflow followed by fraction",
+			args: args{
+				s: "-9223372036854775809.0",
+			},
+			want: want{
+				val: -0x1p63,
+			},
+		},
+		{
+			name: "repeated integer separator",
+			args: args{
+				s: "1__0",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "leading integer separator",
+			args: args{
+				s: "_1",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "trailing integer separator",
+			args: args{
+				s: "1_",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "only separator",
+			args: args{
+				s: "_",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "separator after sign",
+			args: args{
+				s: "+_1",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "negative integer overflow",
+			args: args{
+				s: "-9223372036854775809",
+			},
+			want: want{
+				isErr: true,
+				err:   "invalid syntax",
+			},
+		},
+		{
+			name: "positive sign only",
+			args: args{
+				s: "+",
+			},
+			want: want{
+				isErr: true,
+				err:   "strconv.ParseFloat: parsing \"+\": invalid syntax",
+			},
+		},
+		{
+			name: "invalid separator before exponent",
+			args: args{
+				s: "1__0e2",
+			},
+			want: want{
+				isErr: true,
+				err:   "strconv.ParseFloat: parsing \"1__0e2\": invalid syntax",
 			},
 		},
 	}
