@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"math"
 	"net/netip"
 	"time"
 )
@@ -73,7 +72,7 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		return !v, nil
 	case nodePredicate:
 		if cache != nil && cache[n.identIdx].ok {
-			return evalPredicate(n, cache[n.identIdx].v)
+			return evalPredicate(n, &cache[n.identIdx].v)
 		}
 		v, ok := r.Resolve(n.ident.v)
 		if !ok {
@@ -82,28 +81,27 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		if cache != nil {
 			cache[n.identIdx] = cached{v: v, ok: true}
 		}
-		return evalPredicate(n, v)
+		return evalPredicate(n, &v)
 	}
 	return false, newError(KindEval, n.op, "invalid node type %q", n.op.typ)
 }
 
 // evalPredicate evaluates a predicate against a resolved value.
-func evalPredicate(n *node, v Value) (bool, error) {
+// The resolved value is borrowed to avoid copying it and must not be modified.
+func evalPredicate(n *node, v *Value) (bool, error) {
 	switch v.kind {
 	case kindString:
-		return evalString(n, v.s)
+		return evalString(n, v.string())
 	case kindInt64:
-		return evalNumber(n, v.a)
+		return evalNumber(n, v.int64())
 	case kindUint64:
-		//nolint:gosec // bit pattern conversion
-		return evalNumber(n, uint64(v.a))
+		return evalNumber(n, v.uint64())
 	case kindFloat64:
-		//nolint:gosec // bit pattern conversion
-		return evalNumber(n, math.Float64frombits(uint64(v.a)))
+		return evalNumber(n, v.float64())
 	case kindTime:
-		return evalTime(n, time.Unix(v.a, v.b))
+		return evalTime(n, v.time())
 	case kindDuration:
-		return evalDuration(n, time.Duration(v.a))
+		return evalDuration(n, v.duration())
 	case kindAddr:
 		return evalAddr(n, v.addr())
 	default:

@@ -290,7 +290,7 @@ func Test_evalNode(t *testing.T) {
 func Test_evalPredicate(t *testing.T) {
 	type args struct {
 		n *node
-		v Value
+		v *Value
 	}
 	type want struct {
 		val   bool
@@ -315,7 +315,7 @@ func Test_evalPredicate(t *testing.T) {
 					},
 					typ: nodePredicate,
 				},
-				v: String("a"),
+				v: new(String("a")),
 			},
 			want: want{
 				val: true,
@@ -332,7 +332,7 @@ func Test_evalPredicate(t *testing.T) {
 					hasFloat: true,
 					typ:      nodePredicate,
 				},
-				v: Float64(2),
+				v: new(Float64(2)),
 			},
 			want: want{
 				val: true,
@@ -349,7 +349,7 @@ func Test_evalPredicate(t *testing.T) {
 					hasTime: true,
 					typ:     nodePredicate,
 				},
-				v: Time(time.Date(2024, 12, 31, 23, 59, 59, 999999999, time.UTC)),
+				v: new(Time(time.Date(2024, 12, 31, 23, 59, 59, 999999999, time.UTC))),
 			},
 			want: want{
 				val: true,
@@ -366,7 +366,7 @@ func Test_evalPredicate(t *testing.T) {
 					hasDuration: true,
 					typ:         nodePredicate,
 				},
-				v: Duration(time.Second),
+				v: new(Duration(time.Second)),
 			},
 			want: want{
 				val: false,
@@ -383,7 +383,7 @@ func Test_evalPredicate(t *testing.T) {
 					hasAddr: true,
 					typ:     nodePredicate,
 				},
-				v: Addr(netip.Addr{}),
+				v: new(Addr(netip.Addr{})),
 			},
 			want: want{
 				val: true,
@@ -400,7 +400,7 @@ func Test_evalPredicate(t *testing.T) {
 					hasAddr: true,
 					typ:     nodePredicate,
 				},
-				v: Addr(netip.MustParseAddr("192.0.2.1")),
+				v: new(Addr(netip.MustParseAddr("192.0.2.1"))),
 			},
 			want: want{
 				val: true,
@@ -417,7 +417,7 @@ func Test_evalPredicate(t *testing.T) {
 					hasAddr: true,
 					typ:     nodePredicate,
 				},
-				v: Addr(netip.MustParseAddr("2001:db8::1")),
+				v: new(Addr(netip.MustParseAddr("2001:db8::1"))),
 			},
 			want: want{
 				val: true,
@@ -436,7 +436,7 @@ func Test_evalPredicate(t *testing.T) {
 					},
 					typ: nodePredicate,
 				},
-				v: Bool(true),
+				v: new(Bool(true)),
 			},
 			want: want{
 				val: true,
@@ -457,7 +457,7 @@ func Test_evalPredicate(t *testing.T) {
 					},
 					typ: nodePredicate,
 				},
-				v: Value{},
+				v: &Value{},
 			},
 			want: want{
 				isErr: true,
@@ -479,7 +479,7 @@ func Test_evalPredicate(t *testing.T) {
 					},
 					typ: nodePredicate,
 				},
-				v: Value{
+				v: &Value{
 					kind: kind(255),
 				},
 			},
