@@ -210,9 +210,10 @@ func Test_newNodeUnary(t *testing.T) {
 
 func Test_newNodePredicate(t *testing.T) {
 	type args struct {
-		ident token
-		op    token
-		val   token
+		ident    token
+		op       token
+		val      token
+		identIdx int32
 	}
 	type want struct {
 		val node
@@ -239,7 +240,7 @@ func Test_newNodePredicate(t *testing.T) {
 					typ:  tokenEQ,
 				},
 				val: token{
-					v:    "a",
+					v:    `"a"`,
 					pos:  6,
 					line: 1,
 					col:  7,
@@ -262,12 +263,13 @@ func Test_newNodePredicate(t *testing.T) {
 						typ:  tokenEQ,
 					},
 					val: token{
-						v:    "a",
+						v:    `"a"`,
 						pos:  6,
 						line: 1,
 						col:  7,
 						typ:  tokenString,
 					},
+					s:   "a",
 					typ: nodePredicate,
 				},
 			},
@@ -277,7 +279,6 @@ func Test_newNodePredicate(t *testing.T) {
 			args: args{
 				ident: token{
 					v:   "HP",
-					idx: 5,
 					typ: tokenIdent,
 				},
 				op: token{
@@ -288,12 +289,12 @@ func Test_newNodePredicate(t *testing.T) {
 					v:   "1",
 					typ: tokenNumber,
 				},
+				identIdx: 5,
 			},
 			want: want{
 				val: node{
 					ident: token{
 						v:   "HP",
-						idx: 5,
 						typ: tokenIdent,
 					},
 					op: token{
@@ -304,7 +305,9 @@ func Test_newNodePredicate(t *testing.T) {
 						v:   "1",
 						typ: tokenNumber,
 					},
-					typ: nodePredicate,
+					s:        "1",
+					typ:      nodePredicate,
+					identIdx: 5,
 				},
 			},
 		},
@@ -321,10 +324,143 @@ func Test_newNodePredicate(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "single quoted",
+			args: args{
+				val: token{
+					v:   "'text'",
+					typ: tokenString,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "'text'",
+						typ: tokenString,
+					},
+					s:   "text",
+					typ: nodePredicate,
+				},
+			},
+		},
+		{
+			name: "raw string",
+			args: args{
+				val: token{
+					v:   "`text`",
+					typ: tokenRawString,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "`text`",
+						typ: tokenRawString,
+					},
+					s:   "text",
+					typ: nodePredicate,
+				},
+			},
+		},
+		{
+			name: "title case boolean",
+			args: args{
+				val: token{
+					v:   "True",
+					typ: tokenBool,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "True",
+						typ: tokenBool,
+					},
+					s:   "true",
+					typ: nodePredicate,
+				},
+			},
+		},
+		{
+			name: "upper case boolean",
+			args: args{
+				val: token{
+					v:   "FALSE",
+					typ: tokenBool,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "FALSE",
+						typ: tokenBool,
+					},
+					s:   "false",
+					typ: nodePredicate,
+				},
+			},
+		},
+		{
+			name: "empty string",
+			args: args{
+				val: token{
+					v:   "\"\"",
+					typ: tokenString,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "\"\"",
+						typ: tokenString,
+					},
+					s:   "",
+					typ: nodePredicate,
+				},
+			},
+		},
+		{
+			name: "short string token",
+			args: args{
+				val: token{
+					v:   "\"",
+					typ: tokenString,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "\"",
+						typ: tokenString,
+					},
+					s:   "\"",
+					typ: nodePredicate,
+				},
+			},
+		},
+		{
+			name: "escape spelling retained",
+			args: args{
+				val: token{
+					v:   "\"a\\n\"",
+					typ: tokenString,
+				},
+			},
+			want: want{
+				val: node{
+					val: token{
+						v:   "\"a\\n\"",
+						typ: tokenString,
+					},
+					s:   "a\\n",
+					typ: nodePredicate,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := newNodePredicate(test.args.ident, test.args.op, test.args.val)
+			got := newNodePredicate(test.args.ident, test.args.op, test.args.val, test.args.identIdx)
 			if !reflect.DeepEqual(got, test.want.val) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}

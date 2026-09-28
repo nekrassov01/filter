@@ -6,7 +6,6 @@ type token struct {
 	pos  int32
 	line int32
 	col  int32
-	idx  int32
 	typ  tokenType
 }
 

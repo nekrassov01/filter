@@ -33,6 +33,38 @@ type Value struct {
 	bits uint8 // Addr only: 0 = invalid, 32 = IPv4, 128 = IPv6
 }
 
+// string returns the stored string.
+func (v Value) string() string {
+	return v.s
+}
+
+// int64 returns the stored signed integer.
+func (v Value) int64() int64 {
+	return v.a
+}
+
+// uint64 restores the unsigned integer from its stored bits.
+func (v Value) uint64() uint64 {
+	//nolint:gosec // bit pattern conversion
+	return uint64(v.a)
+}
+
+// float64 restores the floating-point value from its stored bits.
+func (v Value) float64() float64 {
+	//nolint:gosec // bit pattern conversion
+	return math.Float64frombits(uint64(v.a))
+}
+
+// time reconstructs the instant from Unix seconds and nanoseconds.
+func (v Value) time() time.Time {
+	return time.Unix(v.a, v.b)
+}
+
+// duration returns the stored duration in nanoseconds.
+func (v Value) duration() time.Duration {
+	return time.Duration(v.a)
+}
+
 // addr reconstructs an address without conflating IPv4 and mapped IPv6 values.
 func (v Value) addr() netip.Addr {
 	if v.bits == 0 {

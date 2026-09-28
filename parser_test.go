@@ -1219,6 +1219,46 @@ func Test_parser_parsePredicate(t *testing.T) {
 				err:   `lex error at 1:4: unexpected character U+0024 '$'`,
 			},
 		},
+		{
+			name: "numeric regex skips value caches",
+			fields: fields{
+				input: `A=~"42"`,
+			},
+			want: want{
+				val:   `(A =~ "42")`,
+				regex: true,
+			},
+		},
+		{
+			name: "time regex skips value caches",
+			fields: fields{
+				input: `A=~"2025-01-01"`,
+			},
+			want: want{
+				val:   `(A =~ "2025-01-01")`,
+				regex: true,
+			},
+		},
+		{
+			name: "duration regex skips value caches",
+			fields: fields{
+				input: `A!~"1s"`,
+			},
+			want: want{
+				val:   `(A !~ "1s")`,
+				regex: true,
+			},
+		},
+		{
+			name: "address regex skips value caches",
+			fields: fields{
+				input: `A!~"::1"`,
+			},
+			want: want{
+				val:   `(A !~ "::1")`,
+				regex: true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1270,10 +1310,11 @@ func Test_parser_parsePredicate(t *testing.T) {
 func Test_parser_cacheRegex(t *testing.T) {
 	type fields struct {
 		cached string
+		val    token
 	}
 	type args struct {
 		i int32
-		t token
+		s string
 	}
 	type want struct {
 		val    string
@@ -1289,79 +1330,98 @@ func Test_parser_cacheRegex(t *testing.T) {
 	}{
 		{
 			name: "compiles and stores the pattern",
-			args: args{
-				i: 0,
-				t: token{
-					v:    `^Test_[a-z]+$`,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "`^Test_[a-z]+$`",
 					line: 1,
 					col:  4,
 					typ:  tokenRawString,
 				},
 			},
+			args: args{
+				i: 0,
+				s: "^Test_[a-z]+$",
+			},
 			want: want{
-				val: `^Test_[a-z]+$`,
+				val:    "^Test_[a-z]+$",
+				cached: false,
 			},
 		},
 		{
 			name: "reuses the compiled pattern from regexMap",
 			fields: fields{
-				cached: `^cached$`,
-			},
-			args: args{
-				i: 0,
-				t: token{
-					v:    `^cached$`,
+				cached: "^cached$",
+				val: token{
+					v:    "`^cached$`",
 					line: 1,
 					col:  4,
 					typ:  tokenRawString,
 				},
 			},
+			args: args{
+				i: 0,
+				s: "^cached$",
+			},
 			want: want{
-				val:    `^cached$`,
+				val:    "^cached$",
 				cached: true,
 			},
 		},
 		{
 			name: "stores on the requested node",
-			args: args{
-				i: 3,
-				t: token{
-					v:    `abc`,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "\"abc\"",
 					line: 1,
 					col:  4,
 					typ:  tokenString,
 				},
 			},
+			args: args{
+				i: 3,
+				s: "abc",
+			},
 			want: want{
-				val: `abc`,
+				val:    "abc",
+				cached: false,
 			},
 		},
 		{
 			name: "empty pattern",
-			args: args{
-				i: 0,
-				t: token{
-					v:    ``,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "\"\"",
 					line: 1,
 					col:  4,
 					typ:  tokenString,
 				},
 			},
+			args: args{
+				i: 0,
+				s: "",
+			},
 			want: want{
 				isErr: true,
-				err:   `parse error at 1:4: invalid regex "": empty pattern`,
+				err:   "parse error at 1:4: invalid regex \"\": empty pattern",
 			},
 		},
 		{
 			name: "invalid pattern",
-			args: args{
-				i: 0,
-				t: token{
-					v:    `(`,
+			fields: fields{
+				cached: "",
+				val: token{
+					v:    "\"(\"",
 					line: 2,
 					col:  7,
 					typ:  tokenString,
 				},
+			},
+			args: args{
+				i: 0,
+				s: "(",
 			},
 			want: want{
 				isErr: true,
@@ -1377,7 +1437,8 @@ func Test_parser_cacheRegex(t *testing.T) {
 				regexMap.Store(test.fields.cached, stored)
 			}
 			p := newParser("")
-			err := p.cacheRegex(test.args.i, test.args.t)
+			p.node(test.args.i).val = test.fields.val
+			err := p.cacheRegex(test.args.i, test.args.s)
 			isErr := err != nil
 			if isErr != test.want.isErr {
 				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
@@ -1779,15 +1840,19 @@ func Test_parser_cacheValues(t *testing.T) {
 	}
 }
 
-func Test_parser_cacheInt(t *testing.T) {
+func Test_parser_cacheNumber(t *testing.T) {
 	type args struct {
 		i int32
 		s string
 	}
 	type want struct {
-		val    bool
-		hasInt bool
-		valInt int64
+		valInt   int64
+		valUint  uint64
+		valFloat float64
+		hasInt   bool
+		hasUint  bool
+		hasFloat bool
+		val      bool
 	}
 	tests := []struct {
 		name string
@@ -1795,36 +1860,14 @@ func Test_parser_cacheInt(t *testing.T) {
 		want want
 	}{
 		{
-			name: "zero",
+			name: "signed integer is preferred",
 			args: args{
-				s: "0",
+				s: "1_000",
 			},
 			want: want{
-				val:    true,
+				valInt: 1000,
 				hasInt: true,
-				valInt: 0,
-			},
-		},
-		{
-			name: "negative zero",
-			args: args{
-				s: "-0",
-			},
-			want: want{
 				val:    true,
-				hasInt: true,
-				valInt: 0,
-			},
-		},
-		{
-			name: "leading zeros are decimal",
-			args: args{
-				s: "08",
-			},
-			want: want{
-				val:    true,
-				hasInt: true,
-				valInt: 8,
 			},
 		},
 		{
@@ -1833,342 +1876,32 @@ func Test_parser_cacheInt(t *testing.T) {
 				s: "-9223372036854775808",
 			},
 			want: want{
-				val:    true,
-				hasInt: true,
 				valInt: math.MinInt64,
-			},
-		},
-		{
-			name: "signed maximum",
-			args: args{
-				s: "9223372036854775807",
-			},
-			want: want{
-				val:    true,
 				hasInt: true,
-				valInt: math.MaxInt64,
-			},
-		},
-		{
-			name: "digit separators",
-			args: args{
-				s: "9_007_199_254_740_993",
-			},
-			want: want{
 				val:    true,
-				hasInt: true,
-				valInt: 9007199254740993,
 			},
 		},
 		{
-			name: "negative digit separators",
+			name: "unsigned maximum on requested node",
 			args: args{
-				s: "-9_007_199_254_740_993",
-			},
-			want: want{
-				val:    true,
-				hasInt: true,
-				valInt: -9007199254740993,
-			},
-		},
-		{
-			name: "signed underflow",
-			args: args{
-				s: "-9223372036854775809",
-			},
-			want: want{},
-		},
-		{
-			name: "unsigned overflow",
-			args: args{
-				s: "18446744073709551616",
-			},
-			want: want{},
-		},
-		{
-			name: "repeated separator",
-			args: args{
-				s: "1__0",
-			},
-			want: want{},
-		},
-		{
-			name: "leading separator",
-			args: args{
-				s: "_1",
-			},
-			want: want{},
-		},
-		{
-			name: "trailing separator",
-			args: args{
-				s: "1_",
-			},
-			want: want{},
-		},
-		{
-			name: "float overflow",
-			args: args{
-				s: "1e400",
-			},
-			want: want{},
-		},
-		{
-			name: "empty",
-			args: args{
-				s: "",
-			},
-			want: want{},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
-			},
-			want: want{},
-		},
-		{
-			name: "hex integer remains unsupported",
-			args: args{
-				s: "0x1f",
-			},
-			want: want{},
-		},
-		{
-			name: "binary integer remains unsupported",
-			args: args{
-				s: "0b10",
-			},
-			want: want{},
-		},
-		{
-			name: "octal integer remains unsupported",
-			args: args{
-				s: "0o10",
-			},
-			want: want{},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := newParser("")
-			got := p.cacheInt(test.args.i, test.args.s)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-			n := p.node(test.args.i)
-			if n.hasInt != test.want.hasInt {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasInt, test.want.hasInt)
-			}
-			if n.valInt != test.want.valInt {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valInt, test.want.valInt)
-			}
-		})
-	}
-}
-
-func Test_parser_cacheUint(t *testing.T) {
-	type args struct {
-		i int32
-		s string
-	}
-	type want struct {
-		val     bool
-		hasUint bool
-		valUint uint64
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "unsigned boundary",
-			args: args{
-				s: "9223372036854775808",
-			},
-			want: want{
-				val:     true,
-				hasUint: true,
-				valUint: 1 << 63,
-			},
-		},
-		{
-			name: "unsigned maximum",
-			args: args{
-				i: 2,
+				i: 3,
 				s: "18446744073709551615",
 			},
 			want: want{
-				val:     true,
-				hasUint: true,
 				valUint: math.MaxUint64,
-			},
-		},
-		{
-			name: "leading plus",
-			args: args{
-				s: "+18446744073709551615",
-			},
-			want: want{
-				val:     true,
 				hasUint: true,
-				valUint: math.MaxUint64,
+				val:     true,
 			},
 		},
 		{
-			name: "signed underflow",
+			name: "negative zero",
 			args: args{
-				s: "-9223372036854775809",
-			},
-			want: want{},
-		},
-		{
-			name: "unsigned overflow",
-			args: args{
-				s: "18446744073709551616",
-			},
-			want: want{},
-		},
-		{
-			name: "repeated separator",
-			args: args{
-				s: "1__0",
-			},
-			want: want{},
-		},
-		{
-			name: "leading separator",
-			args: args{
-				s: "_1",
-			},
-			want: want{},
-		},
-		{
-			name: "trailing separator",
-			args: args{
-				s: "1_",
-			},
-			want: want{},
-		},
-		{
-			name: "float overflow",
-			args: args{
-				s: "1e400",
-			},
-			want: want{},
-		},
-		{
-			name: "empty",
-			args: args{
-				s: "",
-			},
-			want: want{},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
-			},
-			want: want{},
-		},
-		{
-			name: "hex integer remains unsupported",
-			args: args{
-				s: "0x1f",
-			},
-			want: want{},
-		},
-		{
-			name: "binary integer remains unsupported",
-			args: args{
-				s: "0b10",
-			},
-			want: want{},
-		},
-		{
-			name: "octal integer remains unsupported",
-			args: args{
-				s: "0o10",
-			},
-			want: want{},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := newParser("")
-			got := p.cacheUint(test.args.i, test.args.s)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-			n := p.node(test.args.i)
-			if n.hasUint != test.want.hasUint {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasUint, test.want.hasUint)
-			}
-			if n.valUint != test.want.valUint {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valUint, test.want.valUint)
-			}
-		})
-	}
-}
-
-func Test_parser_cacheFloat(t *testing.T) {
-	type args struct {
-		i int32
-		s string
-	}
-	type want struct {
-		val      bool
-		hasFloat bool
-		valFloat float64
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "fraction",
-			args: args{
-				s: "1.5",
+				s: "-0.0",
 			},
 			want: want{
-				val:      true,
+				valFloat: math.Copysign(0, -1),
 				hasFloat: true,
-				valFloat: 1.5,
-			},
-		},
-		{
-			name: "exponent",
-			args: args{
-				s: "1e3",
-			},
-			want: want{
 				val:      true,
-				hasFloat: true,
-				valFloat: 1000,
-			},
-		},
-		{
-			name: "hex float",
-			args: args{
-				s: "0x1.fp3",
-			},
-			want: want{
-				val:      true,
-				hasFloat: true,
-				valFloat: 15.5,
-			},
-		},
-		{
-			name: "infinity",
-			args: args{
-				s: "Inf",
-			},
-			want: want{
-				val:      true,
-				hasFloat: true,
-				valFloat: math.Inf(1),
 			},
 		},
 		{
@@ -2177,102 +1910,55 @@ func Test_parser_cacheFloat(t *testing.T) {
 				s: "NaN",
 			},
 			want: want{
-				val:      true,
-				hasFloat: true,
 				valFloat: math.NaN(),
+				hasFloat: true,
+				val:      true,
 			},
 		},
 		{
-			name: "signed underflow",
-			args: args{
-				s: "-9223372036854775809",
-			},
-			want: want{},
-		},
-		{
-			name: "unsigned overflow",
+			name: "unsigned overflow is not rounded",
 			args: args{
 				s: "18446744073709551616",
 			},
-			want: want{},
-		},
-		{
-			name: "repeated separator",
-			args: args{
-				s: "1__0",
+			want: want{
+				val: false,
 			},
-			want: want{},
-		},
-		{
-			name: "leading separator",
-			args: args{
-				s: "_1",
-			},
-			want: want{},
-		},
-		{
-			name: "trailing separator",
-			args: args{
-				s: "1_",
-			},
-			want: want{},
-		},
-		{
-			name: "float overflow",
-			args: args{
-				s: "1e400",
-			},
-			want: want{},
 		},
 		{
 			name: "empty",
 			args: args{
 				s: "",
 			},
-			want: want{},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
+			want: want{
+				val: false,
 			},
-			want: want{},
-		},
-		{
-			name: "hex integer remains unsupported",
-			args: args{
-				s: "0x1f",
-			},
-			want: want{},
-		},
-		{
-			name: "binary integer remains unsupported",
-			args: args{
-				s: "0b10",
-			},
-			want: want{},
-		},
-		{
-			name: "octal integer remains unsupported",
-			args: args{
-				s: "0o10",
-			},
-			want: want{},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := newParser("")
-			got := p.cacheFloat(test.args.i, test.args.s)
+			got := p.cacheNumber(test.args.i, test.args.s)
 			if got != test.want.val {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 			n := p.node(test.args.i)
-			if n.hasFloat != test.want.hasFloat {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasFloat, test.want.hasFloat)
+			if n.valInt != test.want.valInt {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valInt, test.want.valInt)
+			}
+			if n.valUint != test.want.valUint {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valUint, test.want.valUint)
 			}
 			if math.Float64bits(n.valFloat) != math.Float64bits(test.want.valFloat) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.valFloat, test.want.valFloat)
+			}
+			if n.hasInt != test.want.hasInt {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasInt, test.want.hasInt)
+			}
+			if n.hasUint != test.want.hasUint {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasUint, test.want.hasUint)
+			}
+			if n.hasFloat != test.want.hasFloat {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", n.hasFloat, test.want.hasFloat)
 			}
 		})
 	}
@@ -3340,1112 +3026,6 @@ func Test_parser_peek(t *testing.T) {
 			}
 			if again := p.peek(); !reflect.DeepEqual(again, got) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", again, got)
-			}
-		})
-	}
-}
-
-func Test_parseNumber_int64(t *testing.T) {
-	type args struct {
-		s string
-	}
-	type want struct {
-		val   int64
-		isErr bool
-		err   string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "zero",
-			args: args{
-				s: "0",
-			},
-			want: want{
-				val: 0,
-			},
-		},
-		{
-			name: "negative zero",
-			args: args{
-				s: "-0",
-			},
-			want: want{
-				val: 0,
-			},
-		},
-		{
-			name: "leading plus",
-			args: args{
-				s: "+42",
-			},
-			want: want{
-				val: 42,
-			},
-		},
-		{
-			name: "negative",
-			args: args{
-				s: "-42",
-			},
-			want: want{
-				val: -42,
-			},
-		},
-		{
-			name: "leading zeros are decimal",
-			args: args{
-				s: "08",
-			},
-			want: want{
-				val: 8,
-			},
-		},
-		{
-			name: "separators",
-			args: args{
-				s: "9_007_199_254_740_993",
-			},
-			want: want{
-				val: 9007199254740993,
-			},
-		},
-		{
-			name: "negative separators",
-			args: args{
-				s: "-9_007_199_254_740_993",
-			},
-			want: want{
-				val: -9007199254740993,
-			},
-		},
-		{
-			name: "minimum",
-			args: args{
-				s: "-9223372036854775808",
-			},
-			want: want{
-				val: math.MinInt64,
-			},
-		},
-		{
-			name: "maximum",
-			args: args{
-				s: "9223372036854775807",
-			},
-			want: want{
-				val: math.MaxInt64,
-			},
-		},
-		{
-			name: "below minimum",
-			args: args{
-				s: "-9223372036854775809",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"-9223372036854775809\": value out of range",
-			},
-		},
-		{
-			name: "above maximum",
-			args: args{
-				s: "9223372036854775808",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"9223372036854775808\": value out of range",
-			},
-		},
-		{
-			name: "fraction rejected",
-			args: args{
-				s: "1.5",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"1.5\": invalid syntax",
-			},
-		},
-		{
-			name: "exponent rejected",
-			args: args{
-				s: "1e3",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"1e3\": invalid syntax",
-			},
-		},
-		{
-			name: "empty",
-			args: args{
-				s: "",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"\": invalid syntax",
-			},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"-\": invalid syntax",
-			},
-		},
-		{
-			name: "text",
-			args: args{
-				s: "abc",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"abc\": invalid syntax",
-			},
-		},
-		{
-			name: "hex integer rejected",
-			args: args{
-				s: "0x1f",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"0x1f\": invalid syntax",
-			},
-		},
-		{
-			name: "binary integer rejected",
-			args: args{
-				s: "0b10",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"0b10\": invalid syntax",
-			},
-		},
-		{
-			name: "octal integer rejected",
-			args: args{
-				s: "0o10",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseInt: parsing \"0o10\": invalid syntax",
-			},
-		},
-		{
-			name: "repeated separator",
-			args: args{
-				s: "1__0",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1__0\": invalid syntax",
-			},
-		},
-		{
-			name: "leading separator",
-			args: args{
-				s: "_1",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"_1\": invalid syntax",
-			},
-		},
-		{
-			name: "trailing separator",
-			args: args{
-				s: "1_",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1_\": invalid syntax",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got, err := parseNumber[int64](test.args.s)
-			isErr := err != nil
-			if isErr != test.want.isErr {
-				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
-				return
-			}
-			if isErr {
-				if err.Error() != test.want.err {
-					t.Errorf("error mismatch\ngot=%v\nwant=%v\n", err, test.want.err)
-				}
-				return
-			}
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-		})
-	}
-}
-
-func Test_parseNumber_uint64(t *testing.T) {
-	type args struct {
-		s string
-	}
-	type want struct {
-		val   uint64
-		isErr bool
-		err   string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "zero",
-			args: args{
-				s: "0",
-			},
-			want: want{
-				val: 0,
-			},
-		},
-		{
-			name: "leading plus",
-			args: args{
-				s: "+42",
-			},
-			want: want{
-				val: 42,
-			},
-		},
-		{
-			name: "leading zeros are decimal",
-			args: args{
-				s: "08",
-			},
-			want: want{
-				val: 8,
-			},
-		},
-		{
-			name: "separators",
-			args: args{
-				s: "18_446_744_073_709_551_615",
-			},
-			want: want{
-				val: math.MaxUint64,
-			},
-		},
-		{
-			name: "signed boundary",
-			args: args{
-				s: "9223372036854775808",
-			},
-			want: want{
-				val: 1 << 63,
-			},
-		},
-		{
-			name: "maximum",
-			args: args{
-				s: "18446744073709551615",
-			},
-			want: want{
-				val: math.MaxUint64,
-			},
-		},
-		{
-			name: "negative rejected",
-			args: args{
-				s: "-1",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"-1\": invalid syntax",
-			},
-		},
-		{
-			name: "negative zero rejected",
-			args: args{
-				s: "-0",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"-0\": invalid syntax",
-			},
-		},
-		{
-			name: "above maximum",
-			args: args{
-				s: "18446744073709551616",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"18446744073709551616\": value out of range",
-			},
-		},
-		{
-			name: "fraction rejected",
-			args: args{
-				s: "1.5",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"1.5\": invalid syntax",
-			},
-		},
-		{
-			name: "exponent rejected",
-			args: args{
-				s: "1e3",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"1e3\": invalid syntax",
-			},
-		},
-		{
-			name: "empty",
-			args: args{
-				s: "",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"\": invalid syntax",
-			},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"-\": invalid syntax",
-			},
-		},
-		{
-			name: "text",
-			args: args{
-				s: "abc",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"abc\": invalid syntax",
-			},
-		},
-		{
-			name: "hex integer rejected",
-			args: args{
-				s: "0x1f",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"0x1f\": invalid syntax",
-			},
-		},
-		{
-			name: "binary integer rejected",
-			args: args{
-				s: "0b10",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"0b10\": invalid syntax",
-			},
-		},
-		{
-			name: "octal integer rejected",
-			args: args{
-				s: "0o10",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseUint: parsing \"0o10\": invalid syntax",
-			},
-		},
-		{
-			name: "repeated separator",
-			args: args{
-				s: "1__0",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1__0\": invalid syntax",
-			},
-		},
-		{
-			name: "leading separator",
-			args: args{
-				s: "_1",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"_1\": invalid syntax",
-			},
-		},
-		{
-			name: "trailing separator",
-			args: args{
-				s: "1_",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1_\": invalid syntax",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got, err := parseNumber[uint64](test.args.s)
-			isErr := err != nil
-			if isErr != test.want.isErr {
-				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
-				return
-			}
-			if isErr {
-				if err.Error() != test.want.err {
-					t.Errorf("error mismatch\ngot=%v\nwant=%v\n", err, test.want.err)
-				}
-				return
-			}
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-		})
-	}
-}
-
-func Test_parseNumber_float64(t *testing.T) {
-	type args struct {
-		s string
-	}
-	type want struct {
-		val   float64
-		isErr bool
-		err   string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "zero",
-			args: args{
-				s: "0.0",
-			},
-			want: want{
-				val: 0,
-			},
-		},
-		{
-			name: "negative zero",
-			args: args{
-				s: "-0.0",
-			},
-			want: want{
-				val: math.Copysign(0, -1),
-			},
-		},
-		{
-			name: "fraction",
-			args: args{
-				s: "1.5",
-			},
-			want: want{
-				val: 1.5,
-			},
-		},
-		{
-			name: "negative fraction",
-			args: args{
-				s: "-1.5",
-			},
-			want: want{
-				val: -1.5,
-			},
-		},
-		{
-			name: "leading plus",
-			args: args{
-				s: "+1.5",
-			},
-			want: want{
-				val: 1.5,
-			},
-		},
-		{
-			name: "exponent",
-			args: args{
-				s: "1e3",
-			},
-			want: want{
-				val: 1000,
-			},
-		},
-		{
-			name: "hex float",
-			args: args{
-				s: "0x1.fp3",
-			},
-			want: want{
-				val: 15.5,
-			},
-		},
-		{
-			name: "separators",
-			args: args{
-				s: "1_000.5",
-			},
-			want: want{
-				val: 1000.5,
-			},
-		},
-		{
-			name: "smallest positive",
-			args: args{
-				s: "5e-324",
-			},
-			want: want{
-				val: math.SmallestNonzeroFloat64,
-			},
-		},
-		{
-			name: "maximum",
-			args: args{
-				s: "1.7976931348623157e308",
-			},
-			want: want{
-				val: math.MaxFloat64,
-			},
-		},
-		{
-			name: "positive infinity",
-			args: args{
-				s: "Inf",
-			},
-			want: want{
-				val: math.Inf(1),
-			},
-		},
-		{
-			name: "negative infinity",
-			args: args{
-				s: "-Inf",
-			},
-			want: want{
-				val: math.Inf(-1),
-			},
-		},
-		{
-			name: "nan",
-			args: args{
-				s: "NaN",
-			},
-			want: want{
-				val: math.NaN(),
-			},
-		},
-		{
-			name: "overflow",
-			args: args{
-				s: "1e400",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1e400\": value out of range",
-			},
-		},
-		{
-			name: "incomplete exponent",
-			args: args{
-				s: "1e",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1e\": invalid syntax",
-			},
-		},
-		{
-			name: "empty",
-			args: args{
-				s: "",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"\": invalid syntax",
-			},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"-\": invalid syntax",
-			},
-		},
-		{
-			name: "text",
-			args: args{
-				s: "abc",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"abc\": invalid syntax",
-			},
-		},
-		{
-			name: "hex integer rejected",
-			args: args{
-				s: "0x1f",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"0x1f\": invalid syntax",
-			},
-		},
-		{
-			name: "binary integer rejected",
-			args: args{
-				s: "0b10",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"0b10\": invalid syntax",
-			},
-		},
-		{
-			name: "octal integer rejected",
-			args: args{
-				s: "0o10",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"0o10\": invalid syntax",
-			},
-		},
-		{
-			name: "invalid fraction separator",
-			args: args{
-				s: "1_.0",
-			},
-			want: want{
-				isErr: true,
-				err:   "strconv.ParseFloat: parsing \"1_.0\": invalid syntax",
-			},
-		},
-		{
-			name: "integer rejected",
-			args: args{
-				s: "1",
-			},
-			want: want{
-				isErr: true,
-				err:   "invalid floating-point literal \"1\"",
-			},
-		},
-		{
-			name: "negative integer rejected",
-			args: args{
-				s: "-1",
-			},
-			want: want{
-				isErr: true,
-				err:   "invalid floating-point literal \"-1\"",
-			},
-		},
-		{
-			name: "integer separators rejected",
-			args: args{
-				s: "1_000",
-			},
-			want: want{
-				isErr: true,
-				err:   "invalid floating-point literal \"1_000\"",
-			},
-		},
-		{
-			name: "unsigned overflow is not rounded",
-			args: args{
-				s: "18446744073709551616",
-			},
-			want: want{
-				isErr: true,
-				err:   "invalid floating-point literal \"18446744073709551616\"",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got, err := parseNumber[float64](test.args.s)
-			isErr := err != nil
-			if isErr != test.want.isErr {
-				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
-				return
-			}
-			if isErr {
-				if err.Error() != test.want.err {
-					t.Errorf("error mismatch\ngot=%v\nwant=%v\n", err, test.want.err)
-				}
-				return
-			}
-			if math.Float64bits(got) != math.Float64bits(test.want.val) {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-		})
-	}
-}
-
-func Test_parseTime(t *testing.T) {
-	type args struct {
-		s string
-	}
-	type want struct {
-		val   time.Time
-		isErr bool
-		err   string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "rfc3339 utc",
-			args: args{
-				s: "2025-01-01T00:00:00Z",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc3339 offset",
-			args: args{
-				s: "2025-01-01T09:00:00+09:00",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc3339 fraction",
-			args: args{
-				s: "2025-01-01T00:00:00.25Z",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 250000000, time.UTC),
-			},
-		},
-		{
-			name: "datetime without zone",
-			args: args{
-				s: "2025-01-01T00:00:00",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "datetime with space",
-			args: args{
-				s: "2025-01-01 00:00:00",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "datetime with space and fraction",
-			args: args{
-				s: "2025-01-01 00:00:00.5",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 500000000, time.UTC),
-			},
-		},
-		{
-			name: "date only",
-			args: args{
-				s: "2025-01-01",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "unix seconds",
-			args: args{
-				s: "1735689600",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "negative unix seconds",
-			args: args{
-				s: "-1",
-			},
-			want: want{
-				val: time.Date(1969, 12, 31, 23, 59, 59, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc1123",
-			args: args{
-				s: "Wed, 01 Jan 2025 00:00:00 UTC",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc850",
-			args: args{
-				s: "Wednesday, 01-Jan-25 00:00:00 UTC",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc822",
-			args: args{
-				s: "01 Jan 25 00:00 UTC",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc1123 with numeric offset",
-			args: args{
-				s: "Wed, 01 Jan 2025 09:00:00 +0900",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "rfc822 with numeric offset",
-			args: args{
-				s: "01 Jan 25 09:00 +0900",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "gmt abbreviation",
-			args: args{
-				s: "Wed, 01 Jan 2025 00:00:00 GMT",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "unix seconds with underscores",
-			args: args{
-				s: "1_735_689_600",
-			},
-			want: want{
-				val: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name: "zone abbreviation other than utc or gmt",
-			args: args{
-				s: "Wed, 01 Jan 2025 00:00:00 EST",
-			},
-			want: want{
-				isErr: true,
-				err:   `unknown time zone "EST"`,
-			},
-		},
-		{
-			name: "lowercase z",
-			args: args{
-				s: "2025-01-01T00:00:00z",
-			},
-			want: want{
-				isErr: true,
-				err:   `unrecognized time "2025-01-01T00:00:00z"`,
-			},
-		},
-		{
-			name: "out of range month",
-			args: args{
-				s: "2025-13-01",
-			},
-			want: want{
-				isErr: true,
-				err:   `unrecognized time "2025-13-01"`,
-			},
-		},
-		{
-			name: "clock only",
-			args: args{
-				s: "12:00:00",
-			},
-			want: want{
-				isErr: true,
-				err:   `unrecognized time "12:00:00"`,
-			},
-		},
-		{
-			name: "unix with fraction",
-			args: args{
-				s: "1735689600.5",
-			},
-			want: want{
-				isErr: true,
-				err:   `unrecognized time "1735689600.5"`,
-			},
-		},
-		{
-			name: "unix seconds overflow",
-			args: args{
-				s: "99999999999999999999",
-			},
-			want: want{
-				isErr: true,
-				err:   `unix seconds out of range "99999999999999999999"`,
-			},
-		},
-		{
-			name: "sign only",
-			args: args{
-				s: "-",
-			},
-			want: want{
-				isErr: true,
-				err:   `unrecognized time "-"`,
-			},
-		},
-		{
-			name: "empty",
-			args: args{
-				s: "",
-			},
-			want: want{
-				isErr: true,
-				err:   `unrecognized time ""`,
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got, err := parseTime(test.args.s)
-			isErr := err != nil
-			if isErr != test.want.isErr {
-				t.Errorf("error mismatch\ngot=%v\nwant=%v\n", isErr, test.want.isErr)
-				return
-			}
-			if isErr {
-				if err.Error() != test.want.err {
-					t.Errorf("error mismatch\ngot=%v\nwant=%v\n", err, test.want.err)
-				}
-				return
-			}
-			if !got.Equal(test.want.val) {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
-			}
-			if got.Location() != time.UTC {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got.Location(), time.UTC)
-			}
-		})
-	}
-}
-
-func Test_unquote(t *testing.T) {
-	type args struct {
-		t token
-	}
-	type want struct {
-		val string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "string",
-			args: args{
-				t: token{
-					v:   `"abc"`,
-					typ: tokenString,
-				},
-			},
-			want: want{
-				val: "abc",
-			},
-		},
-		{
-			name: "raw string",
-			args: args{
-				t: token{
-					v:   "`abc`",
-					typ: tokenRawString,
-				},
-			},
-			want: want{
-				val: "abc",
-			},
-		},
-		{
-			name: "empty string",
-			args: args{
-				t: token{
-					v:   `""`,
-					typ: tokenString,
-				},
-			},
-			want: want{
-				val: "",
-			},
-		},
-		{
-			name: "too short",
-			args: args{
-				t: token{
-					v:   `"`,
-					typ: tokenString,
-				},
-			},
-			want: want{
-				val: `"`,
-			},
-		},
-		{
-			name: "number",
-			args: args{
-				t: token{
-					v:   "42",
-					typ: tokenNumber,
-				},
-			},
-			want: want{
-				val: "42",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got := unquote(test.args.t)
-			if got != test.want.val {
-				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}
 		})
 	}

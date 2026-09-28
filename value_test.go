@@ -8,6 +8,322 @@ import (
 	"time"
 )
 
+func TestValue_string(t *testing.T) {
+	type want struct {
+		val string
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "empty",
+			tr: Value{
+				kind: kindString,
+			},
+			want: want{
+				val: "",
+			},
+		},
+		{
+			name: "text",
+			tr: Value{
+				s:    "軍師",
+				kind: kindString,
+			},
+			want: want{
+				val: "軍師",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.string()
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestValue_int64(t *testing.T) {
+	type want struct {
+		val int64
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "zero",
+			tr: Value{
+				kind: kindInt64,
+			},
+			want: want{
+				val: 0,
+			},
+		},
+		{
+			name: "minimum",
+			tr: Value{
+				a:    math.MinInt64,
+				kind: kindInt64,
+			},
+			want: want{
+				val: math.MinInt64,
+			},
+		},
+		{
+			name: "maximum",
+			tr: Value{
+				a:    math.MaxInt64,
+				kind: kindInt64,
+			},
+			want: want{
+				val: math.MaxInt64,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.int64()
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestValue_uint64(t *testing.T) {
+	type want struct {
+		val uint64
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "zero",
+			tr: Value{
+				kind: kindUint64,
+			},
+			want: want{
+				val: 0,
+			},
+		},
+		{
+			name: "high bit",
+			tr: Value{
+				a:    math.MinInt64,
+				kind: kindUint64,
+			},
+			want: want{
+				val: 1 << 63,
+			},
+		},
+		{
+			name: "maximum",
+			tr: Value{
+				a:    -1,
+				kind: kindUint64,
+			},
+			want: want{
+				val: math.MaxUint64,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.uint64()
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestValue_float64(t *testing.T) {
+	type want struct {
+		val float64
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "zero",
+			tr: Value{
+				kind: kindFloat64,
+			},
+			want: want{
+				val: 0,
+			},
+		},
+		{
+			name: "negative zero",
+			tr: Value{
+				a:    math.MinInt64,
+				kind: kindFloat64,
+			},
+			want: want{
+				val: math.Copysign(0, -1),
+			},
+		},
+		{
+			name: "fraction",
+			tr: Value{
+				a:    0x3ff8000000000000,
+				kind: kindFloat64,
+			},
+			want: want{
+				val: 1.5,
+			},
+		},
+		{
+			name: "positive infinity",
+			tr: Value{
+				a:    0x7ff0000000000000,
+				kind: kindFloat64,
+			},
+			want: want{
+				val: math.Inf(1),
+			},
+		},
+		{
+			name: "negative infinity",
+			tr: Value{
+				a:    -0x0010000000000000,
+				kind: kindFloat64,
+			},
+			want: want{
+				val: math.Inf(-1),
+			},
+		},
+		{
+			name: "nan payload",
+			tr: Value{
+				a:    0x7ff8000000000042,
+				kind: kindFloat64,
+			},
+			want: want{
+				val: math.Float64frombits(0x7ff8000000000042),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.float64()
+			if math.Float64bits(got) != math.Float64bits(test.want.val) {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestValue_time(t *testing.T) {
+	type want struct {
+		val time.Time
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "epoch",
+			tr: Value{
+				kind: kindTime,
+			},
+			want: want{
+				val: time.Unix(0, 0),
+			},
+		},
+		{
+			name: "before epoch",
+			tr: Value{
+				a:    -1,
+				b:    123456789,
+				kind: kindTime,
+			},
+			want: want{
+				val: time.Unix(-1, 123456789),
+			},
+		},
+		{
+			name: "nanoseconds",
+			tr: Value{
+				a:    1700000000,
+				b:    999999999,
+				kind: kindTime,
+			},
+			want: want{
+				val: time.Unix(1700000000, 999999999),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.time()
+			if !got.Equal(test.want.val) {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
+func TestValue_duration(t *testing.T) {
+	type want struct {
+		val time.Duration
+	}
+	tests := []struct {
+		name string
+		tr   Value
+		want want
+	}{
+		{
+			name: "zero",
+			tr: Value{
+				kind: kindDuration,
+			},
+			want: want{
+				val: 0,
+			},
+		},
+		{
+			name: "minimum",
+			tr: Value{
+				a:    math.MinInt64,
+				kind: kindDuration,
+			},
+			want: want{
+				val: time.Duration(math.MinInt64),
+			},
+		},
+		{
+			name: "maximum",
+			tr: Value{
+				a:    math.MaxInt64,
+				kind: kindDuration,
+			},
+			want: want{
+				val: time.Duration(math.MaxInt64),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tr.duration()
+			if got != test.want.val {
+				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
+			}
+		})
+	}
+}
+
 func TestValue_addr(t *testing.T) {
 	type want struct {
 		val netip.Addr

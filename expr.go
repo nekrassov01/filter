@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"math"
 	"net/netip"
 	"time"
 )
@@ -72,38 +71,37 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		}
 		return !v, nil
 	case nodePredicate:
-		if cache != nil && cache[n.ident.idx].ok {
-			return evalPredicate(n, cache[n.ident.idx].v)
+		if cache != nil && cache[n.identIdx].ok {
+			return evalPredicate(n, &cache[n.identIdx].v)
 		}
 		v, ok := r.Resolve(n.ident.v)
 		if !ok {
 			return false, newError(KindEval, n.ident, "unknown identifier %q", n.ident.v)
 		}
 		if cache != nil {
-			cache[n.ident.idx] = cached{v: v, ok: true}
+			cache[n.identIdx] = cached{v: v, ok: true}
 		}
-		return evalPredicate(n, v)
+		return evalPredicate(n, &v)
 	}
 	return false, newError(KindEval, n.op, "invalid node type %q", n.op.typ)
 }
 
 // evalPredicate evaluates a predicate against a resolved value.
-func evalPredicate(n *node, v Value) (bool, error) {
+// The resolved value is borrowed to avoid copying it and must not be modified.
+func evalPredicate(n *node, v *Value) (bool, error) {
 	switch v.kind {
 	case kindString:
-		return evalString(n, v.s)
+		return evalString(n, v.string())
 	case kindInt64:
-		return evalNumber(n, v.a)
+		return evalNumber(n, v.int64())
 	case kindUint64:
-		//nolint:gosec // bit pattern conversion
-		return evalNumber(n, uint64(v.a))
+		return evalNumber(n, v.uint64())
 	case kindFloat64:
-		//nolint:gosec // bit pattern conversion
-		return evalNumber(n, math.Float64frombits(uint64(v.a)))
+		return evalNumber(n, v.float64())
 	case kindTime:
-		return evalTime(n, time.Unix(v.a, v.b))
+		return evalTime(n, v.time())
 	case kindDuration:
-		return evalDuration(n, time.Duration(v.a))
+		return evalDuration(n, v.duration())
 	case kindAddr:
 		return evalAddr(n, v.addr())
 	default:
@@ -115,9 +113,9 @@ func evalPredicate(n *node, v Value) (bool, error) {
 func evalString(n *node, v string) (bool, error) {
 	switch n.op.typ {
 	case tokenEQ:
-		return v == n.val.v, nil
+		return v == n.s, nil
 	case tokenNEQ:
-		return v != n.val.v, nil
+		return v != n.s, nil
 	case tokenREQ:
 		return n.re.MatchString(v), nil
 	case tokenNREQ:
@@ -130,35 +128,29 @@ func evalString(n *node, v string) (bool, error) {
 // evalNumber evaluates a predicate against a signed integer, unsigned integer,
 // or floating-point value without rounding integers for mixed comparisons.
 func evalNumber[T int64 | uint64 | float64](n *node, v T) (bool, error) {
-	rhs := n
-	if !n.hasInt && !n.hasUint && !n.hasFloat {
-		var parsed node
-		var err error
-		parsed.valInt, err = parseNumber[int64](n.val.v)
-		parsed.hasInt = err == nil
-		if !parsed.hasInt {
-			parsed.valUint, err = parseNumber[uint64](n.val.v)
-			parsed.hasUint = err == nil
-		}
-		if !parsed.hasInt && !parsed.hasUint {
-			v, err := parseNumber[float64](n.val.v)
-			if err != nil {
-				return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
-			}
-			parsed.valFloat = v
-			parsed.hasFloat = true
-		}
-		rhs = &parsed
-	}
 	var c int
 	var equal, ordered bool
 	switch {
-	case rhs.hasInt:
-		c, equal, ordered = compareNumber(v, rhs.valInt)
-	case rhs.hasUint:
-		c, equal, ordered = compareNumber(v, rhs.valUint)
-	case rhs.hasFloat:
-		c, equal, ordered = compareNumber(v, rhs.valFloat)
+	case n.hasInt:
+		c, equal, ordered = compareNumber(v, n.valInt)
+	case n.hasUint:
+		c, equal, ordered = compareNumber(v, n.valUint)
+	case n.hasFloat:
+		c, equal, ordered = compareNumber(v, n.valFloat)
+	default:
+		if right, err := parseNumber[int64](n.s); err == nil {
+			c, equal, ordered = compareNumber(v, right)
+			break
+		}
+		if right, err := parseNumber[uint64](n.s); err == nil {
+			c, equal, ordered = compareNumber(v, right)
+			break
+		}
+		right, err := parseNumber[float64](n.s)
+		if err != nil {
+			return false, newError(KindEval, n.val, "invalid number %q", n.s)
+		}
+		c, equal, ordered = compareNumber(v, right)
 	}
 	switch n.op.typ {
 	case tokenGT:
@@ -182,9 +174,9 @@ func evalNumber[T int64 | uint64 | float64](n *node, v T) (bool, error) {
 func evalTime(n *node, v time.Time) (bool, error) {
 	t := n.valTime
 	if !n.hasTime {
-		parsed, err := parseTime(n.val.v)
+		parsed, err := parseTime(n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid time %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid time %q", n.s)
 		}
 		t = parsed
 	}
@@ -210,9 +202,9 @@ func evalTime(n *node, v time.Time) (bool, error) {
 func evalDuration(n *node, v time.Duration) (bool, error) {
 	d := n.valDuration
 	if !n.hasDuration {
-		parsed, err := time.ParseDuration(n.val.v)
+		parsed, err := time.ParseDuration(n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid duration %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid duration %q", n.s)
 		}
 		d = parsed
 	}
@@ -238,9 +230,9 @@ func evalDuration(n *node, v time.Duration) (bool, error) {
 func evalAddr(n *node, v netip.Addr) (bool, error) {
 	ip := n.valAddr
 	if !n.hasAddr {
-		parsed, err := netip.ParseAddr(n.val.v)
+		parsed, err := netip.ParseAddr(n.s)
 		if err != nil {
-			return false, newError(KindEval, n.val, "invalid address %q", n.val.v)
+			return false, newError(KindEval, n.val, "invalid address %q", n.s)
 		}
 		ip = parsed
 	}

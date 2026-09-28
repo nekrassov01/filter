@@ -6,6 +6,7 @@ import (
 	"net/netip"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestExpr_Eval(t *testing.T) {
@@ -2435,6 +2436,96 @@ func TestExpr_Eval(t *testing.T) {
 			want: want{
 				isErr: true,
 				err:   `eval error at 1:6: invalid number "1_"`,
+			},
+		},
+		{
+			name: "numeric regex with number",
+			fields: fields{
+				expr: MustParse(`A=~"42"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"A": int64(42),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:2: invalid operator for number value "=~"`,
+			},
+		},
+		{
+			name: "duration regex with duration",
+			fields: fields{
+				expr: MustParse(`A!~"1s"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"A": time.Second,
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:2: invalid operator for duration value "!~"`,
+			},
+		},
+		{
+			name: "time regex with time",
+			fields: fields{
+				expr: MustParse(`A=~"2025-01-01"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"A": time.Unix(0, 0),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:2: invalid operator for time value "=~"`,
+			},
+		},
+		{
+			name: "address regex with address",
+			fields: fields{
+				expr: MustParse(`A!~"::1"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"A": netip.IPv6Loopback(),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:2: invalid operator for address value "!~"`,
+			},
+		},
+		{
+			name: "numeric regex with duration",
+			fields: fields{
+				expr: MustParse(`A=~"42"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"A": time.Second,
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:4: invalid duration "42"`,
+			},
+		},
+		{
+			name: "non numeric regex with number",
+			fields: fields{
+				expr: MustParse(`A=~"word"`).expr,
+			},
+			args: args{
+				r: testResolver{
+					"A": int64(42),
+				},
+			},
+			want: want{
+				isErr: true,
+				err:   `eval error at 1:4: invalid number "word"`,
 			},
 		},
 	}
