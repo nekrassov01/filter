@@ -202,7 +202,7 @@ func (p *parser) parsePredicate() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	ident.idx = p.identIndex(ident.v)
+	identIdx := p.identIndex(ident.v)
 	op, err := p.next()
 	if err != nil {
 		return 0, err
@@ -230,7 +230,7 @@ func (p *parser) parsePredicate() (int32, error) {
 			val.v = "false"
 		}
 	}
-	i := p.addNode(newNodePredicate(ident, op, val))
+	i := p.addNode(newNodePredicate(ident, op, val, identIdx))
 	if op.typ.isRegexOperatorType() {
 		if err := p.cacheRegex(i, val); err != nil {
 			return 0, err

@@ -72,15 +72,15 @@ func evalNode(nodes []node, i int32, r Resolver, cache []cached) (bool, error) {
 		}
 		return !v, nil
 	case nodePredicate:
-		if cache != nil && cache[n.ident.idx].ok {
-			return evalPredicate(n, cache[n.ident.idx].v)
+		if cache != nil && cache[n.identIdx].ok {
+			return evalPredicate(n, cache[n.identIdx].v)
 		}
 		v, ok := r.Resolve(n.ident.v)
 		if !ok {
 			return false, newError(KindEval, n.ident, "unknown identifier %q", n.ident.v)
 		}
 		if cache != nil {
-			cache[n.ident.idx] = cached{v: v, ok: true}
+			cache[n.identIdx] = cached{v: v, ok: true}
 		}
 		return evalPredicate(n, v)
 	}

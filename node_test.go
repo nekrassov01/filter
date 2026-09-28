@@ -210,9 +210,10 @@ func Test_newNodeUnary(t *testing.T) {
 
 func Test_newNodePredicate(t *testing.T) {
 	type args struct {
-		ident token
-		op    token
-		val   token
+		ident    token
+		op       token
+		val      token
+		identIdx int32
 	}
 	type want struct {
 		val node
@@ -277,7 +278,6 @@ func Test_newNodePredicate(t *testing.T) {
 			args: args{
 				ident: token{
 					v:   "HP",
-					idx: 5,
 					typ: tokenIdent,
 				},
 				op: token{
@@ -288,12 +288,12 @@ func Test_newNodePredicate(t *testing.T) {
 					v:   "1",
 					typ: tokenNumber,
 				},
+				identIdx: 5,
 			},
 			want: want{
 				val: node{
 					ident: token{
 						v:   "HP",
-						idx: 5,
 						typ: tokenIdent,
 					},
 					op: token{
@@ -304,7 +304,8 @@ func Test_newNodePredicate(t *testing.T) {
 						v:   "1",
 						typ: tokenNumber,
 					},
-					typ: nodePredicate,
+					typ:      nodePredicate,
+					identIdx: 5,
 				},
 			},
 		},
@@ -324,7 +325,7 @@ func Test_newNodePredicate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := newNodePredicate(test.args.ident, test.args.op, test.args.val)
+			got := newNodePredicate(test.args.ident, test.args.op, test.args.val, test.args.identIdx)
 			if !reflect.DeepEqual(got, test.want.val) {
 				t.Errorf("value mismatch\ngot=%v\nwant=%v\n", got, test.want.val)
 			}

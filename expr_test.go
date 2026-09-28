@@ -236,6 +236,35 @@ func Test_evalNode(t *testing.T) {
 				err:   `eval error: invalid node type "error"`,
 			},
 		},
+		{
+			name: "cached identifier at nonzero index",
+			args: args{
+				nodes: []node{
+					{
+						op: token{
+							typ: tokenEQ,
+						},
+						valInt:   42,
+						hasInt:   true,
+						typ:      nodePredicate,
+						identIdx: 1,
+					},
+				},
+				cache: []cached{
+					{
+						v:  Int(0),
+						ok: true,
+					},
+					{
+						v:  Int(42),
+						ok: true,
+					},
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
