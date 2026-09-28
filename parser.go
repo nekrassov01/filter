@@ -1,11 +1,8 @@
 package filter
 
 import (
-	"fmt"
-	"math"
 	"net/netip"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,19 +23,6 @@ const identBufSize = 8
 
 // nodeCharsEstimate is the assumed number of input bytes per node.
 const nodeCharsEstimate = 8
-
-// timeLayouts are the layouts a time literal may use, most common first.
-var timeLayouts = [...]string{
-	time.RFC3339,
-	"2006-01-02T15:04:05",
-	time.DateTime,
-	time.DateOnly,
-	time.RFC1123,
-	time.RFC1123Z,
-	time.RFC850,
-	time.RFC822,
-	time.RFC822Z,
-}
 
 // regexMap holds compiled regular expressions keyed by pattern.
 var regexMap sync.Map
@@ -240,7 +224,7 @@ func (p *parser) parsePredicate() (int32, error) {
 	case tokenString, tokenRawString:
 		p.cacheValues(i, val.v)
 	case tokenNumber:
-		if !p.cacheInt(i, val.v) && !p.cacheUint(i, val.v) && !p.cacheFloat(i, val.v) {
+		if !p.cacheNumber(i, val.v) {
 			return 0, newError(KindParse, val, "invalid number %q", val.v)
 		}
 		p.cacheTime(i, val.v)
@@ -303,9 +287,7 @@ func (p *parser) cacheValues(i int32, s string) {
 		if !strings.ContainsAny(s, "0123456789") {
 			return
 		}
-		if !p.cacheInt(i, s) && !p.cacheUint(i, s) {
-			p.cacheFloat(i, s)
-		}
+		p.cacheNumber(i, s)
 		p.cacheTime(i, s)
 	case tokenTime:
 		p.cacheTime(i, s)
@@ -314,30 +296,18 @@ func (p *parser) cacheValues(i int32, s string) {
 	}
 }
 
-// cacheInt stores the signed integer that s spells on node i and reports whether it did.
-func (p *parser) cacheInt(i int32, s string) bool {
-	v, err := parseNumber[int64](s)
-	if err != nil {
-		return false
+// cacheNumber stores the number that s spells on node i and reports whether it did.
+func (p *parser) cacheNumber(i int32, s string) bool {
+	if v, err := parseNumber[int64](s); err == nil {
+		p.node(i).valInt = v
+		p.node(i).hasInt = true
+		return true
 	}
-	p.node(i).valInt = v
-	p.node(i).hasInt = true
-	return true
-}
-
-// cacheUint stores the unsigned integer that s spells on node i and reports whether it did.
-func (p *parser) cacheUint(i int32, s string) bool {
-	v, err := parseNumber[uint64](s)
-	if err != nil {
-		return false
+	if v, err := parseNumber[uint64](s); err == nil {
+		p.node(i).valUint = v
+		p.node(i).hasUint = true
+		return true
 	}
-	p.node(i).valUint = v
-	p.node(i).hasUint = true
-	return true
-}
-
-// cacheFloat stores the floating-point value that s spells on node i and reports whether it did.
-func (p *parser) cacheFloat(i int32, s string) bool {
 	v, err := parseNumber[float64](s)
 	if err != nil {
 		return false
@@ -466,89 +436,6 @@ func (p *parser) peek() token {
 		p.peeked = true
 	}
 	return p.current
-}
-
-// parseNumber parses a literal of the requested numeric type. Integer literals
-// are never accepted as floats, so out-of-range integers cannot be rounded.
-func parseNumber[T int64 | uint64 | float64](s string) (T, error) {
-	var zero T
-	if _, ok := any(zero).(float64); ok {
-		digits := s
-		if len(digits) > 0 && (digits[0] == '+' || digits[0] == '-') {
-			digits = digits[1:]
-		}
-		integer := digits != ""
-		for _, c := range digits {
-			if (c < '0' || c > '9') && c != '_' {
-				integer = false
-				break
-			}
-		}
-		if integer {
-			return zero, fmt.Errorf("invalid floating-point literal %q", s)
-		}
-		v, err := strconv.ParseFloat(s, 64)
-		return T(v), err
-	}
-	if strings.Contains(s, "_") {
-		// Base 10 rejects separators, while base 0 treats leading zeros as octal.
-		// Validate separators before removing them; ignore the floating-point value.
-		if _, err := strconv.ParseFloat(s, 64); err != nil {
-			return zero, err
-		}
-		s = strings.ReplaceAll(s, "_", "")
-	}
-	if _, ok := any(zero).(int64); ok {
-		v, err := strconv.ParseInt(s, 10, 64)
-		return T(v), err
-	}
-	v, err := strconv.ParseUint(strings.TrimPrefix(s, "+"), 10, 64)
-	return T(v), err
-}
-
-// parseTime converts Unix seconds or a literal in one of timeLayouts to a
-// UTC time. A zone abbreviation other than UTC or GMT is rejected, since
-// time.Parse resolves no other abbreviation to an offset.
-func parseTime(s string) (time.Time, error) {
-	// Unix seconds.
-	digits := s
-	if digits != "" && (digits[0] == '-' || digits[0] == '+') {
-		digits = digits[1:]
-	}
-	if digits != "" && digits[0] != '_' && digits[len(digits)-1] != '_' {
-		var sec int64
-		integer := true
-		for i := 0; i < len(digits) && integer; i++ {
-			switch c := digits[i]; {
-			case c == '_':
-			case '0' <= c && c <= '9':
-				d := int64(c - '0')
-				if sec > (math.MaxInt64-d)/10 {
-					return time.Time{}, fmt.Errorf("unix seconds out of range %q", s)
-				}
-				sec = sec*10 + d
-			default:
-				integer = false
-			}
-		}
-		if integer {
-			if s[0] == '-' {
-				sec = -sec
-			}
-			return time.Unix(sec, 0).UTC(), nil
-		}
-	}
-	for _, layout := range timeLayouts {
-		t, err := time.ParseInLocation(layout, s, time.UTC)
-		if err != nil {
-			continue
-		}
-		if name, _ := t.Zone(); name != "" && name != "UTC" && name != "GMT" {
-			return time.Time{}, fmt.Errorf("unknown time zone %q", name)
-		}
-		return t.UTC(), nil
-	}
-	return time.Time{}, fmt.Errorf("unrecognized time %q", s)
 }
 
 // unquote returns the text of a string token without its surrounding quotes.

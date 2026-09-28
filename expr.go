@@ -128,35 +128,29 @@ func evalString(n *node, v string) (bool, error) {
 // evalNumber evaluates a predicate against a signed integer, unsigned integer,
 // or floating-point value without rounding integers for mixed comparisons.
 func evalNumber[T int64 | uint64 | float64](n *node, v T) (bool, error) {
-	rhs := n
-	if !n.hasInt && !n.hasUint && !n.hasFloat {
-		var parsed node
-		var err error
-		parsed.valInt, err = parseNumber[int64](n.val.v)
-		parsed.hasInt = err == nil
-		if !parsed.hasInt {
-			parsed.valUint, err = parseNumber[uint64](n.val.v)
-			parsed.hasUint = err == nil
-		}
-		if !parsed.hasInt && !parsed.hasUint {
-			v, err := parseNumber[float64](n.val.v)
-			if err != nil {
-				return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
-			}
-			parsed.valFloat = v
-			parsed.hasFloat = true
-		}
-		rhs = &parsed
-	}
 	var c int
 	var equal, ordered bool
 	switch {
-	case rhs.hasInt:
-		c, equal, ordered = compareNumber(v, rhs.valInt)
-	case rhs.hasUint:
-		c, equal, ordered = compareNumber(v, rhs.valUint)
-	case rhs.hasFloat:
-		c, equal, ordered = compareNumber(v, rhs.valFloat)
+	case n.hasInt:
+		c, equal, ordered = compareNumber(v, n.valInt)
+	case n.hasUint:
+		c, equal, ordered = compareNumber(v, n.valUint)
+	case n.hasFloat:
+		c, equal, ordered = compareNumber(v, n.valFloat)
+	default:
+		if right, err := parseNumber[int64](n.val.v); err == nil {
+			c, equal, ordered = compareNumber(v, right)
+			break
+		}
+		if right, err := parseNumber[uint64](n.val.v); err == nil {
+			c, equal, ordered = compareNumber(v, right)
+			break
+		}
+		right, err := parseNumber[float64](n.val.v)
+		if err != nil {
+			return false, newError(KindEval, n.val, "invalid number %q", n.val.v)
+		}
+		c, equal, ordered = compareNumber(v, right)
 	}
 	switch n.op.typ {
 	case tokenGT:

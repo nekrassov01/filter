@@ -2061,6 +2061,26 @@ func Test_evalNumber(t *testing.T) {
 				err:   `eval error at 1:4: invalid operator for number value "=~"`,
 			},
 		},
+		{
+			name: "uint64/uncached maximum integer",
+			args: args{
+				n: &node{
+					op: token{
+						typ: tokenEQ,
+					},
+					val: token{
+						v:   "18446744073709551615",
+						typ: tokenString,
+					},
+				},
+				eval: func(n *node) (bool, error) {
+					return evalNumber[uint64](n, math.MaxUint64)
+				},
+			},
+			want: want{
+				val: true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
