@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 )
 
 // MaxParen is the maximum number of opening parentheses in one expression.
@@ -84,6 +83,7 @@ type parser struct {
 	lexer      lexer // lexer for tokenizing input
 	current    token // current token
 	parenCount int   // number of opening parentheses
+	inputLen   int32 // input length in bytes for node capacity estimates
 	peeked     bool  // indicates if the next token has been peeked
 
 	nodeBuf [nodeBufSize]node // expression tree nodes until nodeBuf is full
@@ -98,8 +98,10 @@ type parser struct {
 
 // newParser creates a new parser for the input string.
 func newParser(input string) parser {
+	//nolint:gosec // Parse bounds the input length by MaxInput.
 	return parser{
-		lexer: newLexer(input),
+		lexer:    newLexer(input),
+		inputLen: int32(len(input)),
 	}
 }
 
@@ -282,8 +284,7 @@ func (p *parser) cacheValues(i int32, s string) {
 	if strings.ContainsAny(s, ".:") && p.cacheAddr(i, s) {
 		return
 	}
-	r, _ := utf8.DecodeRuneInString(s)
-	if !isNumberStart(r) {
+	if len(s) == 0 || strings.IndexByte("0123456789+.-", s[0]) < 0 {
 		if strings.Contains(s, ", ") {
 			// A time whose layout starts with a weekday name.
 			p.cacheTime(i, s)
@@ -415,7 +416,8 @@ func (p *parser) addNode(n node) int32 {
 	case i < nodeBufSize:
 		p.nodeBuf[i] = n
 	default:
-		remaining := len(p.lexer.input) - int(p.lexer.pos)
+		// current retains the original token text, including quotes.
+		remaining := int(p.inputLen-p.current.pos) - len(p.current.v)
 		p.nodes = make([]node, i, max(2*nodeBufSize, int(i)+remaining/nodeCharsEstimate))
 		copy(p.nodes, p.nodeBuf[:])
 		p.nodes = append(p.nodes, n)
