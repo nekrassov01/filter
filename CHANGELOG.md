@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.4.1](https://github.com/nekrassov01/filter/compare/v0.4.0...v0.4.1) - 2026-09-29
+
+- Support netip.Addr comparisons and IP literals by @nekrassov01 in https://github.com/nekrassov01/filter/pull/47
+- Improve code consistency and readability by @nekrassov01 in https://github.com/nekrassov01/filter/pull/49
+- Decouple parser from lexer internals by @nekrassov01 in https://github.com/nekrassov01/filter/pull/50
+- Unify lexer backtracking on scan failure by @nekrassov01 in https://github.com/nekrassov01/filter/pull/51
+- Clarify expression evaluation responsibilities by @nekrassov01 in https://github.com/nekrassov01/filter/pull/52
+- Skip impossible literal cache conversions by @nekrassov01 in https://github.com/nekrassov01/filter/pull/53
+- Reduce expression preparation overhead by @nekrassov01 in https://github.com/nekrassov01/filter/pull/54
+
 ## [v0.4.0](https://github.com/nekrassov01/filter/compare/v0.3.2...v0.4.0) - 2026-09-25
 
 - Preserve integer precision in numeric comparisons by @nekrassov01 in https://github.com/nekrassov01/filter/pull/43
