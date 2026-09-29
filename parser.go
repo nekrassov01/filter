@@ -73,6 +73,7 @@ type parser struct {
 	nodeBuf [nodeBufSize]node // expression tree nodes until nodeBuf is full
 	nodes   []node            // all expression tree nodes once nodeBuf overflowed
 	nnode   int32             // number of nodes
+	pending int32             // operators whose child nodes are still being parsed
 
 	identBuf [identBufSize]string // distinct identifiers until identBuf is full
 	idents   []string             // all distinct identifiers once identBuf overflowed
@@ -105,7 +106,9 @@ func (p *parser) parseLogicalOr() (int32, error) {
 		if err != nil {
 			return 0, err
 		}
+		p.pending++
 		right, err := p.parseLogicalAnd()
+		p.pending--
 		if err != nil {
 			return 0, err
 		}
@@ -125,7 +128,9 @@ func (p *parser) parseLogicalAnd() (int32, error) {
 		if err != nil {
 			return 0, err
 		}
+		p.pending++
 		right, err := p.parseUnary()
+		p.pending--
 		if err != nil {
 			return 0, err
 		}
@@ -143,7 +148,9 @@ func (p *parser) parseUnary() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
+	p.pending++
 	child, err := p.parsePrimary()
+	p.pending--
 	if err != nil {
 		return 0, err
 	}
@@ -379,19 +386,21 @@ func (p *parser) identIndex(name string) int32 {
 // addNode stores a node and returns its index.
 func (p *parser) addNode(n node) int32 {
 	i := p.nnode
-	switch {
-	case p.nodes != nil:
-		p.nodes = append(p.nodes, n)
-	case i < nodeBufSize:
-		p.nodeBuf[i] = n
-	default:
-		// current retains the original token text, including quotes.
-		remaining := int(p.inputLen-p.current.pos) - len(p.current.v)
-		p.nodes = make([]node, i, max(2*nodeBufSize, int(i)+remaining/nodeCharsEstimate))
-		copy(p.nodes, p.nodeBuf[:])
-		p.nodes = append(p.nodes, n)
-	}
 	p.nnode++
+	if i < nodeBufSize {
+		p.nodeBuf[i] = n
+		return i
+	}
+	if p.nodes == nil {
+		// current retains the original token text, including quotes.
+		//nolint:gosec // Parse bounds input and token lengths by MaxInput.
+		remaining := p.inputLen - p.current.pos - int32(len(p.current.v))
+		// Each future node needs unread input or an operator already pending.
+		// Include the current node without reserving unused growth at the end.
+		p.nodes = make([]node, i, min(max(2*nodeBufSize, i+remaining/nodeCharsEstimate), i+p.pending+remaining+1))
+		copy(p.nodes, p.nodeBuf[:])
+	}
+	p.nodes = append(p.nodes, n)
 	return i
 }
 

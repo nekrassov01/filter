@@ -309,13 +309,7 @@ func (l *lexer) lexNumber() state {
 // lexKeywordOrIdent scans an address, boolean literal, or identifier.
 // The leading character has already been seen.
 func (l *lexer) lexKeywordOrIdent() state {
-	start := l.mark()
-	l.backup()
-	if l.scanAddr() {
-		l.emit(tokenAddr)
-		return stateStmt
-	}
-	l.reset(start)
+	start := l.prev
 	// ASCII bytes advance without decoding; anything else takes the rune path.
 	for int(l.pos) < len(l.input) {
 		c := l.input[l.pos]
@@ -334,6 +328,16 @@ func (l *lexer) lexKeywordOrIdent() state {
 		}
 		l.pos++
 		l.col++
+	}
+	// Defer address scanning so hexadecimal identifiers are not scanned twice.
+	if int(l.pos) < len(l.input) && (l.input[l.pos] == '.' || l.input[l.pos] == ':') {
+		end := l.mark()
+		l.reset(start)
+		if l.scanAddr() {
+			l.emit(tokenAddr)
+			return stateStmt
+		}
+		l.reset(end)
 	}
 	if isBoolLiteral(l.input[l.startPos:l.pos]) {
 		l.emit(tokenBool)
