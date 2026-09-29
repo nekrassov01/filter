@@ -3310,6 +3310,66 @@ func Test_lexer_lexKeywordOrIdent(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dotted address candidate",
+			fields: fields{
+				input: "face.1.2.3",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					v:    "face.1.2.3",
+					line: 1,
+					col:  1,
+					typ:  tokenAddr,
+				},
+			},
+		},
+		{
+			name: "dot ends a hexadecimal identifier",
+			fields: fields{
+				input: "abc.def",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					v:    "abc",
+					line: 1,
+					col:  1,
+					typ:  tokenIdent,
+				},
+			},
+		},
+		{
+			name: "colon after a non-hexadecimal identifier",
+			fields: fields{
+				input: "xyz::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					v:    "xyz",
+					line: 1,
+					col:  1,
+					typ:  tokenIdent,
+				},
+			},
+		},
+		{
+			name: "colon after a multibyte identifier",
+			fields: fields{
+				input: "abc軍::1",
+			},
+			want: want{
+				val: stateStmt,
+				tok: token{
+					v:    "abc軍",
+					line: 1,
+					col:  1,
+					typ:  tokenIdent,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -8550,6 +8610,66 @@ test2
 						pos:  1,
 						line: 1,
 						col:  2,
+						typ:  tokenEOF,
+					},
+				},
+			},
+		},
+		{
+			name: "dotted identifier after newline",
+			fields: fields{
+				input: "\n abc.def",
+			},
+			want: want{
+				val: []token{
+					{
+						v:    "abc",
+						pos:  2,
+						line: 2,
+						col:  2,
+						typ:  tokenIdent,
+					},
+					{
+						v:    ".",
+						pos:  5,
+						line: 2,
+						col:  5,
+						typ:  tokenNumber,
+					},
+					{
+						v:    "def",
+						pos:  6,
+						line: 2,
+						col:  6,
+						typ:  tokenIdent,
+					},
+					{
+						pos:  9,
+						line: 2,
+						col:  9,
+						typ:  tokenEOF,
+					},
+				},
+			},
+		},
+		{
+			name: "address after newline",
+			fields: fields{
+				input: "\n fe80::1",
+			},
+			want: want{
+				val: []token{
+					{
+						v:    "fe80::1",
+						pos:  2,
+						line: 2,
+						col:  2,
+						typ:  tokenAddr,
+					},
+					{
+						pos:  9,
+						line: 2,
+						col:  9,
 						typ:  tokenEOF,
 					},
 				},
