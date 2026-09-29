@@ -219,7 +219,9 @@ func (p *parser) parsePredicate() (int32, error) {
 		if !p.cacheNumber(i, s) {
 			return 0, newError(KindParse, val, "invalid number %q", s)
 		}
-		p.cacheTime(i, s)
+		if n := p.node(i); !n.hasUint && !n.hasFloat {
+			p.cacheTime(i, s)
+		}
 	case tokenTime:
 		if !p.cacheTime(i, s) {
 			return 0, newError(KindParse, val, "invalid time %q", s)
@@ -258,7 +260,7 @@ func (p *parser) cacheRegex(i int32, s string) error {
 // cacheValues stores on node i every number, time, duration, or address that the
 // string literal s also spells.
 func (p *parser) cacheValues(i int32, s string) {
-	if strings.ContainsAny(s, ".:") && p.cacheAddr(i, s) {
+	if (strings.Count(s, ":") >= 2 || strings.Count(s, ".") == 3) && p.cacheAddr(i, s) {
 		return
 	}
 	if len(s) == 0 || strings.IndexByte("0123456789+.-", s[0]) < 0 {
@@ -281,7 +283,11 @@ func (p *parser) cacheValues(i int32, s string) {
 			return
 		}
 		p.cacheNumber(i, s)
-		p.cacheTime(i, s)
+		// Failed number conversions may still spell Unix seconds, but parsed
+		// unsigned integers and floats cannot.
+		if n := p.node(i); !n.hasUint && !n.hasFloat {
+			p.cacheTime(i, s)
+		}
 	case tokenTime:
 		p.cacheTime(i, s)
 	case tokenDuration:

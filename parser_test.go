@@ -1567,6 +1567,74 @@ func Test_parser_cacheValues(t *testing.T) {
 			},
 		},
 		{
+			name: "repeated separators spell unix seconds only",
+			args: args{
+				s: "1__0",
+			},
+			want: want{
+				valTime: time.Unix(10, 0).UTC(),
+
+				hasTime: true,
+			},
+		},
+		{
+			name: "signed maximum spells a number and unix seconds",
+			args: args{
+				s: "9223372036854775807",
+			},
+			want: want{
+				valInt:  math.MaxInt64,
+				valTime: time.Unix(math.MaxInt64, 0).UTC(),
+
+				hasInt:  true,
+				hasTime: true,
+			},
+		},
+		{
+			name: "signed minimum exceeds the unix seconds magnitude limit",
+			args: args{
+				s: "-9223372036854775808",
+			},
+			want: want{
+				valInt: math.MinInt64,
+
+				hasInt: true,
+			},
+		},
+		{
+			name: "unsigned maximum spells a number only",
+			args: args{
+				s: "18446744073709551615",
+			},
+			want: want{
+				valUint: math.MaxUint64,
+
+				hasUint: true,
+			},
+		},
+		{
+			name: "exponent spells a number only",
+			args: args{
+				s: "1e3",
+			},
+			want: want{
+				valFloat: 1000,
+
+				hasFloat: true,
+			},
+		},
+		{
+			name: "hexadecimal float spells a number only",
+			args: args{
+				s: "0x1.5p2",
+			},
+			want: want{
+				valFloat: 5.25,
+
+				hasFloat: true,
+			},
+		},
+		{
 			name: "stores on the requested node",
 			args: args{
 				i: 5,
@@ -1699,6 +1767,31 @@ func Test_parser_cacheValues(t *testing.T) {
 
 				hasAddr: true,
 			},
+		},
+		{
+			name: "ipv6 zone contains expression delimiters",
+			args: args{
+				s: "fe80::1%eth 0!=x",
+			},
+			want: want{
+				valAddr: netip.MustParseAddr("fe80::1%eth 0!=x"),
+
+				hasAddr: true,
+			},
+		},
+		{
+			name: "hostname",
+			args: args{
+				s: "host.example",
+			},
+			want: want{},
+		},
+		{
+			name: "text with one colon",
+			args: args{
+				s: "status: ready",
+			},
+			want: want{},
 		},
 		{
 			name: "invalid address",
