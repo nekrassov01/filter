@@ -92,6 +92,41 @@ func Test_parse(t *testing.T) {
 			},
 		},
 		{
+			name: "pending logical operators beyond the inline buffer",
+			args: args{
+				input: "A>0 || (" + strings.Repeat("A>0 && ", 8) + "A>0)",
+			},
+			want: want{
+				val: func() string {
+					s := "(A > 0)"
+					for range 8 {
+						s = "(" + s + " && (A > 0))"
+					}
+					return "((A > 0) || " + s + ")"
+				}(),
+				nodes:  19,
+				nident: 1,
+				shared: true,
+			},
+		},
+		{
+			name: "pending negations beyond the inline buffer",
+			args: args{
+				input: strings.Repeat("!(", 17) + "A>0" + strings.Repeat(")", 17),
+			},
+			want: want{
+				val: func() string {
+					s := "(A > 0)"
+					for range 17 {
+						s = "(! " + s + ")"
+					}
+					return s
+				}(),
+				nodes:  18,
+				nident: 1,
+			},
+		},
+		{
 			name: "input of exactly MaxInput bytes",
 			args: args{
 				input: `A=="` + strings.Repeat("x", MaxInput-5) + `"`,
@@ -2569,6 +2604,7 @@ func Test_parser_addNode(t *testing.T) {
 		inputLen int32
 		nodes    []node
 		nnode    int32
+		pending  int32
 	}
 	type args struct {
 		n node
@@ -2624,7 +2660,49 @@ func Test_parser_addNode(t *testing.T) {
 			},
 			want: want{
 				val:      nodeBufSize,
-				capacity: 2 * nodeBufSize,
+				capacity: nodeBufSize + 1,
+				nodes:    nodeBufSize + 1,
+				nnode:    nodeBufSize + 1,
+			},
+		},
+		{
+			name: "pending operators reserve nodes after the input ends",
+			fields: fields{
+				nnode:   nodeBufSize,
+				pending: 3,
+			},
+			args: args{
+				n: node{
+					typ: nodePredicate,
+				},
+			},
+			want: want{
+				val:      nodeBufSize,
+				capacity: nodeBufSize + 4,
+				nodes:    nodeBufSize + 1,
+				nnode:    nodeBufSize + 1,
+			},
+		},
+		{
+			name: "remaining bytes bound future nodes",
+			fields: fields{
+				current: token{
+					v:   "1",
+					pos: 40,
+					typ: tokenNumber,
+				},
+				inputLen: 45,
+				nnode:    nodeBufSize,
+				pending:  2,
+			},
+			args: args{
+				n: node{
+					typ: nodePredicate,
+				},
+			},
+			want: want{
+				val:      nodeBufSize,
+				capacity: nodeBufSize + 7,
 				nodes:    nodeBufSize + 1,
 				nnode:    nodeBufSize + 1,
 			},
@@ -2677,6 +2755,7 @@ func Test_parser_addNode(t *testing.T) {
 				inputLen: test.fields.inputLen,
 				nodes:    test.fields.nodes,
 				nnode:    test.fields.nnode,
+				pending:  test.fields.pending,
 			}
 			got := p.addNode(test.args.n)
 			if got != test.want.val {
